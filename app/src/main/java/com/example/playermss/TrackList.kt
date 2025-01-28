@@ -18,23 +18,13 @@ import androidx.media3.session.MediaController
 //todo dataset to trackdata
 class TrackList(private val context: Context, private val mediaController: MediaController? = null){
 
-//    private var tracksList = arrayListOf<MediaData>()
     private var tracksListAdded=arrayListOf<MediaData>()
-//    private var dataset = arrayListOf<String>()
 //    private var mediaSources = arrayListOf<MediaItem>()
     private var tracksListM=mutableStateListOf<MediaData>()
-//    val adapter = CustomAdapter(dataset, onItemClicked = {
-//        Log.d("DBG_IC","You click $it")
-//        val ind=dataset.indexOf(it)
-//        player!!.seekTo(ind,0)
-//    })
 
     fun clear(){
-//        tracksList.clear()
         tracksListM.clear()
 //        mediaSources.clear()
-//        dataset.clear()
-//        adapter.notifyDataSetChanged()
     }
 
     fun play(){
@@ -55,7 +45,6 @@ class TrackList(private val context: Context, private val mediaController: Media
     @OptIn(UnstableApi::class)
     fun addFromFiles(files:Array<DocumentFile>){
         tracksListAdded.clear()
-//        dataset.clear()
 
         for(file in files){
             if(file.uri.toString().contains("mp3")){
@@ -72,10 +61,6 @@ class TrackList(private val context: Context, private val mediaController: Media
     @OptIn(UnstableApi::class)
     fun onFilesMediaDataReady(){
         if(!(tracksListAdded.find {it.requestDone == 0} != null)){
-
-//            tracksListAdded.forEach { it-> dataset += it.asString() }
-//            adapter.notifyDataSetChanged()
-//            tracksList.addAll(tracksListAdded)
             tracksListM.addAll(tracksListAdded)
             updateColumnIndices()
             for(t in tracksListAdded){

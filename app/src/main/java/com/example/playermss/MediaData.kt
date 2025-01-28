@@ -7,15 +7,21 @@ import android.util.Log
 import androidx.annotation.OptIn
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
@@ -40,15 +46,17 @@ class MediaData(val uri: Uri, private val context: Context, private val onDataRe
     private var trackGroup: TrackGroup? = null
     var requestDone: Int = 0
     lateinit var titleString: String
-    var listIndex:Int = 0
-    private var durationMs:Int?=0
+    var listIndex: Int = 0
+    private var durationMs: Int? = 0
 
-    val mediaData=mutableMapOf<String,String>()
+    val mediaData = mutableMapOf<String, String>()
 
     fun requestMediaData() {
         val mediaMetadataRetriever = MediaMetadataRetriever()
-        mediaMetadataRetriever.setDataSource(context,uri)
-        durationMs=mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toInt()
+        mediaMetadataRetriever.setDataSource(context, uri)
+        durationMs =
+            mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
+                ?.toInt()
 
         Futures.addCallback(
             trackGroupsFuture,
@@ -60,33 +68,13 @@ class MediaData(val uri: Uri, private val context: Context, private val onDataRe
                         trackGroup = trackGroups[0]
                         val format = trackGroup!!.getFormat(0)
                         val metadata = format.metadata
-
-                        var resStr: String = ""
-
-                        for (i in 0..metadata!!.length() - 1) {
+//                        var resStr: String = ""
+                        for (i in 0..<metadata!!.length()) {
 //                            Log.d("DBG_M", metadata.get(i).toString())
                             val ti: TextInformationFrame? = metadata.get(i) as? TextInformationFrame
-                            Log.d("DBG_MD", "id: ${ti?.id} ${ti?.values?.get(0)}")
-
-                            mediaData[ti?.id.toString()]=ti?.values?.get(0).toString()
-
-//                            if (ti?.id == "TPE1") {
-//                                resStr += ti?.values?.get(0).toString()
-//                                resStr += " - "
-//                            }
-//                            if (ti?.id == "TYER") {
-//                                resStr += ti?.values?.get(0).toString()
-//                                resStr += " - "
-//                            }
-//                            if (ti?.id == "TALB") {
-//                                resStr += ti?.values?.get(0).toString()
-//                                resStr += " - "
-//                            }
-//                            if (ti?.id == "TIT2") {
-//                                resStr += ti?.values?.get(0).toString()
-//                            }
+//                            Log.d("DBG_MD", "id: ${ti?.id} ${ti?.values?.get(0)}")
+                            mediaData[ti?.id.toString()] = ti?.values?.get(0).toString()
                         }
-//                        titleString = resStr
                     }
                     requestDone = 1
                     onDataReady()
@@ -101,18 +89,49 @@ class MediaData(val uri: Uri, private val context: Context, private val onDataRe
         )
     }
 
-    fun asString() :String = titleString
+    fun asString(): String = titleString
+
+    fun mediaData(k: String, separator: String = ""): String {
+        if (mediaData[k] != null) {
+            return mediaData[k].toString() + separator
+        } else {
+            return separator
+        }
+//        return (mediaData[k] != null ? String?():mediaData[k])
+    }
+
+    fun duration():String{
+        val durationS = durationMs?.div(1000)
+        val mins = durationS?.div(60)
+        val secs = durationS?.rem(60)
+        return mins.toString()+":"+secs.toString().padStart(2,'0')
+//        return "$mins:$secs"
+    }
 }
 
 @OptIn(UnstableApi::class)
 @Composable
-fun trackCard(mediaData: MediaData, mediaController: MediaController?, modifier: Modifier = Modifier) {
-    Card(modifier= Modifier.height(IntrinsicSize.Min).fillMaxSize().border(width = Dp.Hairline, color = Color.Gray, shape = RectangleShape)//border(width = Dp.Hairline , brush = Brush.,shape=null )
-        .clickable(
-            onClick = {
-                mediaController?.seekTo(mediaData.listIndex,0)
-            })){
-        Column {
+fun trackCard(
+    mediaData: MediaData,
+    mediaController: MediaController?,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = Modifier
+            .height(IntrinsicSize.Min)
+            .fillMaxSize()
+//        .border(width = Dp.Hairline, color = Color.Gray, shape = RectangleShape)//border(width = Dp.Hairline , brush = Brush.,shape=null )
+            .padding(2.dp)
+            .clickable(
+                onClick = {
+                    mediaController?.seekTo(mediaData.listIndex, 0)
+                }),
+        shape = RoundedCornerShape(10),
+    ) {
+        Row (modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween){
+            Column {//(modifier=Modifier.padding(.dp))
+//        {
 //            Image(painter = painterResource(id = affirmation.imageResourceId),
 //                contentDescription = stringResource(id = affirmation.stringResourceId),
 //                modifier= Modifier
@@ -120,12 +139,38 @@ fun trackCard(mediaData: MediaData, mediaController: MediaController?, modifier:
 //                    .height(194.dp),
 //                contentScale = ContentScale.Crop
 //            )
-            Text(
-                text= mediaData.asString(),
-                modifier=Modifier.padding(4.dp),
-                style= MaterialTheme.typography.headlineSmall,
-                fontSize = 16.sp
-            )
+                Text(
+                    text = mediaData.mediaData("TIT2"),
+//                modifier=Modifier.padding(2.dp),
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontSize = 16.sp
+                )
+                Row {
+                    Text(
+                        text = mediaData.mediaData("TPE1", " - "),
+//                    modifier = Modifier.padding(2.dp),
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontSize = 12.sp
+                    )
+                    Text(
+                        text = mediaData.mediaData("TYER", " - "),
+//                    modifier = Modifier.padding(2.dp),
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontSize = 12.sp
+                    )
+                    Text(
+                        text = mediaData.mediaData("TALB"),
+//                    modifier = Modifier.padding(2.dp),
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontSize = 12.sp
+                    )
+                }
+            }
+            Column (modifier = Modifier.fillMaxHeight(),
+                verticalArrangement = Arrangement.Center){
+                Text(modifier = Modifier.align(Alignment.End),
+                     text = mediaData.duration())
+            }
         }
     }
 }
