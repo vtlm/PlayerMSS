@@ -16,13 +16,17 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.annotation.OptIn
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.PlayArrow
@@ -70,9 +74,8 @@ import kotlinx.coroutines.launch
 import java.util.Timer
 import kotlin.concurrent.timerTask
 
-
 //todo
-//rotation (sace state, remember)
+//rotation (face state, remember)
 
 const val REQ_CODE = 0xff0033
 
@@ -86,8 +89,6 @@ class MainActivity : ComponentActivity() {
     private var cMediaMetadata = mutableStateOf<MediaMetadata?>(null)
     private var trackPosition by mutableLongStateOf(0)
     private var trackDuration by mutableLongStateOf(0)
-
-    private val myCoroutineScope = CoroutineScope(Dispatchers.Main)
 
     //    private var bassBoost: BassBoost? = null
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -110,7 +111,6 @@ class MainActivity : ComponentActivity() {
 
 //            bassBoost = BassBoost(0,0)//sessionToken.uid)
 
-//mediaController.currentPosition
             mediaController?.addListener(
                 object : Player.Listener {
 
@@ -148,19 +148,6 @@ class MainActivity : ComponentActivity() {
                 MainUI()
             }
         }
-
-//        myCoroutineScope.launch {
-//            // Код корутины
-//            while (true) {
-////                Log.d("CRT", "Hello World from coroutine")
-//                if (mediaController?.isPlaying == true) {
-//                    trackDuration = mediaController?.contentDuration!!
-//                    trackPosition = mediaController?.currentPosition!!;
-//                }
-//                delay(1000)
-//            }
-//        }
-
     }
 
     override fun onDestroy() {
@@ -185,7 +172,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-
     @OptIn(UnstableApi::class)
     override fun onActivityResult(
         requestCode: Int, resultCode: Int, resultData: Intent?
@@ -206,21 +192,9 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-
-    private fun onSliderPositionChange(pos: Long) {
-//        mediaController?.seekTo(pos)
-        trackPosition = pos
-    }
-
-    private fun onSliderPositionChangeFinished() {
-        mediaController?.seekTo(trackPosition)
-//        trackPosition = pos
-    }
-
+    @kotlin.OptIn(ExperimentalFoundationApi::class)
     @Composable
     fun MainUI() {
-//    var count by remember { mutableStateOf(0) }
-
         Scaffold(
             modifier = Modifier.fillMaxSize()//.padding(top = 36.dp)
         ) { innerPadding ->
@@ -251,17 +225,23 @@ class MainActivity : ComponentActivity() {
                         Text("loading mediaSession")
                     }
                 }
-                Row {
-//                    TrackTime(trackPosition, trackDuration)
-                    TrackTime(mediaController)
+                Box{
+                    Row {
+                        TrackTime(mediaController)
+                    }
+                        Row {
+                            TrackInfo(
+                                mediaMetadata = cMediaMetadata.value,
+                                Modifier
+                                    .padding(start = 14.dp, top=4.dp)
+                                    .width(intrinsicSize = IntrinsicSize.Max)
+                                    .basicMarquee()
+                                    .weight(4f)
+                            )
+                            Text("", Modifier.weight(1.2f))
+                        }
                 }
-                TrackInfo(mediaMetadata = cMediaMetadata.value)
-//                TrackPositionSlider(
-//                    sliderPosition = trackPosition,
-//                    trackDuration,
-//                    ::onSliderPositionChange,
-//                    ::onSliderPositionChangeFinished
-//                )
+
                 PlayControls(mediaController = mediaController, modifier = Modifier.weight(4f))
             }
         }
@@ -278,10 +258,10 @@ fun ButtonAction(caption: String, onClick: () -> Unit) {
 
 @OptIn(UnstableApi::class)
 @Composable
-fun TrackInfo(mediaMetadata: MediaMetadata?) {
+fun TrackInfo(mediaMetadata: MediaMetadata?,modifier: Modifier=Modifier) {
 
     if (mediaMetadata == null) {
-        Text("Select a track to play")
+        Text("Select a track to play",modifier)
     } else {
         var songInfo = "";
         mediaMetadata.artist?.let {
@@ -298,7 +278,7 @@ fun TrackInfo(mediaMetadata: MediaMetadata?) {
             songInfo += "-"
             songInfo += it.toString()
         }
-        Text(songInfo)
+        Text(songInfo,modifier)
     }
 }
 
@@ -307,9 +287,11 @@ fun TrackTime(mediaController: MediaController?) {
 
     var currentTime by remember { mutableLongStateOf(0L) }
     var fullTime by remember { mutableLongStateOf(0L) }
-    var cMediaMetadata = remember {mutableStateOf<MediaMetadata?>(null)}
+    val cMediaMetadata = remember { mutableStateOf<MediaMetadata?>(null) }
+    var userInteraction by remember {  mutableIntStateOf(0) }
 
     LaunchedEffect(mediaController) {
+
         mediaController?.addListener(
             object : Player.Listener {
                 override fun onMediaMetadataChanged(mediaMetadata: MediaMetadata) {
@@ -320,19 +302,21 @@ fun TrackTime(mediaController: MediaController?) {
         )
 
         while (true) {
-            Log.d("CRT", "Hello World from LE coroutine $currentTime")
-            if (mediaController?.isPlaying == true) {
+            Log.d("CRT", "Hello World from LE coroutine $currentTime, userInteraction $userInteraction")
+            if ((userInteraction == 0) && mediaController?.isPlaying == true) {
                 fullTime = mediaController?.contentDuration!!
                 currentTime = mediaController?.currentPosition!!;
             }
             delay(1000)
         }
     }
+
     var remaining by remember { mutableIntStateOf(0) }
     val calcTime = if (remaining == 1) fullTime - currentTime else currentTime
     val time = "%1\$tM:%1\$tS".format(calcTime)
     val showTime = if (remaining == 1) "-$time" else time
     Log.d("TIME", "$currentTime")
+
     Column {
         Card(
             modifier = Modifier
@@ -340,7 +324,7 @@ fun TrackTime(mediaController: MediaController?) {
                 .fillMaxSize()
 //        .border(width = Dp.Hairline, color = Color.Gray, shape = RectangleShape)//border(width = Dp.Hairline , brush = Brush.,shape=null )
                 .padding(horizontal = 2.dp, vertical = 0.dp)
-                .clickable( onClick = { remaining = remaining xor 1 }),
+                .clickable(onClick = { remaining = remaining xor 1 }),
             shape = RoundedCornerShape(10),
 
             ) {
@@ -357,62 +341,13 @@ fun TrackTime(mediaController: MediaController?) {
         }
         Slider(
             value = currentTime / 1000F,
-            onValueChange = { currentTime = (it * 1000).toLong() },
-            onValueChangeFinished = { mediaController?.seekTo(currentTime) },
+            onValueChange = { currentTime = (it * 1000).toLong()
+                            userInteraction = 1},
+            onValueChangeFinished = { mediaController?.seekTo(currentTime)
+                                    userInteraction = 0 },
             valueRange = 0f..fullTime / 1000F
         )
     }
-}
-
-@Composable
-fun TrackTime(currentTime: Long, fullTime: Long) {
-
-    var remaining by remember { mutableIntStateOf(0) }
-    val calcTime = if (remaining == 1) fullTime - currentTime else currentTime
-    val time = "%1\$tM:%1\$tS".format(calcTime)
-    val showTime = if (remaining == 1) "-$time" else time
-    Log.d("TIME", "$currentTime")
-    Card(
-        modifier = Modifier
-            .height(IntrinsicSize.Min)
-            .fillMaxSize()
-//        .border(width = Dp.Hairline, color = Color.Gray, shape = RectangleShape)//border(width = Dp.Hairline , brush = Brush.,shape=null )
-            .padding(horizontal = 2.dp, vertical = 0.dp)
-            .clickable(
-                onClick = {
-                    remaining = remaining xor 1
-
-                }),
-        shape = RoundedCornerShape(10),
-
-        ) {
-        Row(modifier = Modifier.align(alignment = androidx.compose.ui.Alignment.End)) {
-            Text(
-                showTime,
-                Modifier.padding(horizontal = 8.dp),
-                style = MaterialTheme.typography.headlineSmall,
-                textAlign = TextAlign.End,
-                fontSize = 24.sp
-            )
-        }
-    }
-}
-
-@Composable
-fun TrackPositionSlider(
-    sliderPosition: Long,
-    sliderPositionMax: Long,
-    onValueChange: (pos: Long) -> Unit,
-    onValueChangeFinished: () -> Unit
-) {
-    Slider(
-        value = sliderPosition / 1000F,
-        onValueChange = {
-            onValueChange((it * 1000).toLong())//sliderPosition = it
-        },
-        onValueChangeFinished = { onValueChangeFinished() },
-        valueRange = 0f..sliderPositionMax / 1000F
-    )
 }
 
 @Composable
@@ -420,7 +355,7 @@ fun PlayControls(mediaController: MediaController?, modifier: Modifier) {
 
     Log.d("DBG_PC", "play ctls called")
 
-    var repeatMode = remember { mutableIntStateOf(Player.REPEAT_MODE_OFF) }
+    val repeatMode = remember { mutableIntStateOf(Player.REPEAT_MODE_OFF) }
     val maxRepeatModeInd = 2
     val repeatModeId = arrayOf(
         R.drawable.baseline_repeat_24,
@@ -428,8 +363,6 @@ fun PlayControls(mediaController: MediaController?, modifier: Modifier) {
         R.drawable.baseline_repeat_on_24,
     )
     Row {//(modifier = Modifier.weight(1f))
-        // {
-//                Icon(Icons.Rounded.PlayArrow, contentDescription = "Play")
         IconButton(onClick = { mediaController?.seekToPrevious() }) {
             Icon(
                 painter = painterResource(id = R.drawable.baseline_skip_previous_24),
