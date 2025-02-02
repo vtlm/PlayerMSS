@@ -16,6 +16,12 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.annotation.OptIn
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.EaseInOutExpo
+import androidx.compose.animation.core.Easing
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
@@ -210,7 +216,7 @@ class MainActivity : ComponentActivity() {
                 expanded = expanded,
                 onDismissRequest = { expanded = false },
 
-            ) {
+                ) {
                 DropdownMenuItem(
                     text = { Text("Clear") },
                     onClick = {
@@ -236,11 +242,30 @@ class MainActivity : ComponentActivity() {
     @kotlin.OptIn(ExperimentalFoundationApi::class)
     @Composable
     fun MainUI() {
+
+        var weightAdd by remember {
+            mutableFloatStateOf(0f)
+        }
+
+        val offs: Float by animateFloatAsState(
+            targetValue = weightAdd,
+            // Configure the animation duration and easing.
+            animationSpec = tween(durationMillis = 800, easing = EaseInOutExpo),
+            label = "offs"
+        )
+
         Scaffold(
             modifier = Modifier.fillMaxSize()//.padding(top = 36.dp)
         ) { innerPadding ->
             Column {
-                Row(modifier = Modifier.weight(7f)) {
+                Row(modifier = Modifier
+                    .weight(7f - offs)
+                    .animateContentSize()
+                    .clickable {
+                        Log.d("D_CLICK", "track list clicked!")
+                        weightAdd = 0f
+                    }
+                ) {
                     if (mediaControllerLoaded.value) {
                         if (trackList != null) {
                             trackList!!.asList()
@@ -251,7 +276,19 @@ class MainActivity : ComponentActivity() {
                         Text("loading mediaSession")
                     }
                 }
-
+                Row(modifier = Modifier
+                    .weight(2f + offs)
+                    .animateContentSize()
+                    .clickable { //Log.d("D_CLICK", "Box Sleeve clicked!")
+                        if (weightAdd < 1f) {
+                            weightAdd = 4f
+                        } else {
+                            weightAdd = 0f
+                        }
+                    }
+                ) {
+                    SleevePicture(mediaController = mediaController)
+                }
                 Box {
                     Row {
                         TrackTime(mediaController)

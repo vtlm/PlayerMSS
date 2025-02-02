@@ -28,15 +28,13 @@ import androidx.compose.ui.unit.sp
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.MediaController
 
-fun imageBitmapFromBytes(encodedImageData: ByteArray): ImageBitmap {
-    return BitmapFactory.decodeByteArray(encodedImageData, 0, encodedImageData.size).asImageBitmap()
-}
 @OptIn(UnstableApi::class)
 @Composable
 fun TrackCard(
     mediaData: MediaData,
     mediaController: MediaController?,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit = {}
 ) {
     val imageBitmap= mediaData.pic?.let { imageBitmapFromBytes(it) }
     Card(
@@ -52,18 +50,19 @@ fun TrackCard(
                         mediaController?.prepare()
                         mediaController?.play()
                     }
+                    onClick()
                 }),
         shape = RoundedCornerShape(10),
     ) {
         Row (modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween){
-            if (imageBitmap != null) {
-                Image(
-                    contentScale = ContentScale.FillHeight,
-                    bitmap = imageBitmap,
-                    contentDescription = "some useful description",
-                )
-            }
+//            if (imageBitmap != null) {
+//                Image(
+//                    contentScale = ContentScale.FillHeight,
+//                    bitmap = imageBitmap,
+//                    contentDescription = "some useful description",
+//                )
+//            }
             Column {//(modifier=Modifier.padding(.dp))
 //        {
 //            Image(painter = painterResource(id = affirmation.imageResourceId),
@@ -93,7 +92,7 @@ fun TrackCard(
                         fontSize = 12.sp
                     )
                     Text(
-                        text = mediaData.mediaData("TALB"),
+                        text = mediaData.mediaData("TALB"),//.dropLast(10),
 //                    modifier = Modifier.padding(2.dp),
                         style = MaterialTheme.typography.headlineSmall,
                         fontSize = 12.sp

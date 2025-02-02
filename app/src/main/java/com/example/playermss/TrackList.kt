@@ -53,7 +53,7 @@ class TrackList(private val context: Context, private val mediaController: Media
         tracksListAdded.clear()
 
         for(file in files){
-            if(file.uri.toString().contains("mp3")){
+            if(file.uri.toString().endsWith("mp3")){
                 tracksListAdded += MediaData(file.uri, context, onDataReady = ::onFilesMediaDataReady)
             }
         }
@@ -80,8 +80,8 @@ class TrackList(private val context: Context, private val mediaController: Media
 
     @OptIn(UnstableApi::class)
     @Composable
- fun asList(modifier: Modifier= Modifier){
-     val trackListState = remember {tracksListM }
+ fun asList(modifier: Modifier = Modifier, onClick: () -> Unit = {}){
+     val trackListState = remember { tracksListM }
         if(trackListState.isEmpty()){
             Box(modifier=Modifier.fillMaxSize()//.background(color= Color.Yellow)
                      ){
@@ -90,7 +90,7 @@ class TrackList(private val context: Context, private val mediaController: Media
         }else {
             LazyColumn {
                 items(items = trackListState) { item ->
-                    TrackCard(mediaData = item, mediaController = mediaController)
+                    TrackCard(mediaData = item, mediaController = mediaController, onClick = onClick)
                 }
             }
         }
