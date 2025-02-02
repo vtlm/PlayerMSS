@@ -48,6 +48,7 @@ class MediaData(val uri: Uri, private val context: Context, private val onDataRe
     lateinit var titleString: String
     var listIndex: Int = 0
     private var durationMs: Int? = 0
+    var pic: ByteArray? = null
 
     val mediaData = mutableMapOf<String, String>()
 
@@ -57,6 +58,8 @@ class MediaData(val uri: Uri, private val context: Context, private val onDataRe
         durationMs =
             mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
                 ?.toInt()
+
+        pic=mediaMetadataRetriever.embeddedPicture;
 
         Futures.addCallback(
             trackGroupsFuture,
@@ -106,71 +109,5 @@ class MediaData(val uri: Uri, private val context: Context, private val onDataRe
         val secs = durationS?.rem(60)
         return mins.toString()+":"+secs.toString().padStart(2,'0')
 //        return "$mins:$secs"
-    }
-}
-
-@OptIn(UnstableApi::class)
-@Composable
-fun trackCard(
-    mediaData: MediaData,
-    mediaController: MediaController?,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        modifier = Modifier
-            .height(IntrinsicSize.Min)
-            .fillMaxSize()
-//        .border(width = Dp.Hairline, color = Color.Gray, shape = RectangleShape)//border(width = Dp.Hairline , brush = Brush.,shape=null )
-            .padding(2.dp)
-            .clickable(
-                onClick = {
-                    mediaController?.seekTo(mediaData.listIndex, 0)
-                }),
-        shape = RoundedCornerShape(10),
-    ) {
-        Row (modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween){
-            Column {//(modifier=Modifier.padding(.dp))
-//        {
-//            Image(painter = painterResource(id = affirmation.imageResourceId),
-//                contentDescription = stringResource(id = affirmation.stringResourceId),
-//                modifier= Modifier
-//                    .fillMaxWidth()
-//                    .height(194.dp),
-//                contentScale = ContentScale.Crop
-//            )
-                Text(
-                    text = mediaData.mediaData("TIT2"),
-//                modifier=Modifier.padding(2.dp),
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontSize = 16.sp
-                )
-                Row {
-                    Text(
-                        text = mediaData.mediaData("TPE1", " - "),
-//                    modifier = Modifier.padding(2.dp),
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontSize = 12.sp
-                    )
-                    Text(
-                        text = mediaData.mediaData("TYER", " - "),
-//                    modifier = Modifier.padding(2.dp),
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontSize = 12.sp
-                    )
-                    Text(
-                        text = mediaData.mediaData("TALB"),
-//                    modifier = Modifier.padding(2.dp),
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontSize = 12.sp
-                    )
-                }
-            }
-            Column (modifier = Modifier.fillMaxHeight(),
-                verticalArrangement = Arrangement.Center){
-                Text(modifier = Modifier.align(Alignment.End),
-                     text = mediaData.duration())
-            }
-        }
     }
 }

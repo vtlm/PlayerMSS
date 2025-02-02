@@ -3,12 +3,18 @@ package com.example.playermss
 import android.content.Context
 import android.util.Log
 import androidx.annotation.OptIn
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.documentfile.provider.DocumentFile
 import androidx.media3.common.MediaItem
 import androidx.media3.common.util.UnstableApi
@@ -27,7 +33,7 @@ class TrackList(private val context: Context, private val mediaController: Media
 //        mediaSources.clear()
     }
 
-    fun play(){
+    fun prepareAndPlay(){
 //        mediaSources.clear()
 //        for(t in tracksList){
 //            mediaSources += MediaItem.Builder().setUri(t.uri).build()
@@ -68,21 +74,26 @@ class TrackList(private val context: Context, private val mediaController: Media
             }
             Log.d("TLMS","size=$tracksListM.size()")
 
-            play()
+            prepareAndPlay()
         }
-
     }
 
     @OptIn(UnstableApi::class)
     @Composable
  fun asList(modifier: Modifier= Modifier){
      val trackListState = remember {tracksListM }
-     LazyColumn {
-         items(items=trackListState){
-             item->
-             trackCard(mediaData = item, mediaController = mediaController)
-         }
-     }
+        if(trackListState.isEmpty()){
+            Box(modifier=Modifier.fillMaxSize()//.background(color= Color.Yellow)
+                     ){
+                Text("Use Menu to Add Tracks", modifier = Modifier.align(Alignment.Center))
+            }
+        }else {
+            LazyColumn {
+                items(items = trackListState) { item ->
+                    TrackCard(mediaData = item, mediaController = mediaController)
+                }
+            }
+        }
 
  }
 

@@ -61,6 +61,7 @@ dependencies {
     implementation(libs.androidx.material3)
     // https://mvnrepository.com/artifact/androidx.compose.material/material-icons-core-android
     implementation("androidx.compose.material:material-icons-core-android:1.7.6")
+//    implementation(libs.androidx.material3.android)
 // https://mvnrepository.com/artifact/androidx.compose.material/material-icons-extended
     runtimeOnly("androidx.compose.material:material-icons-extended:1.7.6")
 

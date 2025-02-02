@@ -17,22 +17,28 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.annotation.OptIn
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.rounded.PlayArrow
 //import androidx.compose.material.icons.
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -87,8 +93,6 @@ class MainActivity : ComponentActivity() {
     private var controllerFuture: ListenableFuture<MediaController>? = null
     private var mediaController: MediaController? = null
     private var cMediaMetadata = mutableStateOf<MediaMetadata?>(null)
-    private var trackPosition by mutableLongStateOf(0)
-    private var trackDuration by mutableLongStateOf(0)
 
     //    private var bassBoost: BassBoost? = null
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -192,6 +196,43 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    @Composable
+    fun MinimalDropdownMenu() {
+        var expanded by remember { mutableStateOf(false) }
+        Box(
+            modifier = Modifier
+                .padding(2.dp)
+        ) {
+            IconButton(onClick = { expanded = !expanded }) {
+                Icon(Icons.Default.MoreVert, contentDescription = "More options")
+            }
+            DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false },
+
+            ) {
+                DropdownMenuItem(
+                    text = { Text("Clear") },
+                    onClick = {
+                        trackList?.clear()
+                        mediaController?.clearMediaItems()
+                        expanded = false
+                    }
+                )
+                DropdownMenuItem(
+                    text = { Text("Add dir") },
+                    onClick = {
+                        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).apply {
+                            putExtra(DocumentsContract.EXTRA_INITIAL_URI, "")
+                        }
+                        startActivityForResult(intent, REQ_CODE)
+                        expanded = false
+                    }
+                )
+            }
+        }
+    }
+
     @kotlin.OptIn(ExperimentalFoundationApi::class)
     @Composable
     fun MainUI() {
@@ -199,21 +240,6 @@ class MainActivity : ComponentActivity() {
             modifier = Modifier.fillMaxSize()//.padding(top = 36.dp)
         ) { innerPadding ->
             Column {
-                Row(modifier = Modifier.weight(1f)) {
-                    ButtonAction(caption = "Add") {
-                        // Code here executes on main thread after user presses button
-                        Log.d("DBG", "button clicked")
-                        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).apply {
-                            putExtra(DocumentsContract.EXTRA_INITIAL_URI, "")
-                        }
-                        startActivityForResult(intent, REQ_CODE)
-                    }
-                    ButtonAction(caption = "Clear") {
-                        trackList?.clear()
-                        mediaController?.clearMediaItems()
-                    }
-                }
-
                 Row(modifier = Modifier.weight(7f)) {
                     if (mediaControllerLoaded.value) {
                         if (trackList != null) {
@@ -225,179 +251,47 @@ class MainActivity : ComponentActivity() {
                         Text("loading mediaSession")
                     }
                 }
-                Box{
+
+                Box {
                     Row {
                         TrackTime(mediaController)
                     }
-                        Row {
-                            TrackInfo(
-                                mediaMetadata = cMediaMetadata.value,
-                                Modifier
-                                    .padding(start = 14.dp, top=4.dp)
-                                    .width(intrinsicSize = IntrinsicSize.Max)
-                                    .basicMarquee()
-                                    .weight(4f)
-                            )
-                            Text("", Modifier.weight(1.2f))
+                    Row {
+                        TrackInfo(
+                            mediaMetadata = cMediaMetadata.value,
+                            Modifier
+                                .padding(start = 14.dp, top = 4.dp)
+                                .width(intrinsicSize = IntrinsicSize.Max)
+                                .basicMarquee()
+                                .weight(4f)
+                        )
+                        Text("", Modifier.weight(1.2f))
+                    }
+                }
+
+                Row {
+                    Column(Modifier.weight(4f)) {
+                        PlayControls(
+                            mediaController = mediaController,
+                            modifier = Modifier.weight(4f)
+                        )
+                    }
+                    Column(
+                        Modifier
+                            .weight(1f)
+//                        .width(intrinsicSize = IntrinsicSize.Max)
+                            .fillMaxWidth()
+                            .background(color = Color.Magenta)
+                    ) {
+                        Row(//verticalAlignment = Alignment.CenterVertically,
+                            Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End
+                        ) {
+                            MinimalDropdownMenu()
                         }
-                }
-
-                PlayControls(mediaController = mediaController, modifier = Modifier.weight(4f))
-            }
-        }
-    }
-
-}
-
-@Composable
-fun ButtonAction(caption: String, onClick: () -> Unit) {
-    Button(onClick = { onClick() }) {
-        Text(caption)
-    }
-}
-
-@OptIn(UnstableApi::class)
-@Composable
-fun TrackInfo(mediaMetadata: MediaMetadata?,modifier: Modifier=Modifier) {
-
-    if (mediaMetadata == null) {
-        Text("Select a track to play",modifier)
-    } else {
-        var songInfo = "";
-        mediaMetadata.artist?.let {
-            Log.d("DBGC", it.toString())
-            songInfo += it.toString()
-        }
-        mediaMetadata.albumTitle?.let {
-            Log.d("DBG", it.toString())
-            songInfo += "-"
-            songInfo += it.toString()
-        }
-        mediaMetadata.title?.let {
-            Log.d("DBG", it.toString())
-            songInfo += "-"
-            songInfo += it.toString()
-        }
-        Text(songInfo,modifier)
-    }
-}
-
-@Composable
-fun TrackTime(mediaController: MediaController?) {
-
-    var currentTime by remember { mutableLongStateOf(0L) }
-    var fullTime by remember { mutableLongStateOf(0L) }
-    val cMediaMetadata = remember { mutableStateOf<MediaMetadata?>(null) }
-    var userInteraction by remember {  mutableIntStateOf(0) }
-
-    LaunchedEffect(mediaController) {
-
-        mediaController?.addListener(
-            object : Player.Listener {
-                override fun onMediaMetadataChanged(mediaMetadata: MediaMetadata) {
-                    Log.d("DMG_CR", "CR mediaData changed")
-                    cMediaMetadata.value = mediaMetadata
+                    }
                 }
             }
-        )
-
-        while (true) {
-            Log.d("CRT", "Hello World from LE coroutine $currentTime, userInteraction $userInteraction")
-            if ((userInteraction == 0) && mediaController?.isPlaying == true) {
-                fullTime = mediaController?.contentDuration!!
-                currentTime = mediaController?.currentPosition!!;
-            }
-            delay(1000)
-        }
-    }
-
-    var remaining by remember { mutableIntStateOf(0) }
-    val calcTime = if (remaining == 1) fullTime - currentTime else currentTime
-    val time = "%1\$tM:%1\$tS".format(calcTime)
-    val showTime = if (remaining == 1) "-$time" else time
-    Log.d("TIME", "$currentTime")
-
-    Column {
-        Card(
-            modifier = Modifier
-                .height(IntrinsicSize.Min)
-                .fillMaxSize()
-//        .border(width = Dp.Hairline, color = Color.Gray, shape = RectangleShape)//border(width = Dp.Hairline , brush = Brush.,shape=null )
-                .padding(horizontal = 2.dp, vertical = 0.dp)
-                .clickable(onClick = { remaining = remaining xor 1 }),
-            shape = RoundedCornerShape(10),
-
-            ) {
-                Row(modifier = Modifier.align(alignment = androidx.compose.ui.Alignment.End)) {
-//                    TrackInfo(cMediaMetadata.value)
-                    Text(
-                        showTime,
-                        Modifier.padding(horizontal = 8.dp),
-                        style = MaterialTheme.typography.headlineSmall,
-                        textAlign = TextAlign.End,
-                        fontSize = 24.sp
-                    )
-                }
-        }
-        Slider(
-            value = currentTime / 1000F,
-            onValueChange = { currentTime = (it * 1000).toLong()
-                            userInteraction = 1},
-            onValueChangeFinished = { mediaController?.seekTo(currentTime)
-                                    userInteraction = 0 },
-            valueRange = 0f..fullTime / 1000F
-        )
-    }
-}
-
-@Composable
-fun PlayControls(mediaController: MediaController?, modifier: Modifier) {
-
-    Log.d("DBG_PC", "play ctls called")
-
-    val repeatMode = remember { mutableIntStateOf(Player.REPEAT_MODE_OFF) }
-    val maxRepeatModeInd = 2
-    val repeatModeId = arrayOf(
-        R.drawable.baseline_repeat_24,
-        R.drawable.baseline_repeat_one_on_24,
-        R.drawable.baseline_repeat_on_24,
-    )
-    Row {//(modifier = Modifier.weight(1f))
-        IconButton(onClick = { mediaController?.seekToPrevious() }) {
-            Icon(
-                painter = painterResource(id = R.drawable.baseline_skip_previous_24),
-                contentDescription = "Skip to Prev"
-            )
-        }
-        IconButton(onClick = {
-            mediaController?.prepare()
-            mediaController?.play()
-        }) {
-            Icon(Icons.Rounded.PlayArrow, contentDescription = "Play")
-        }
-        IconButton(onClick = { mediaController?.pause() }) {
-            Icon(
-                painter = painterResource(id = R.drawable.baseline_pause_24),
-                contentDescription = "Pause"
-            )
-        }
-        IconButton(onClick = { mediaController?.seekToNext() }) {
-            Icon(
-                painter = painterResource(id = R.drawable.baseline_skip_next_24),
-                contentDescription = "Skip to Next"
-            )
-        }
-        IconButton(onClick = {
-            repeatMode.intValue += 1
-            if (repeatMode.intValue > maxRepeatModeInd) {
-                repeatMode.intValue = 0
-            }
-            mediaController?.repeatMode = repeatMode.intValue
-        }) {
-            Icon(
-                painter = painterResource(id = repeatModeId[repeatMode.intValue]),
-                contentDescription = "Repeat Mode"
-            )
         }
     }
 
