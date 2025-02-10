@@ -18,14 +18,10 @@ class PlaybackService : MediaSessionService() {
     override fun onCreate() {
         super.onCreate()
          player = ExoPlayer.Builder(this).build()
-        mediaSession = MediaSession.Builder(this, player!!).build()
-        Log.d("OC","Playback service created")
-
-//        Timer().schedule(timerTask {check()
-//        }, 500, 500)
+         mediaSession = MediaSession.Builder(this, player!!).build()
+         Log.d("OC","Playback service created")
 
         val mainHandler = Handler(mainLooper)
-
         mainHandler.post { // Do your stuff here related to UI, e.g. show toast
             Toast.makeText(applicationContext, "Playback service created", Toast.LENGTH_LONG).show()
         }

@@ -2,20 +2,27 @@ package com.example.playermss
 
 import android.app.Activity
 import android.content.ComponentName
+import android.content.ContentUris
 import android.content.Intent
 import android.content.res.Configuration
 import android.graphics.drawable.Icon
 import android.media.MediaPlayer.TrackInfo
 import android.media.audiofx.BassBoost
+import android.media.audiofx.Visualizer
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.provider.DocumentsContract
+import android.provider.MediaStore
 import android.text.Layout.Alignment
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.OptIn
+import androidx.annotation.RequiresApi
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.EaseInOutExpo
 import androidx.compose.animation.core.Easing
@@ -67,6 +74,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.documentfile.provider.DocumentFile
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.PlaybackException
@@ -74,6 +82,7 @@ import androidx.media3.common.Player
 import androidx.media3.common.Tracks
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.HttpDataSource
+import androidx.media3.session.MediaBrowser
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import com.example.playermss.ui.theme.PlayerMSSTheme
@@ -100,9 +109,121 @@ class MainActivity : ComponentActivity() {
     private var mediaController: MediaController? = null
     private var cMediaMetadata = mutableStateOf<MediaMetadata?>(null)
 
-    //    private var bassBoost: BassBoost? = null
+        private var bassBoost: BassBoost? = null
+    private  var visualizer: Visualizer? = null
+    @RequiresApi(Build.VERSION_CODES.Q)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+// Register the permissions callback, which handles the user's response to the
+// system permissions dialog. Save the return value, an instance of
+// ActivityResultLauncher. You can use either a val, as shown in this snippet,
+// or a lateinit var in your onAttach() or onCreate() method.
+        val requestPermissionLauncher1 =
+            registerForActivityResult(
+                ActivityResultContracts.RequestPermission()
+            ) { isGranted: Boolean ->
+                if (isGranted) {
+                    // Permission is granted. Continue the action or workflow in your
+                    // app.
+                } else {
+                    // Explain to the user that the feature is unavailable because the
+                    // feature requires a permission that the user has denied. At the
+                    // same time, respect the user's decision. Don't link to system
+                    // settings in an effort to convince the user to change their
+                    // decision.
+                }
+            }
+        requestPermissionLauncher1.launch(android.Manifest.permission.RECORD_AUDIO)
+
+// Register the permissions callback, which handles the user's response to the
+// system permissions dialog. Save the return value, an instance of
+// ActivityResultLauncher. You can use either a val, as shown in this snippet,
+// or a lateinit var in your onAttach() or onCreate() method.
+        val requestPermissionLauncher =
+            registerForActivityResult(
+                ActivityResultContracts.RequestMultiplePermissions()
+            ) { permissions ->
+                permissions.entries.forEach {
+                    Log.i("DEBUG", "${it.key} = ${it.value}")
+                    if (it.value) {
+                        println("Successful......")
+
+                    }
+                }
+            }
+
+        requestPermissionLauncher.launch(arrayOf(android.Manifest.permission.RECORD_AUDIO,
+            android.Manifest.permission.READ_MEDIA_AUDIO,
+            android.Manifest.permission.WRITE_EXTERNAL_STORAGE
+        ))
+
+        val r= ContextCompat.checkSelfPermission(applicationContext,android.Manifest.permission.READ_MEDIA_AUDIO)
+        val r1= ContextCompat.checkSelfPermission(applicationContext,android.Manifest.permission.RECORD_AUDIO)
+
+
+
+        val f=getExternalFilesDirs(null)
+        val f1= MediaStore.getExternalVolumeNames(applicationContext)
+        val cu= MediaStore.Audio.Media.getContentUri(f1.elementAt(1))
+
+        this.contentResolver.query(
+            cu,
+            null,
+            null,
+            null,
+            null,
+        )?.use {
+                cursor ->
+            val  c=cursor.count;
+            val a=cursor.columnCount;
+
+        }
+
+        MediaStore.getMediaScannerUri()
+
+        val cu1= MediaStore.Audio.Media.getContentUriForPath(f1.elementAt(0))
+//        val collection1 = Uri.parse("content://storage/9C33-6BBD/Music");
+        val collection1 = MediaStore.Files.getContentUri(
+//                    MediaStore.Audio.Media.getContentUri(
+            MediaStore.VOLUME_EXTERNAL_PRIMARY
+        )
+//        this.contentResolver.insert(collection1,null)
+        val query1 = this.contentResolver.query(
+            cu,//ollection1,
+            null,
+            null,
+            null,
+            null,
+//            projection,
+//            selection,
+//            selectionArgs,
+//            sortOrder
+        )
+        query1?.use { cursor ->
+            // Cache column indices.
+            val idColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media._ID)
+            val nameColumn =
+                cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DISPLAY_NAME)
+            val durationColumn =
+                cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DURATION)
+            val sizeColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.SIZE)
+
+            while (cursor.moveToNext()) {
+                // Get values of columns for a given video.
+                val id = cursor.getLong(idColumn)
+                val name = cursor.getString(nameColumn)
+                val duration = cursor.getInt(durationColumn)
+                val size = cursor.getInt(sizeColumn)
+
+                val contentUri: Uri = ContentUris.withAppendedId(
+                    MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
+                    id
+                )
+
+            }
+        }
+
 
         val sessionToken =
             SessionToken(
@@ -119,7 +240,8 @@ class MainActivity : ComponentActivity() {
                 trackList = TrackList(applicationContext, mediaController!!)
             }
 
-//            bassBoost = BassBoost(0,0)//sessionToken.uid)
+//            visualizer = Visualizer(sessionToken.uid)
+//            bassBoost = BassBoost(0,sessionToken.uid)
 
             mediaController?.addListener(
                 object : Player.Listener {
@@ -152,6 +274,18 @@ class MainActivity : ComponentActivity() {
 
         }, MoreExecutors.directExecutor())
 
+//        val browserFuture = MediaBrowser.Builder(applicationContext, sessionToken).buildAsync()
+//        browserFuture.addListener({
+//            // MediaBrowser is available here with browserFuture.get()
+//            // Get the library root to start browsing the library tree.
+//            val mediaBrowser = browserFuture.get()
+//            val rootFuture = mediaBrowser.getLibraryRoot(/* params= */ null)
+//            rootFuture.addListener({
+//                // Root node MediaItem is available here with rootFuture.get().value
+//                val root = rootFuture.get()
+//            }, MoreExecutors.directExecutor())
+//
+//        }, MoreExecutors.directExecutor())
 //        enableEdgeToEdge()
         setContent {
             PlayerMSSTheme {
