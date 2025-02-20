@@ -1,12 +1,17 @@
 package com.example.playermss
 
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.ComponentName
 import android.content.ContentUris
 import android.content.Intent
 import android.content.res.Configuration
+import android.database.Cursor
+import android.database.CursorWrapper
 import android.graphics.drawable.Icon
 import android.media.MediaPlayer.TrackInfo
+import android.media.MediaScannerConnection
+import android.media.MediaScannerConnection.MediaScannerConnectionClient
 import android.media.audiofx.BassBoost
 import android.media.audiofx.Visualizer
 import android.net.Uri
@@ -43,24 +48,39 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material3.BottomAppBar
+import androidx.compose.material3.BottomAppBarDefaults
 //import androidx.compose.material.icons.
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
@@ -70,12 +90,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.documentfile.provider.DocumentFile
+import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
@@ -85,20 +107,40 @@ import androidx.media3.datasource.HttpDataSource
 import androidx.media3.session.MediaBrowser
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import com.anggrayudi.storage.file.DocumentFileCompat
+import com.anggrayudi.storage.file.getAbsolutePath
+import com.example.playermss.data.MediaViewModel
+import com.example.playermss.data.QueryParams
+import com.example.playermss.data.TextFieldViewModel
 import com.example.playermss.ui.theme.PlayerMSSTheme
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.count
 import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
 import java.util.Timer
 import kotlin.concurrent.timerTask
 
 //todo
 //rotation (face state, remember)
+//permissions on startup
 
-const val REQ_CODE = 0xff0033
+
+@Serializable
+object NavSearch
+
+@Serializable
+object NavTrackList
+
+
 
 @UnstableApi
 class MainActivity : ComponentActivity() {
@@ -109,32 +151,48 @@ class MainActivity : ComponentActivity() {
     private var mediaController: MediaController? = null
     private var cMediaMetadata = mutableStateOf<MediaMetadata?>(null)
 
+
+    private val searchFields = listOf<TextFieldViewModel>(
+        TextFieldViewModel("Artist"),
+        TextFieldViewModel("Album"),
+        TextFieldViewModel("Title"),
+        TextFieldViewModel("Year"),
+    )
+
+    private var mediaViewModel = MediaViewModel()
+
         private var bassBoost: BassBoost? = null
     private  var visualizer: Visualizer? = null
+
     @RequiresApi(Build.VERSION_CODES.Q)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        this.applicationContext.also { mediaViewModel.context = it }
+        mediaViewModel.query(queryParams = QueryParams())
 
 // Register the permissions callback, which handles the user's response to the
 // system permissions dialog. Save the return value, an instance of
 // ActivityResultLauncher. You can use either a val, as shown in this snippet,
 // or a lateinit var in your onAttach() or onCreate() method.
-        val requestPermissionLauncher1 =
-            registerForActivityResult(
-                ActivityResultContracts.RequestPermission()
-            ) { isGranted: Boolean ->
-                if (isGranted) {
-                    // Permission is granted. Continue the action or workflow in your
-                    // app.
-                } else {
-                    // Explain to the user that the feature is unavailable because the
-                    // feature requires a permission that the user has denied. At the
-                    // same time, respect the user's decision. Don't link to system
-                    // settings in an effort to convince the user to change their
-                    // decision.
-                }
-            }
-        requestPermissionLauncher1.launch(android.Manifest.permission.RECORD_AUDIO)
+
+//        val requestPermissionLauncher1 =
+//            registerForActivityResult(
+//                ActivityResultContracts.RequestPermission()
+//            ) { isGranted: Boolean ->
+//                if (isGranted) {
+//                    // Permission is granted. Continue the action or workflow in your
+//                    // app.
+//                } else {
+//                    // Explain to the user that the feature is unavailable because the
+//                    // feature requires a permission that the user has denied. At the
+//                    // same time, respect the user's decision. Don't link to system
+//                    // settings in an effort to convince the user to change their
+//                    // decision.
+//                }
+//            }
+//        requestPermissionLauncher1.launch(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
+
 
 // Register the permissions callback, which handles the user's response to the
 // system permissions dialog. Save the return value, an instance of
@@ -153,76 +211,20 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-        requestPermissionLauncher.launch(arrayOf(android.Manifest.permission.RECORD_AUDIO,
-            android.Manifest.permission.READ_MEDIA_AUDIO,
-            android.Manifest.permission.WRITE_EXTERNAL_STORAGE
-        ))
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            requestPermissionLauncher.launch(arrayOf(
+                android.Manifest.permission.RECORD_AUDIO,
+                android.Manifest.permission.READ_MEDIA_AUDIO,
+                android.Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                android.Manifest.permission.READ_EXTERNAL_STORAGE
+            ))
+        }
 
         val r= ContextCompat.checkSelfPermission(applicationContext,android.Manifest.permission.READ_MEDIA_AUDIO)
         val r1= ContextCompat.checkSelfPermission(applicationContext,android.Manifest.permission.RECORD_AUDIO)
+        val r2= ContextCompat.checkSelfPermission(applicationContext,android.Manifest.permission.READ_EXTERNAL_STORAGE)
 
 
-
-        val f=getExternalFilesDirs(null)
-        val f1= MediaStore.getExternalVolumeNames(applicationContext)
-        val cu= MediaStore.Audio.Media.getContentUri(f1.elementAt(1))
-
-        this.contentResolver.query(
-            cu,
-            null,
-            null,
-            null,
-            null,
-        )?.use {
-                cursor ->
-            val  c=cursor.count;
-            val a=cursor.columnCount;
-
-        }
-
-        MediaStore.getMediaScannerUri()
-
-        val cu1= MediaStore.Audio.Media.getContentUriForPath(f1.elementAt(0))
-//        val collection1 = Uri.parse("content://storage/9C33-6BBD/Music");
-        val collection1 = MediaStore.Files.getContentUri(
-//                    MediaStore.Audio.Media.getContentUri(
-            MediaStore.VOLUME_EXTERNAL_PRIMARY
-        )
-//        this.contentResolver.insert(collection1,null)
-        val query1 = this.contentResolver.query(
-            cu,//ollection1,
-            null,
-            null,
-            null,
-            null,
-//            projection,
-//            selection,
-//            selectionArgs,
-//            sortOrder
-        )
-        query1?.use { cursor ->
-            // Cache column indices.
-            val idColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media._ID)
-            val nameColumn =
-                cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DISPLAY_NAME)
-            val durationColumn =
-                cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DURATION)
-            val sizeColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.SIZE)
-
-            while (cursor.moveToNext()) {
-                // Get values of columns for a given video.
-                val id = cursor.getLong(idColumn)
-                val name = cursor.getString(nameColumn)
-                val duration = cursor.getInt(durationColumn)
-                val size = cursor.getInt(sizeColumn)
-
-                val contentUri: Uri = ContentUris.withAppendedId(
-                    MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
-                    id
-                )
-
-            }
-        }
 
 
         val sessionToken =
@@ -286,13 +288,19 @@ class MainActivity : ComponentActivity() {
 //            }, MoreExecutors.directExecutor())
 //
 //        }, MoreExecutors.directExecutor())
+
 //        enableEdgeToEdge()
         setContent {
             PlayerMSSTheme {
-                MainUI()
+//                UI_Main2()
+                Column {
+                    Nav()
+                }
             }
         }
     }
+
+
 
     override fun onDestroy() {
         super.onDestroy()
@@ -303,7 +311,7 @@ class MainActivity : ComponentActivity() {
         mediaController?.release()
 
     }
-
+//todo check it
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
 //        findViewById<ConstraintLayout>(R.id.main).invalidate();
@@ -316,26 +324,68 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    @OptIn(UnstableApi::class)
-    override fun onActivityResult(
-        requestCode: Int, resultCode: Int, resultData: Intent?
-    ) {
-        super.onActivityResult(requestCode, resultCode, resultData)
-        if (requestCode == REQ_CODE
-            && resultCode == Activity.RESULT_OK
-        ) {
-            // The result data contains a URI for the document or directory that
-            // the user selected.
-            resultData?.data?.also { directoryUri ->
-                // Perform operations on the document using its URI.
-                Log.d("DBG", directoryUri.toString())
-                val documentsTree =
-                    DocumentFile.fromTreeUri(getApplication(), directoryUri) ?: return
-                trackList!!.addFromFiles(documentsTree.listFiles())
+    @RequiresApi(Build.VERSION_CODES.Q)
+    private val addTracks =
+        registerForActivityResult(
+            ActivityResultContracts.StartActivityForResult()) { result ->
+            if(result.resultCode == RESULT_OK){
+                result.data?.data?.also { directoryUri ->
+                    // Perform operations on the document using its URI.
+                    Log.d("DBG", directoryUri.toString())
+                    val documentsTree = DocumentFile.fromTreeUri(application, directoryUri)
+                    val paths = documentsTree?.listFiles()
+                        //todo: add media extension
+                        ?.filter { it.uri.toString().endsWith("mp3") }
+                        ?.map{DocumentFileCompat.fromUri(applicationContext,it.uri)}
+                        ?.map{it?.getAbsolutePath(applicationContext)}
+                        ?.toTypedArray()
+
+                    MediaScannerConnection.scanFile(applicationContext,paths,
+                        arrayOf("audio/mp3","*/*"),
+                        object: MediaScannerConnectionClient {
+                            override fun onScanCompleted(path: String?, uri: Uri?) {
+//                            TODO("Not yet implemented")
+                                Log.d("DMS","Scan completed: uri: $uri, path $path")
+                                Log.d("MVMR","after scan")
+                                mediaViewModel.query()
+
+                            }
+
+                            override fun onMediaScannerConnected() {
+//                            TODO("Not yet implemented")
+                                Log.d("DMS","Scanner connected")
+                            }
+                        })
+                }
+                Log.d("MVMR","after scan")
+                mediaViewModel.query()
             }
         }
+
+//    @SuppressLint("StateFlowValueCalledInComposition")
+    @Composable
+    fun Show(cursor: StateFlow<Cursor?>){
+        val _cursor=cursor.collectAsState()
+        Log.d("SHOW","update ${_cursor.value?.count}")
+        Text("${_cursor.value?.count}")
+
+        _cursor.value?.moveToFirst()
+
+        LazyColumn {
+            _cursor.let {
+                it.value?.count?.let { it1 ->
+                    items(it1){ itemInd->
+                        it.value?.moveToPosition(itemInd)
+                        it.value?.let { it1 -> TrackCardFromCursor(it1,mediaController) }
+                    }
+                }
+            }
+        }
+
     }
 
+
+    @RequiresApi(Build.VERSION_CODES.O)
     @Composable
     fun MinimalDropdownMenu() {
         var expanded by remember { mutableStateOf(false) }
@@ -365,7 +415,8 @@ class MainActivity : ComponentActivity() {
                         val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).apply {
                             putExtra(DocumentsContract.EXTRA_INITIAL_URI, "")
                         }
-                        startActivityForResult(intent, REQ_CODE)
+                        addTracks.launch(intent)
+
                         expanded = false
                     }
                 )
@@ -373,6 +424,326 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    @Composable
+    fun SearchField(ind:Int, textValue: StateFlow<String>){
+        val text = textValue.collectAsState()
+
+        OutlinedTextField(
+            value = text.value,
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+            onValueChange = {str -> searchFields[ind].setText(str)},
+            label = { Text(searchFields[ind].description) },
+            isError = false,
+            keyboardOptions = KeyboardOptions.Default.copy(
+                imeAction = ImeAction.Done
+            ),
+            keyboardActions = KeyboardActions(
+                onDone = { mediaViewModel.query(searchFields)}
+            ))
+
+    }
+
+    @Composable
+    fun SearchFields(){
+        LazyColumn {
+            items(searchFields.count()){
+                SearchField(it, searchFields[it].textField)
+            }
+        }
+    }
+
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    @Composable
+    fun SearchScreen(onNav: () -> Unit){
+        Scaffold (
+            bottomBar = {
+                BottomAppBar(
+                    actions = {
+                        IconButton(onClick = onNav) {
+                            Icon(Icons.Filled.Check, contentDescription = "Localized description")
+                        }
+                        IconButton(onClick = { /* do something */ }) {
+                            Icon(
+                                Icons.Filled.Edit,
+                                contentDescription = "Localized description",
+                            )
+                        }
+                    },
+                    floatingActionButton = {
+                        FloatingActionButton(
+                            onClick = { /* do something */ },
+                            containerColor = BottomAppBarDefaults.bottomAppBarFabColor,
+                            elevation = FloatingActionButtonDefaults.bottomAppBarFabElevation()
+                        ) {
+                            Icon(Icons.Filled.Add, "Localized description")
+                        }
+                    }
+                )
+            },
+        ) { innerPadding ->
+
+            Column {
+                SearchFields()
+            }
+        }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    @Composable
+    fun TracksScreen(onNav: () -> Unit){
+        Scaffold (
+        bottomBar = {
+            BottomAppBar(
+                actions = {
+                    IconButton(onClick = onNav) {
+                        Icon(Icons.Filled.Check, contentDescription = "Localized description")
+                    }
+                    IconButton(onClick = { /* do something */ }) {
+                        Icon(
+                            Icons.Filled.Edit,
+                            contentDescription = "Localized description",
+                        )
+                    }
+                },
+                floatingActionButton = {
+                    FloatingActionButton(
+                        onClick = { /* do something */ },
+                        containerColor = BottomAppBarDefaults.bottomAppBarFabColor,
+                        elevation = FloatingActionButtonDefaults.bottomAppBarFabElevation()
+                    ) {
+//                        Icon(Icons.Filled.Add, "Localized description")
+                        MinimalDropdownMenu()
+                    }
+                }
+            )
+        },
+        ) { innerPadding ->
+
+            Column {
+//                Text("Trackd")
+                Show(mediaViewModel.cursor)
+//                Button(onClick = onNav) {
+//                    Text("To Search")
+//                }
+            }
+        }
+    }
+
+    @Composable
+    fun Nav() {
+        val navController = rememberNavController()
+        NavHost(navController, startDestination = NavSearch) {
+            composable<NavSearch> { SearchScreen(onNav={navController.navigate(route = NavTrackList)}) }
+            composable<NavTrackList> { TracksScreen(onNav={navController.navigate(route = NavSearch)}) }
+        }
+    }
+
+
+
+
+    enum class UI_State{
+        TrackList,
+        Search
+    }
+
+
+    @RequiresApi(Build.VERSION_CODES.Q)
+    @Composable
+    fun UI_TrackList(queryParams: QueryParams?, cb:(UI_State)->Unit){
+
+        var cursor:Cursor? = null// by remember { mutableStateOf<Cursor?>(null) }
+        var tracksUpdated by remember { mutableStateOf(false) }
+
+//        val titleColumnInd = remember { cursor.value?.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE) }
+
+        LaunchedEffect(queryParams) {
+
+            Log.d("DQP","Query resolver")
+
+            val f1= MediaStore.getExternalVolumeNames(applicationContext)
+            val contentUri= MediaStore.Audio.Media.getContentUri(f1.elementAt(0))
+
+            cursor = contentResolver.query(
+            contentUri,
+            queryParams?.projection,
+            queryParams?.selection,
+            queryParams?.selectionArgs,
+            queryParams?.sortOrder
+            )
+
+            val idColumn = cursor?.getColumnIndexOrThrow(MediaStore.Audio.Media._ID)
+            val idData = cursor?.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA)
+
+            while (cursor?.moveToNext() == true) {
+                val data: String? = idData?.let { it1 -> cursor?.getString(it1) }
+                data?.let { Log.d("DTA", it)}
+                val id: Long? = idColumn?.let { it1 -> cursor?.getLong(it1) }
+                val cUri = id?.let { it1 -> ContentUris.withAppendedId(contentUri, it1) }
+                val mediaItem = cUri?.let { it1 -> MediaItem.fromUri(it1) }
+                if (mediaItem != null) {
+                    mediaController?.addMediaItem(mediaItem)
+                }
+            }
+
+            if(cursor?.count!! > 0){
+                mediaController?.prepare()
+                mediaController?.play()
+            }
+        }
+
+        DisposableEffect(queryParams) {
+            onDispose {
+                cursor?.close()
+            }
+        }
+
+        cursor?.moveToFirst()
+
+        LazyColumn {
+            cursor?.let {
+                items(it.count){itemInd->
+                    it.moveToPosition(itemInd)
+                    TrackCardFromCursor(it,mediaController)
+                }
+            }
+        }
+
+    }
+
+    @Composable
+    fun UI_Search(cb:(UI_State)->Unit){
+
+    }
+
+    @kotlin.OptIn(ExperimentalFoundationApi::class)
+    @RequiresApi(Build.VERSION_CODES.Q)
+    @Composable
+    fun UI_Main2(){
+
+        var uiState = remember { mutableStateOf(UI_State.TrackList) }
+        var queryParams = remember { mutableStateOf<QueryParams?>(null) }
+
+        fun setUI_State(ui_state: UI_State){
+            uiState.value = ui_state
+        }
+
+        var weightAdd by remember {
+            mutableFloatStateOf(0f)
+        }
+
+        val offs: Float by animateFloatAsState(
+            targetValue = weightAdd,
+            // Configure the animation duration and easing.
+            animationSpec = tween(durationMillis = 800, easing = EaseInOutExpo),
+            label = "offs"
+        )
+
+        Scaffold(
+            modifier = Modifier.fillMaxSize()//.padding(top = 36.dp)
+        ) { innerPadding ->
+            Column {
+                Row(modifier = Modifier
+                    .weight(7f - offs)
+                    .animateContentSize()
+                    .clickable {
+                        Log.d("D_CLICK", "track list clicked!")
+                        weightAdd = 0f
+                    }
+                ) {
+                    if (mediaControllerLoaded.value) {
+                        when (uiState.value){
+                            UI_State.TrackList -> UI_TrackList(queryParams.value,::setUI_State)
+                            UI_State.Search -> UI_Search(::setUI_State)
+                        }
+                    } else {
+                        Text("loading mediaSession")
+                    }
+                }
+                Row(modifier = Modifier
+                    .weight(2f + offs)
+                    .animateContentSize()
+                    .clickable { //Log.d("D_CLICK", "Box Sleeve clicked!")
+                        if (weightAdd < 1f) {
+                            weightAdd = 4f
+                        } else {
+                            weightAdd = 0f
+                        }
+                    }
+                ) {
+                    SleevePicture(mediaController = mediaController)
+                }
+                Box {
+                    Row {
+                        TrackTime(mediaController)
+                    }
+                    Row {
+                        TrackInfo(
+                            mediaMetadata = cMediaMetadata.value,
+                            Modifier
+                                .padding(start = 14.dp, top = 4.dp)
+                                .width(intrinsicSize = IntrinsicSize.Max)
+                                .basicMarquee()
+                                .weight(4f)
+                        )
+                        Text("", Modifier.weight(1.2f))
+                    }
+                }
+
+                Row {
+                    Column(Modifier.weight(4f)) {
+                        PlayControls(
+                            mediaController = mediaController,
+                            modifier = Modifier.weight(4f)
+                        )
+                    }
+                    Column(
+                        Modifier
+                            .weight(1f)
+//                        .width(intrinsicSize = IntrinsicSize.Max)
+                            .fillMaxWidth()
+                            .background(color = Color.Magenta)
+                    ) {
+                        Row(//verticalAlignment = Alignment.CenterVertically,
+                            Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End
+                        ) {
+                            MinimalDropdownMenu()
+                        }
+                    }
+                }
+            }
+        }
+
+
+    }
+
+
+
+    ////////////////////////////////////////////to trm
+    @SuppressLint("RememberReturnType")
+    @RequiresApi(Build.VERSION_CODES.Q)
+    @Composable
+    fun LibraryMainUI(){
+
+
+//        fun setCursor(cursorP: Cursor){
+//            cursor.value = cursorP
+//        }
+        if (mediaControllerLoaded.value) {
+//            SearchUI(mediaController as Player, ::setCursor)
+//            UI_TrackList() { }
+        } else {
+            Text("loading mediaSession")
+        }
+
+
+
+    }
+
+
+    //////////////to rem
     @kotlin.OptIn(ExperimentalFoundationApi::class)
     @Composable
     fun MainUI() {

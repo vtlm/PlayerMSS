@@ -1,6 +1,10 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
+    alias(libs.plugins.compose.compiler)
+//    id("kotlin-kapt")
+//    id("com.google.dagger.hilt.android")
+    kotlin("plugin.serialization") version "2.0.21"
 }
 
 android {
@@ -50,6 +54,9 @@ android {
 }
 
 dependencies {
+//    val lifecycle_version = "2.8.7"
+//    val nav_version = "2.8.7"
+
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
@@ -59,16 +66,26 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+//    implementation("com.google.dagger:hilt-android:2.51.1")
+//    kapt("com.google.dagger:hilt-android-compiler:2.51.1")
+
     // https://mvnrepository.com/artifact/androidx.compose.material/material-icons-core-android
-    implementation("androidx.compose.material:material-icons-core-android:1.7.6")
+    implementation(libs.androidx.material.icons.core.android)
 //    implementation(libs.androidx.material3.android)
 // https://mvnrepository.com/artifact/androidx.compose.material/material-icons-extended
-    runtimeOnly("androidx.compose.material:material-icons-extended:1.7.6")
+    runtimeOnly(libs.androidx.material.icons.extended)
 
 //    implementation(libs.androidx.compose.material:material-icons-extended)
     implementation(libs.androidx.media3.session)
     implementation(libs.androidx.media3.exoplayer)
     implementation(libs.androidx.documentfile)
+    implementation(libs.androidx.lifecycle.viewmodel.ktx)
+    implementation(libs.androidx.navigation.compose)
+
+    implementation(libs.kotlinx.serialization.json)
+
+    implementation (libs.storage)
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -77,3 +94,7 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
 }
+
+//kapt {
+//    correctErrorTypes = true
+//}

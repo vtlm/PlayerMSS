@@ -23,6 +23,7 @@ import androidx.documentfile.provider.DocumentFile
 import androidx.media3.common.MediaItem
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.MediaController
+import java.io.File
 
 //todo: move adapter to level up to TrackList
 //todo dataset to trackdata
@@ -58,20 +59,26 @@ class TrackList(private val context: Context, private val mediaController: Media
 
         for(file in files){
             if(file.uri.toString().endsWith("mp3")){
-                tracksListAdded += MediaData(file.uri, context, onDataReady = ::onFilesMediaDataReady)
+//                val mu=MediaStore.getMediaUri(context,file.uri)
+//                tracksListAdded += MediaData(file.uri, context, onDataReady = ::onFilesMediaDataReady)
 
+                val df=DocumentFile.fromTreeUri(context,file.uri)
+
+                val f= file.uri.path?.let { File(it) }
+                val p=f?.canonicalFile
+//                val u=MediaStore.
                 MediaScannerConnection.scanFile(context,arrayOf(file.uri.path,
-//                    "/storage/0000-0000/Music/Mane Aura - Space of the Mind (2018)/01. Mane Aura - Firefly.mp3",
-//                    "/storage/0000-0000/Music/Mane Aura - Space of the Mind (2018)/02. Mane Aura - Apocalypse on Mars.mp3",
-//                    "/storage/0000-0000/Music/Mane Aura - Space of the Mind (2018)/03. Mane Aura - Disco-Droids.mp3",
+                 //   "/storage/0000-0000/Music/Mane Aura - Space of the Mind (2018)/01. Mane Aura - Firefly.mp3",
+              //      "/storage/0000-0000/Music/Mane Aura - Space of the Mind (2018)/02. Mane Aura - Apocalypse on Mars.mp3",
+            //        "/storage/0000-0000/Music/Mane Aura - Space of the Mind (2018)/03. Mane Aura - Disco-Droids.mp3",
 //                    "/storage/9C33-6BBD/Music/free/Electro/Energoblock/Energoblock - Alienation (Single) - 2009/01 - Energoblock - Alienation.mp3",
 //                    "/storage/9C33-6BBD/Music/free/Electro/Energoblock/Energoblock - Alienation (Single) - 2009/02 - Energoblock - Swamp (The Zone).mp3"
                     )
-                    ,arrayOf("audio/mp3","*/*"),
+                    ,arrayOf("audio/mp3"),
                     object: MediaScannerConnectionClient{
                         override fun onScanCompleted(path: String?, uri: Uri?) {
 //                            TODO("Not yet implemented")
-                            Log.d("DMS","Scan completed: path $path, uri: $uri")
+                            Log.d("DMS","Scan completed: uri: $uri, path $path")
                         }
 
                         override fun onMediaScannerConnected() {
@@ -98,7 +105,7 @@ class TrackList(private val context: Context, private val mediaController: Media
             }
             Log.d("TLMS","size=$tracksListM.size()")
 
-            prepareAndPlay()
+//            prepareAndPlay()
         }
     }
 

@@ -58,7 +58,7 @@ fun TrackTime(mediaController: MediaController?) {
         )
 
         while (true) {
-            Log.d("CRT", "Hello World from LE coroutine $currentTime, userInteraction $userInteraction")
+//            Log.d("CRT", "Hello World from LE coroutine $currentTime, userInteraction $userInteraction")
             if ((userInteraction == 0) && mediaController?.isPlaying == true) {
                 fullTime = mediaController?.contentDuration!!
                 currentTime = mediaController?.currentPosition!!;
@@ -72,7 +72,7 @@ fun TrackTime(mediaController: MediaController?) {
     val calcTime = if (remaining == 1) fullTime - currentTime else currentTime
     val time = "%1\$tM:%1\$tS".format(calcTime)
     val showTime = if (remaining == 1) "-$time" else time
-    Log.d("TIME", "$currentTime")
+//    Log.d("TIME", "$currentTime")
 
     Column {
         Card(
