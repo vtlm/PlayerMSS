@@ -13,16 +13,12 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-//data class ParamDescription(
-//    val name: String = "name"
-//)
 
 data class SearchStatistic(
     val artists: Int = 0,
     val albums: Int = 0,
     val titles: Int = 0,
 )
-
 
 val audioColumns = arrayOf(MediaStore.Audio.AudioColumns.ARTIST,
     MediaStore.Audio.AudioColumns.ALBUM,
@@ -56,42 +52,38 @@ class MediaViewModel: ViewModel() {
     private val _searchStatistic = MutableStateFlow(SearchStatistic())
     val searchStatistic: StateFlow<SearchStatistic> = _searchStatistic.asStateFlow()
 
-    private var mapByArtistAlbumExpandable: MutableMap<String, Pair<MutableMap<String, Pair<List<MediaTrackData>, Boolean>>, Boolean>> = mutableMapOf()
+    private val _searchResults = MutableStateFlow<Map<String, Map<String, List<MediaTrackData>>>>(mapOf())
+    val searchResults : StateFlow<Map<String, Map<String, List<MediaTrackData>>>> = _searchResults.asStateFlow()
 
-    private val _searchResults = MutableStateFlow<Map<String, Pair<Map<String, Pair<List<MediaTrackData>, Boolean>>, Boolean>>>(mapOf())
-    val searchResults : StateFlow<Map<String, Pair<Map<String, Pair<List<MediaTrackData>, Boolean>>, Boolean>>> = _searchResults.asStateFlow()
+    private var _expandedArtists = MutableStateFlow<Set<String>>(setOf())
+    val expandedArtists: StateFlow<Set<String>> = _expandedArtists.asStateFlow()
 
-    private  var _updateCounter = MutableStateFlow(0)
-    val updateCounter = _updateCounter.asStateFlow()
-
-//    private var __paramStrings = mutableListOf<String>("","","","",)
-//    private val _paramStrings = MutableStateFlow(__paramStrings)
-//    val paramStrings: MutableStateFlow<MutableList<String>> = _paramStrings//.asStateFlow()
-//
-//    val paramDescriptions = listOf(ParamDescription("Title"),
-//        ParamDescription("Artist"),
-//        ParamDescription("Album"),
-//        ParamDescription("Year"),
-//        )
+    private var _expandedAlbums = MutableStateFlow<Set<String>>(setOf())
+    val expandedAlbums: StateFlow<Set<String>> = _expandedAlbums.asStateFlow()
 
     lateinit var context: Context
 
 
-//    fun setParamString(ind: Int, value: String){
-//        __paramStrings[ind] = value
-//        __paramStrings = __paramStrings.subList(0,3)
-//    }
+    private fun toggleInSet(inSet: Set<String>, name: String) : Set<String>{
 
-    fun toggleArtistExpanded(key: String){
-        val artistVal = mapByArtistAlbumExpandable[key]
-        val newArtistVal = artistVal?.copy(artistVal.first,  ! artistVal.second)
-        if(newArtistVal != null) {
-            mapByArtistAlbumExpandable[key] = newArtistVal
+        var cSet = inSet//_expandedArtists.value
+
+        cSet = if(cSet.contains(name)){
+            cSet.minus(name)
+        }else{
+            cSet.plus(name)
         }
 
-//        _updateCounter.value += 1
-        _searchResults.value = mapByArtistAlbumExpandable. toMutableMap()
-        Log.d("DBG","artist expand: ${artistVal?.second} map: ${System.identityHashCode(_searchResults.value)}")
+        Log.d("DBG","artist expand: ${cSet.count()} ${System.identityHashCode(_expandedArtists.value)}")
+        return cSet
+    }
+
+    fun toggleArtistExpanded(name: String){
+        _expandedArtists.value = toggleInSet(_expandedArtists.value, name)
+    }
+
+    fun toggleAlbumExpanded(name: String){
+        _expandedAlbums.value = toggleInSet(_expandedAlbums.value, name)
     }
 
     private fun updateQueryStatistic(){
@@ -107,18 +99,9 @@ class MediaViewModel: ViewModel() {
                 cursorToMediaTrackData(cursor, audioColumnId)
             }
 
-            val mapByArtist = list.groupBy { it.artist }//.mapValues { Pair(it.value, true) }
-            val mapByArtistExpandable = mapByArtist.mapValues { Pair(it.value, true) }.toMutableMap()
-
-            //example
-            //val mapByArtistAlbum = mapByArtist.entries.associate{ it.key to it.value.groupBy { it1 -> it1.album } }
-            val _mapByArtistAlbumExpandable = mapByArtistExpandable.entries.associate{ it.key to Pair(it.value.first.groupBy { it1 -> it1.album }.mapValues { it2 -> Pair(it2.value,true) }.toMutableMap(), it.value.second) }
-                //listByArtist.map { it -> Pair(it.key, Pair(it.value.first.value.groupBy { it.album }.mapValues { Pair(it,true) },it.value.second)) }
-            mapByArtistAlbumExpandable = _mapByArtistAlbumExpandable.toMutableMap()
-
-            _searchResults.value = mapByArtistAlbumExpandable
-//            val listByArtistAlbum = listByArtist.map { it -> it.value.groupBy { it.album } }
-
+            val mapByArtist = list.groupBy { it.artist }
+            val mapByArtistAlbum = mapByArtist.entries.associate{ it.key to it.value.groupBy { it1 -> it1.album } }
+            _searchResults.value = mapByArtistAlbum
         }
     }
 

@@ -424,12 +424,6 @@ class MainActivity : ComponentActivity() {
     }
 
 
-    @Composable
-    fun SearchResults(cursor_: StateFlow<Cursor?>){
-        val cursor = cursor_.collectAsState()
-    }
-
-
     private fun LazyListScope.showTracks(tracks: List<MediaTrackData>){
         tracks.forEach(){
             item {
@@ -438,18 +432,33 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun LazyListScope.showAlbums(albums: Map<String, Pair<List<MediaTrackData>, Boolean>>){
+    private fun LazyListScope.showAlbums(albums: Map<String, List<MediaTrackData>>,albumExpanded: Set<String>){
             albums.forEach(){
                 item {
-                    Text("    ${it.key}")
+                    Card(
+                        modifier = Modifier
+                            .height(IntrinsicSize.Min)
+                            .fillMaxSize()
+//        .border(width = Dp.Hairline, color = Color.Gray, shape = RectangleShape)//border(width = Dp.Hairline , brush = Brush.,shape=null )
+                            .padding(2.dp)
+                            .clickable(
+                                onClick = {
+                                    mediaViewModel.toggleAlbumExpanded(it.key)
+                                }),
+                        shape = RoundedCornerShape(10),
+//                colors = if(mediaData.listIndex == playingIndex) CardDefaults.elevatedCardColors() else CardDefaults.cardColors()
+                    ) {
+                        Text("    ${it.key}")
+                    }
                 }
-                if(it.value.second) {
-                    showTracks(it.value.first)
+                if(albumExpanded.contains(it.key)) {
+                    showTracks(it.value)
                 }
             }
     }
 
-    private fun LazyListScope.showArtist(artist: Map. Entry<String, Pair<Map<String, Pair<List<MediaTrackData>, Boolean>>, Boolean>>){
+    private fun LazyListScope.showArtist(artist: Map. Entry<String, Map<String, List<MediaTrackData>>>,artistExpanded: Set<String>,albumExpanded: Set<String>){
+
         item {
             Card(
                 modifier = Modifier
@@ -476,22 +485,29 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        if(artist.value.second) {
-            showAlbums(artist.value.first)
+        if(artistExpanded.contains(artist.key)) {
+            showAlbums(artist.value,albumExpanded)
         }
     }
 
 
     @Composable
-    fun ShowSearchResults(resultsSF: StateFlow<Map<String, Pair<Map<String, Pair<List<MediaTrackData>, Boolean>>, Boolean>>>, updateCounter: StateFlow<Int>){
-        val results = resultsSF.collectAsState()
-        val counter = updateCounter.collectAsState()
+    fun ShowSearchResults(){
+//        resultsSF: StateFlow<Map<String, Map<String, List<MediaTrackData>>>>,
+//                          artistExpandedSF:StateFlow<Set<String>>,
+//                          albumExpandedSF:StateFlow<Set<String>>){
 
-        Log.d("FL","Counter: ${counter.value}")
+//        val results = resultsSF.collectAsState()
+//        val artistExpanded = artistExpandedSF.collectAsState()
+//        val albumExpanded = albumExpandedSF.collectAsState()
+
+        val results = mediaViewModel.searchResults.collectAsState()
+        val artistExpanded = mediaViewModel.expandedArtists.collectAsState()
+        val albumExpanded = mediaViewModel.expandedAlbums.collectAsState()
 
         LazyColumn {
             results.value.forEach(){
-                showArtist(it)
+                showArtist(it,artistExpanded.value,albumExpanded.value)
             }
         }
     }
@@ -531,42 +547,8 @@ class MainActivity : ComponentActivity() {
 
             Column {
                 SearchFields()
-
-
-//                LazyColumn(modifier = Modifier.fillMaxSize()) {
-//                    item {
-//                        Text(text = "Outer Item 1", modifier = Modifier.padding(8.dp))
-//                    }
-//                    item {
-//                        LazyColumn(modifier = Modifier.fillParentMaxSize()) {
-//                            items(50) { innerIndex ->
-//                                Text(
-//                                    text = "Inner Item #$innerIndex",
-//                                    modifier = Modifier.padding(8.dp)
-//                                )
-//                            }
-//                        }
-//                    }
-//                }
-
-
-//                LazyColumn() {
-//                    items(5){
-//                        Column {
-//                            Text("$it")
-//
-//                            LazyColumn(modifier = Modifier.fillParentMaxSize()) {
-//                                items(5) { it1 ->
-//                                    Text("$it $it1")
-//                                }
-//                            }
-//                        }
-//                    }
-//                }
-
-
-                ShowSearchResults(mediaViewModel.searchResults, mediaViewModel.updateCounter)
-
+                ShowSearchResults()
+                //mediaViewModel.searchResults,mediaViewModel.expandedArtists,mediaViewModel.expandedAlbums)
             }
         }
     }
