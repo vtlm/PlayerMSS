@@ -1,15 +1,11 @@
 package com.example.playermss
 
 import android.annotation.SuppressLint
-import android.app.Activity
 import android.content.ComponentName
 import android.content.ContentUris
 import android.content.Intent
 import android.content.res.Configuration
 import android.database.Cursor
-import android.database.CursorWrapper
-import android.graphics.drawable.Icon
-import android.media.MediaPlayer.TrackInfo
 import android.media.MediaScannerConnection
 import android.media.MediaScannerConnection.MediaScannerConnectionClient
 import android.media.audiofx.BassBoost
@@ -19,19 +15,14 @@ import android.os.Build
 import android.os.Bundle
 import android.provider.DocumentsContract
 import android.provider.MediaStore
-import android.text.Layout.Alignment
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.annotation.OptIn
 import androidx.annotation.RequiresApi
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.EaseInOutExpo
-import androidx.compose.animation.core.Easing
-import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -49,62 +40,49 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.BottomAppBarDefaults
-//import androidx.compose.material.icons.
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+//import androidx.compose.material.icons.
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.documentfile.provider.DocumentFile
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
-import androidx.media3.common.Tracks
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.HttpDataSource
-import androidx.media3.session.MediaBrowser
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import androidx.navigation.compose.NavHost
@@ -112,22 +90,15 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.anggrayudi.storage.file.DocumentFileCompat
 import com.anggrayudi.storage.file.getAbsolutePath
+import com.example.playermss.data.MediaTrackData
 import com.example.playermss.data.MediaViewModel
 import com.example.playermss.data.QueryParams
 import com.example.playermss.data.TextFieldViewModel
 import com.example.playermss.ui.theme.PlayerMSSTheme
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.count
-import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
-import java.util.Timer
-import kotlin.concurrent.timerTask
 
 //todo
 //rotation (face state, remember)
@@ -362,9 +333,8 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-//    @SuppressLint("StateFlowValueCalledInComposition")
     @Composable
-    fun Show(cursor: StateFlow<Cursor?>){
+    fun ShowPlayList(cursor: StateFlow<Cursor?>){
         val _cursor=cursor.collectAsState()
         Log.d("SHOW","update ${_cursor.value?.count}")
         Text("${_cursor.value?.count}")
@@ -385,7 +355,7 @@ class MainActivity : ComponentActivity() {
     }
 
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @RequiresApi(Build.VERSION_CODES.Q)
     @Composable
     fun MinimalDropdownMenu() {
         var expanded by remember { mutableStateOf(false) }
@@ -454,7 +424,81 @@ class MainActivity : ComponentActivity() {
     }
 
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    @Composable
+    fun SearchResults(cursor_: StateFlow<Cursor?>){
+        val cursor = cursor_.collectAsState()
+    }
+
+
+    private fun LazyListScope.showTracks(tracks: List<MediaTrackData>){
+        tracks.forEach(){
+            item {
+                Text("        ${it.title}")
+            }
+        }
+    }
+
+    private fun LazyListScope.showAlbums(albums: Map<String, Pair<List<MediaTrackData>, Boolean>>){
+            albums.forEach(){
+                item {
+                    Text("    ${it.key}")
+                }
+                if(it.value.second) {
+                    showTracks(it.value.first)
+                }
+            }
+    }
+
+    private fun LazyListScope.showArtist(artist: Map. Entry<String, Pair<Map<String, Pair<List<MediaTrackData>, Boolean>>, Boolean>>){
+        item {
+            Card(
+                modifier = Modifier
+                    .height(IntrinsicSize.Min)
+                    .fillMaxSize()
+//        .border(width = Dp.Hairline, color = Color.Gray, shape = RectangleShape)//border(width = Dp.Hairline , brush = Brush.,shape=null )
+                    .padding(2.dp)
+
+                    .clickable(
+                        onClick = {
+
+                            mediaViewModel.toggleArtistExpanded(artist.key)
+//                            mediaController?.seekTo(mediaData.listIndex, 0)
+//                            if (mediaController?.isPlaying != true) {
+//                                mediaController?.prepare()
+//                                mediaController?.play()
+//                            }
+//                            onClick()
+                        }),
+                shape = RoundedCornerShape(10),
+//                colors = if(mediaData.listIndex == playingIndex) CardDefaults.elevatedCardColors() else CardDefaults.cardColors()
+            ) {
+                Text("Artist: ${artist.key}")
+            }
+        }
+
+        if(artist.value.second) {
+            showAlbums(artist.value.first)
+        }
+    }
+
+
+    @Composable
+    fun ShowSearchResults(resultsSF: StateFlow<Map<String, Pair<Map<String, Pair<List<MediaTrackData>, Boolean>>, Boolean>>>, updateCounter: StateFlow<Int>){
+        val results = resultsSF.collectAsState()
+        val counter = updateCounter.collectAsState()
+
+        Log.d("FL","Counter: ${counter.value}")
+
+        LazyColumn {
+            results.value.forEach(){
+                showArtist(it)
+            }
+        }
+    }
+
+
+
+    @RequiresApi(Build.VERSION_CODES.Q)
     @Composable
     fun SearchScreen(onNav: () -> Unit){
         Scaffold (
@@ -477,7 +521,8 @@ class MainActivity : ComponentActivity() {
                             containerColor = BottomAppBarDefaults.bottomAppBarFabColor,
                             elevation = FloatingActionButtonDefaults.bottomAppBarFabElevation()
                         ) {
-                            Icon(Icons.Filled.Add, "Localized description")
+//                            Icon(Icons.Filled.Add, "Localized description")
+                            MinimalDropdownMenu()
                         }
                     }
                 )
@@ -486,6 +531,42 @@ class MainActivity : ComponentActivity() {
 
             Column {
                 SearchFields()
+
+
+//                LazyColumn(modifier = Modifier.fillMaxSize()) {
+//                    item {
+//                        Text(text = "Outer Item 1", modifier = Modifier.padding(8.dp))
+//                    }
+//                    item {
+//                        LazyColumn(modifier = Modifier.fillParentMaxSize()) {
+//                            items(50) { innerIndex ->
+//                                Text(
+//                                    text = "Inner Item #$innerIndex",
+//                                    modifier = Modifier.padding(8.dp)
+//                                )
+//                            }
+//                        }
+//                    }
+//                }
+
+
+//                LazyColumn() {
+//                    items(5){
+//                        Column {
+//                            Text("$it")
+//
+//                            LazyColumn(modifier = Modifier.fillParentMaxSize()) {
+//                                items(5) { it1 ->
+//                                    Text("$it $it1")
+//                                }
+//                            }
+//                        }
+//                    }
+//                }
+
+
+                ShowSearchResults(mediaViewModel.searchResults, mediaViewModel.updateCounter)
+
             }
         }
     }
@@ -521,16 +602,11 @@ class MainActivity : ComponentActivity() {
         },
         ) { innerPadding ->
 
-            Column {
-//                Text("Trackd")
-                Show(mediaViewModel.cursor)
-//                Button(onClick = onNav) {
-//                    Text("To Search")
-//                }
-            }
+            ShowPlayList(mediaViewModel.cursor)
         }
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     @Composable
     fun Nav() {
         val navController = rememberNavController()
