@@ -123,7 +123,7 @@ class MainActivity : ComponentActivity() {
     private var cMediaMetadata = mutableStateOf<MediaMetadata?>(null)
 
 
-    private val searchFields = listOf<TextFieldViewModel>(
+    private val searchFields = listOf(
         TextFieldViewModel("Artist"),
         TextFieldViewModel("Album"),
         TextFieldViewModel("Title"),
@@ -295,6 +295,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    //todo: to coroutine
     @RequiresApi(Build.VERSION_CODES.Q)
     private val addTracks =
         registerForActivityResult(
@@ -394,124 +395,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    @Composable
-    fun SearchField(ind:Int, textValue: StateFlow<String>){
-        val text = textValue.collectAsState()
-
-        OutlinedTextField(
-            value = text.value,
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
-            onValueChange = {str -> searchFields[ind].setText(str)},
-            label = { Text(searchFields[ind].description) },
-            isError = false,
-            keyboardOptions = KeyboardOptions.Default.copy(
-                imeAction = ImeAction.Done
-            ),
-            keyboardActions = KeyboardActions(
-                onDone = { mediaViewModel.query(searchFields)}
-            ))
-
-    }
-
-    @Composable
-    fun SearchFields(){
-        LazyColumn {
-            items(searchFields.count()){
-                SearchField(it, searchFields[it].textField)
-            }
-        }
-    }
-
-
-    private fun LazyListScope.showTracks(tracks: List<MediaTrackData>){
-        tracks.forEach(){
-            item {
-                Text("        ${it.title}")
-            }
-        }
-    }
-
-    private fun LazyListScope.showAlbums(albums: Map<String, List<MediaTrackData>>,albumExpanded: Set<String>){
-            albums.forEach(){
-                item {
-                    Card(
-                        modifier = Modifier
-                            .height(IntrinsicSize.Min)
-                            .fillMaxSize()
-//        .border(width = Dp.Hairline, color = Color.Gray, shape = RectangleShape)//border(width = Dp.Hairline , brush = Brush.,shape=null )
-                            .padding(2.dp)
-                            .clickable(
-                                onClick = {
-                                    mediaViewModel.toggleAlbumExpanded(it.key)
-                                }),
-                        shape = RoundedCornerShape(10),
-//                colors = if(mediaData.listIndex == playingIndex) CardDefaults.elevatedCardColors() else CardDefaults.cardColors()
-                    ) {
-                        Text("    ${it.key}")
-                    }
-                }
-                if(albumExpanded.contains(it.key)) {
-                    showTracks(it.value)
-                }
-            }
-    }
-
-    private fun LazyListScope.showArtist(artist: Map. Entry<String, Map<String, List<MediaTrackData>>>,artistExpanded: Set<String>,albumExpanded: Set<String>){
-
-        item {
-            Card(
-                modifier = Modifier
-                    .height(IntrinsicSize.Min)
-                    .fillMaxSize()
-//        .border(width = Dp.Hairline, color = Color.Gray, shape = RectangleShape)//border(width = Dp.Hairline , brush = Brush.,shape=null )
-                    .padding(2.dp)
-
-                    .clickable(
-                        onClick = {
-
-                            mediaViewModel.toggleArtistExpanded(artist.key)
-//                            mediaController?.seekTo(mediaData.listIndex, 0)
-//                            if (mediaController?.isPlaying != true) {
-//                                mediaController?.prepare()
-//                                mediaController?.play()
-//                            }
-//                            onClick()
-                        }),
-                shape = RoundedCornerShape(10),
-//                colors = if(mediaData.listIndex == playingIndex) CardDefaults.elevatedCardColors() else CardDefaults.cardColors()
-            ) {
-                Text("Artist: ${artist.key}")
-            }
-        }
-
-        if(artistExpanded.contains(artist.key)) {
-            showAlbums(artist.value,albumExpanded)
-        }
-    }
-
-
-    @Composable
-    fun ShowSearchResults(){
-//        resultsSF: StateFlow<Map<String, Map<String, List<MediaTrackData>>>>,
-//                          artistExpandedSF:StateFlow<Set<String>>,
-//                          albumExpandedSF:StateFlow<Set<String>>){
-
-//        val results = resultsSF.collectAsState()
-//        val artistExpanded = artistExpandedSF.collectAsState()
-//        val albumExpanded = albumExpandedSF.collectAsState()
-
-        val results = mediaViewModel.searchResults.collectAsState()
-        val artistExpanded = mediaViewModel.expandedArtists.collectAsState()
-        val albumExpanded = mediaViewModel.expandedAlbums.collectAsState()
-
-        LazyColumn {
-            results.value.forEach(){
-                showArtist(it,artistExpanded.value,albumExpanded.value)
-            }
-        }
-    }
-
 
 
     @RequiresApi(Build.VERSION_CODES.Q)
@@ -546,8 +429,8 @@ class MainActivity : ComponentActivity() {
         ) { innerPadding ->
 
             Column {
-                SearchFields()
-                ShowSearchResults()
+                SearchFields(searchFields, mediaViewModel)
+                ShowSearchResults(mediaViewModel)
                 //mediaViewModel.searchResults,mediaViewModel.expandedArtists,mediaViewModel.expandedAlbums)
             }
         }

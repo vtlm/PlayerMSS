@@ -148,6 +148,7 @@ fun TrackCardFromCursor(
 
     val listIndex = cursor.position
     val idColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID)
+    val dataColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA)
     val titleColumn =  cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE)
     val aristColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST)
     val yearColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.YEAR)
@@ -155,6 +156,8 @@ fun TrackCardFromCursor(
     val nameColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DISPLAY_NAME)
     val durationColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION)
     val sizeColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.SIZE)
+
+    val data = cursor.getString(dataColumn)
 
     Card(
         modifier = Modifier
