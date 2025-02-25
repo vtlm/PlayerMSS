@@ -20,10 +20,38 @@ import androidx.compose.ui.unit.dp
 import com.example.playermss.data.MediaTrackData
 import com.example.playermss.data.MediaViewModel
 
-private fun LazyListScope.showTracks(tracks: List<MediaTrackData>){
-    tracks.forEach(){
+private fun LazyListScope.showTracks(tracks: List<MediaTrackData>, mediaViewModel: MediaViewModel){
+    tracks.forEach { track ->
+
         item {
-            Text("        ${it.title}")
+            Card(
+                modifier = Modifier
+                    .height(IntrinsicSize.Min)
+                    .fillMaxSize()
+//        .border(width = Dp.Hairline, color = Color.Gray, shape = RectangleShape)//border(width = Dp.Hairline , brush = Brush.,shape=null )
+                    .padding(2.dp)
+                    .clickable(
+                        onClick = {
+//                            mediaViewModel.toggleAlbumExpanded(it.key)
+                        })
+                    .pointerInput(Unit){
+                        detectTapGestures (
+                            onTap = {
+                                mediaViewModel.play(track)
+                            },
+                            onPress = {
+//                                mediaViewModel.toggleAlbumExpanded(albumName)
+                            },
+                            onLongPress = {
+//                                Log.d("LP","Album long press: $albumName")
+                            }
+                        )
+                    },
+                shape = RoundedCornerShape(10),
+//                colors = if(mediaData.listIndex == playingIndex) CardDefaults.elevatedCardColors() else CardDefaults.cardColors()
+            ) {
+                Text("        ${track.title}")
+            }
         }
     }
 }
@@ -63,7 +91,7 @@ private fun LazyListScope.showAlbums(albums: Map<String, List<MediaTrackData>>, 
         }
 
         if(albumExpanded.contains(it.key)) {
-            showTracks(it.value)
+            showTracks(it.value, mediaViewModel)
         }
     }
 }

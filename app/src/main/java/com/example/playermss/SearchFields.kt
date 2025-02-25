@@ -33,7 +33,6 @@ fun SearchField(textValue: TextFieldViewModel, onDone:  () -> Unit? = {}){
         keyboardActions = KeyboardActions(
             onDone = { onDone() }
         ))
-
 }
 
 @RequiresApi(Build.VERSION_CODES.Q)

@@ -1,7 +1,5 @@
 package com.example.playermss
 
-import android.annotation.SuppressLint
-import android.content.ComponentName
 import android.content.ContentUris
 import android.content.Intent
 import android.content.res.Configuration
@@ -36,22 +34,15 @@ import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.BottomAppBarDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 //import androidx.compose.material.icons.
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -59,7 +50,6 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.remember
@@ -73,30 +63,21 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.documentfile.provider.DocumentFile
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
-import androidx.media3.common.PlaybackException
-import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
-import androidx.media3.datasource.HttpDataSource
-import androidx.media3.session.MediaController
-import androidx.media3.session.SessionToken
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.anggrayudi.storage.file.DocumentFileCompat
 import com.anggrayudi.storage.file.getAbsolutePath
-import com.example.playermss.data.MediaTrackData
 import com.example.playermss.data.MediaViewModel
 import com.example.playermss.data.QueryParams
 import com.example.playermss.data.TextFieldViewModel
 import com.example.playermss.ui.theme.PlayerMSSTheme
-import com.google.common.util.concurrent.ListenableFuture
-import com.google.common.util.concurrent.MoreExecutors
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.serialization.Serializable
 
@@ -116,12 +97,8 @@ object NavTrackList
 @UnstableApi
 class MainActivity : ComponentActivity() {
 
-    private var trackList: TrackList? = null
-    private var mediaControllerLoaded = mutableStateOf(false)
-    private var controllerFuture: ListenableFuture<MediaController>? = null
-    private var mediaController: MediaController? = null
-    private var cMediaMetadata = mutableStateOf<MediaMetadata?>(null)
-
+//    private var mediaControllerLoaded = mutableStateOf(false)
+//    private var cMediaMetadata = mutableStateOf<MediaMetadata?>(null)
 
     private val searchFields = listOf(
         TextFieldViewModel("Artist"),
@@ -132,14 +109,12 @@ class MainActivity : ComponentActivity() {
 
     private var mediaViewModel = MediaViewModel()
 
-        private var bassBoost: BassBoost? = null
-    private  var visualizer: Visualizer? = null
-
     @RequiresApi(Build.VERSION_CODES.Q)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         this.applicationContext.also { mediaViewModel.context = it }
+        mediaViewModel.init()
         mediaViewModel.query(queryParams = QueryParams())
 
 // Register the permissions callback, which handles the user's response to the
@@ -196,70 +171,6 @@ class MainActivity : ComponentActivity() {
         val r2= ContextCompat.checkSelfPermission(applicationContext,android.Manifest.permission.READ_EXTERNAL_STORAGE)
 
 
-
-
-        val sessionToken =
-            SessionToken(
-                applicationContext,
-                ComponentName(applicationContext, PlaybackService::class.java)
-            )
-        controllerFuture =
-            MediaController.Builder(applicationContext, sessionToken).buildAsync()
-        controllerFuture?.addListener({
-            // MediaController is available here with controllerFuture.get()
-            mediaController = controllerFuture?.get()
-
-            if (trackList == null) {
-                trackList = TrackList(applicationContext, mediaController!!)
-            }
-
-//            visualizer = Visualizer(sessionToken.uid)
-//            bassBoost = BassBoost(0,sessionToken.uid)
-
-            mediaController?.addListener(
-                object : Player.Listener {
-
-                    override fun onPlayerError(error: PlaybackException) {
-                        val cause = error.cause
-                        if (cause is HttpDataSource.HttpDataSourceException) {
-                            // An HTTP error occurred.
-                            val httpError = cause
-                            // It's possible to find out more about the error both by casting and by querying
-                            // the cause.
-                            if (httpError is HttpDataSource.InvalidResponseCodeException) {
-                                // Cast to InvalidResponseCodeException and retrieve the response code, message
-                                // and headers.
-                            } else {
-                                // Try calling httpError.getCause() to retrieve the underlying cause, although
-                                // note that it may be null.
-                            }
-                        }
-                    }
-
-                    override fun onMediaMetadataChanged(mediaMetadata: MediaMetadata) {
-                        Log.d("DMG", "mediaData changed")
-                        cMediaMetadata.value = mediaMetadata
-                    }
-                }
-            )
-
-            mediaControllerLoaded.value = true
-
-        }, MoreExecutors.directExecutor())
-
-//        val browserFuture = MediaBrowser.Builder(applicationContext, sessionToken).buildAsync()
-//        browserFuture.addListener({
-//            // MediaBrowser is available here with browserFuture.get()
-//            // Get the library root to start browsing the library tree.
-//            val mediaBrowser = browserFuture.get()
-//            val rootFuture = mediaBrowser.getLibraryRoot(/* params= */ null)
-//            rootFuture.addListener({
-//                // Root node MediaItem is available here with rootFuture.get().value
-//                val root = rootFuture.get()
-//            }, MoreExecutors.directExecutor())
-//
-//        }, MoreExecutors.directExecutor())
-
 //        enableEdgeToEdge()
         setContent {
             PlayerMSSTheme {
@@ -275,14 +186,9 @@ class MainActivity : ComponentActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-//        if(mediaController?.isPlaying == true){
-//        mediaController?.stop()
-//        mediaController?.clearMediaItems()
-//        }
-        mediaController?.release()
-
     }
-//todo check it
+
+    //todo check it
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
 //        findViewById<ConstraintLayout>(R.id.main).invalidate();
@@ -334,26 +240,6 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-    @Composable
-    fun ShowPlayList(cursor: StateFlow<Cursor?>){
-        val _cursor=cursor.collectAsState()
-        Log.d("SHOW","update ${_cursor.value?.count}")
-        Text("${_cursor.value?.count}")
-
-        _cursor.value?.moveToFirst()
-
-        LazyColumn {
-            _cursor.let {
-                it.value?.count?.let { it1 ->
-                    items(it1){ itemInd->
-                        it.value?.moveToPosition(itemInd)
-                        it.value?.let { it1 -> TrackCardFromCursor(it1,mediaController) }
-                    }
-                }
-            }
-        }
-
-    }
 
 
     @RequiresApi(Build.VERSION_CODES.Q)
@@ -375,8 +261,8 @@ class MainActivity : ComponentActivity() {
                 DropdownMenuItem(
                     text = { Text("Clear") },
                     onClick = {
-                        trackList?.clear()
-                        mediaController?.clearMediaItems()
+//                        trackList?.clear()
+                        mediaViewModel.mediaController?.clearMediaItems()
                         expanded = false
                     }
                 )
@@ -400,6 +286,21 @@ class MainActivity : ComponentActivity() {
     @RequiresApi(Build.VERSION_CODES.Q)
     @Composable
     fun SearchScreen(onNav: () -> Unit){
+
+        val mediaControllerLoaded = mediaViewModel.mediaControllerLoaded.collectAsState()
+        val currentTrackMediaMetadata = mediaViewModel.currentTrackMediaMetadata.collectAsState()
+
+        var weightAdd by remember {
+            mutableFloatStateOf(0f)
+        }
+
+        val offs: Float by animateFloatAsState(
+            targetValue = weightAdd,
+            // Configure the animation duration and easing.
+            animationSpec = tween(durationMillis = 800, easing = EaseInOutExpo),
+            label = "offs"
+        )
+
         Scaffold (
             bottomBar = {
                 BottomAppBar(
@@ -427,16 +328,101 @@ class MainActivity : ComponentActivity() {
                 )
             },
         ) { innerPadding ->
+            Box(modifier = Modifier.padding(innerPadding)) {
+                Column {
+                    Row(modifier = Modifier
+                        .weight(7f - offs)
+                        .animateContentSize()
+                        .clickable {
+                            Log.d("D_CLICK", "track list clicked!")
+                            weightAdd = 0f
+                        }
+                    ) {
+                        if (mediaControllerLoaded.value) {
+                            Column {
+                                SearchFields(searchFields, mediaViewModel)
+                                ShowSearchResults(mediaViewModel)
+                            }
+                        } else {
+                            Text("loading mediaSession")
+                        }
+                    }
+                    Row(modifier = Modifier
+                        .weight(2f + offs)
+                        .animateContentSize()
+                        .clickable { //Log.d("D_CLICK", "Box Sleeve clicked!")
+                            weightAdd = if (weightAdd < 1f) {
+                                4f
+                            } else {
+                                0f
+                            }
+                        }
+                    ) {
+                        SleevePicture(mediaController = mediaViewModel.mediaController)
+                    }
+                    Box {
+                        Row {
+                            TrackTime(mediaViewModel.mediaController)
+                        }
+                        Row {
+                            TrackInfo(
+                                mediaMetadata = currentTrackMediaMetadata.value,
+                                Modifier
+                                    .padding(start = 14.dp, top = 4.dp)
+                                    .width(intrinsicSize = IntrinsicSize.Max)
+                                    .basicMarquee()
+                                    .weight(4f)
+                            )
+                            Text("", Modifier.weight(1.2f))
+                        }
+                    }
 
-            Column {
-                SearchFields(searchFields, mediaViewModel)
-                ShowSearchResults(mediaViewModel)
-                //mediaViewModel.searchResults,mediaViewModel.expandedArtists,mediaViewModel.expandedAlbums)
+                    Row {
+                        Column(Modifier.weight(4f)) {
+                            PlayControls(
+                                mediaController = mediaViewModel.mediaController,
+                                modifier = Modifier.weight(4f)
+                            )
+                        }
+                        Column(
+                            Modifier
+                                .weight(1f)
+//                        .width(intrinsicSize = IntrinsicSize.Max)
+                                .fillMaxWidth()
+                                .background(color = Color.Magenta)
+                        ) {
+                            Row(//verticalAlignment = Alignment.CenterVertically,
+                                Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.End
+                            ) {
+                                MinimalDropdownMenu()
+                            }
+                        }
+                    }
+                }
             }
+
         }
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
+
+
+    @RequiresApi(Build.VERSION_CODES.Q)
+    @Composable
+    fun Nav() {
+        val navController = rememberNavController()
+        NavHost(navController, startDestination = NavSearch) {
+            composable<NavSearch> { SearchScreen(onNav={navController.navigate(route = NavTrackList)}) }
+            composable<NavTrackList> { TracksScreen(onNav={navController.navigate(route = NavSearch)}) }
+        }
+    }
+
+
+
+
+
+
+    @RequiresApi(Build.VERSION_CODES.Q)
     @Composable
     fun TracksScreen(onNav: () -> Unit){
         Scaffold (
@@ -459,7 +445,6 @@ class MainActivity : ComponentActivity() {
                         containerColor = BottomAppBarDefaults.bottomAppBarFabColor,
                         elevation = FloatingActionButtonDefaults.bottomAppBarFabElevation()
                     ) {
-//                        Icon(Icons.Filled.Add, "Localized description")
                         MinimalDropdownMenu()
                     }
                 }
@@ -467,20 +452,49 @@ class MainActivity : ComponentActivity() {
         },
         ) { innerPadding ->
 
-            ShowPlayList(mediaViewModel.cursor)
+//            ShowPlayList(mediaViewModel.cursor)
         }
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    @Deprecated("obsolete, by architecture changes")
     @Composable
-    fun Nav() {
-        val navController = rememberNavController()
-        NavHost(navController, startDestination = NavSearch) {
-            composable<NavSearch> { SearchScreen(onNav={navController.navigate(route = NavTrackList)}) }
-            composable<NavTrackList> { TracksScreen(onNav={navController.navigate(route = NavSearch)}) }
-        }
-    }
+    fun ShowPlayList(cursor: StateFlow<Cursor?>){
+        val _cursor=cursor.collectAsState()
+        Log.d("SHOW","update ${_cursor.value?.count}")
+        Text("${_cursor.value?.count}")
 
+        _cursor.value?.moveToFirst()
+
+        LazyColumn {
+            _cursor.let {
+                it.value?.count?.let { it1 ->
+                    items(it1){ itemInd->
+                        it.value?.moveToPosition(itemInd)
+                        it.value?.let { it1 -> TrackCardFromCursor(it1,mediaViewModel.mediaController) }
+                    }
+                }
+            }
+        }
+
+    }
 
 
 
@@ -489,7 +503,7 @@ class MainActivity : ComponentActivity() {
         Search
     }
 
-
+    @Deprecated("by MVMV")
     @RequiresApi(Build.VERSION_CODES.Q)
     @Composable
     fun UI_TrackList(queryParams: QueryParams?, cb:(UI_State)->Unit){
@@ -503,8 +517,8 @@ class MainActivity : ComponentActivity() {
 
             Log.d("DQP","Query resolver")
 
-            val f1= MediaStore.getExternalVolumeNames(applicationContext)
-            val contentUri= MediaStore.Audio.Media.getContentUri(f1.elementAt(0))
+            val f1 = MediaStore.getExternalVolumeNames(applicationContext)
+            val contentUri = MediaStore.Audio.Media.getContentUri(f1.elementAt(0))
 
             cursor = contentResolver.query(
             contentUri,
@@ -514,23 +528,24 @@ class MainActivity : ComponentActivity() {
             queryParams?.sortOrder
             )
 
-            val idColumn = cursor?.getColumnIndexOrThrow(MediaStore.Audio.Media._ID)
-            val idData = cursor?.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA)
+            val idColumnInd = cursor?.getColumnIndexOrThrow(MediaStore.Audio.Media._ID)
+            val dataColumnInd = cursor?.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA)
 
             while (cursor?.moveToNext() == true) {
-                val data: String? = idData?.let { it1 -> cursor?.getString(it1) }
+
+                val data: String? = dataColumnInd?.let { it1 -> cursor?.getString(it1) }
                 data?.let { Log.d("DTA", it)}
-                val id: Long? = idColumn?.let { it1 -> cursor?.getLong(it1) }
+                val id: Long? = idColumnInd?.let { it1 -> cursor?.getLong(it1) }
                 val cUri = id?.let { it1 -> ContentUris.withAppendedId(contentUri, it1) }
                 val mediaItem = cUri?.let { it1 -> MediaItem.fromUri(it1) }
                 if (mediaItem != null) {
-                    mediaController?.addMediaItem(mediaItem)
+                    mediaViewModel.mediaController?.addMediaItem(mediaItem)
                 }
             }
 
             if(cursor?.count!! > 0){
-                mediaController?.prepare()
-                mediaController?.play()
+                mediaViewModel.mediaController?.prepare()
+                mediaViewModel.mediaController?.play()
             }
         }
 
@@ -546,7 +561,7 @@ class MainActivity : ComponentActivity() {
             cursor?.let {
                 items(it.count){itemInd->
                     it.moveToPosition(itemInd)
-                    TrackCardFromCursor(it,mediaController)
+                    TrackCardFromCursor(it,mediaViewModel.mediaController)
                 }
             }
         }
@@ -562,6 +577,8 @@ class MainActivity : ComponentActivity() {
     @RequiresApi(Build.VERSION_CODES.Q)
     @Composable
     fun UI_Main2(){
+        val mediaControllerLoaded = mediaViewModel.mediaControllerLoaded.collectAsState()
+        val currentTrackMediaMetadata = mediaViewModel.currentTrackMediaMetadata.collectAsState()
 
         var uiState = remember { mutableStateOf(UI_State.TrackList) }
         var queryParams = remember { mutableStateOf<QueryParams?>(null) }
@@ -613,15 +630,15 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 ) {
-                    SleevePicture(mediaController = mediaController)
+                    SleevePicture(mediaController = mediaViewModel.mediaController)
                 }
                 Box {
                     Row {
-                        TrackTime(mediaController)
+                        TrackTime(mediaViewModel.mediaController)
                     }
                     Row {
                         TrackInfo(
-                            mediaMetadata = cMediaMetadata.value,
+                            mediaMetadata = currentTrackMediaMetadata.value,
                             Modifier
                                 .padding(start = 14.dp, top = 4.dp)
                                 .width(intrinsicSize = IntrinsicSize.Max)
@@ -635,7 +652,7 @@ class MainActivity : ComponentActivity() {
                 Row {
                     Column(Modifier.weight(4f)) {
                         PlayControls(
-                            mediaController = mediaController,
+                            mediaController = mediaViewModel.mediaController,
                             modifier = Modifier.weight(4f)
                         )
                     }
@@ -661,33 +678,12 @@ class MainActivity : ComponentActivity() {
     }
 
 
-
-    ////////////////////////////////////////////to trm
-    @SuppressLint("RememberReturnType")
-    @RequiresApi(Build.VERSION_CODES.Q)
-    @Composable
-    fun LibraryMainUI(){
-
-
-//        fun setCursor(cursorP: Cursor){
-//            cursor.value = cursorP
-//        }
-        if (mediaControllerLoaded.value) {
-//            SearchUI(mediaController as Player, ::setCursor)
-//            UI_TrackList() { }
-        } else {
-            Text("loading mediaSession")
-        }
-
-
-
-    }
-
-
     //////////////to rem
     @kotlin.OptIn(ExperimentalFoundationApi::class)
     @Composable
     fun MainUI() {
+        val mediaControllerLoaded = mediaViewModel.mediaControllerLoaded.collectAsState()
+        val currentTrackMediaMetadata = mediaViewModel.currentTrackMediaMetadata.collectAsState()
 
         var weightAdd by remember {
             mutableFloatStateOf(0f)
@@ -713,11 +709,11 @@ class MainActivity : ComponentActivity() {
                     }
                 ) {
                     if (mediaControllerLoaded.value) {
-                        if (trackList != null) {
-                            trackList!!.asList()
-                        } else {
-                            Text("TrackList is empty")
-                        }
+//                        if (trackList != null) {
+//                            trackList!!.asList()
+//                        } else {
+//                            Text("TrackList is empty")
+//                        }
                     } else {
                         Text("loading mediaSession")
                     }
@@ -733,15 +729,15 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 ) {
-                    SleevePicture(mediaController = mediaController)
+                    SleevePicture(mediaController = mediaViewModel.mediaController)
                 }
                 Box {
                     Row {
-                        TrackTime(mediaController)
+                        TrackTime(mediaViewModel.mediaController)
                     }
                     Row {
                         TrackInfo(
-                            mediaMetadata = cMediaMetadata.value,
+                            mediaMetadata = currentTrackMediaMetadata.value,
                             Modifier
                                 .padding(start = 14.dp, top = 4.dp)
                                 .width(intrinsicSize = IntrinsicSize.Max)
@@ -755,7 +751,7 @@ class MainActivity : ComponentActivity() {
                 Row {
                     Column(Modifier.weight(4f)) {
                         PlayControls(
-                            mediaController = mediaController,
+                            mediaController = mediaViewModel.mediaController,
                             modifier = Modifier.weight(4f)
                         )
                     }

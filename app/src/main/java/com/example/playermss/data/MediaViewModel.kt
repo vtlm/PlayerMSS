@@ -1,14 +1,19 @@
 package com.example.playermss.data
 
 import android.content.ComponentName
+import android.content.ContentUris
 import android.content.Context
 import android.database.Cursor
+import android.media.audiofx.BassBoost
+import android.media.audiofx.Visualizer
+import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
 import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
@@ -16,7 +21,6 @@ import androidx.media3.datasource.HttpDataSource
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import com.example.playermss.PlaybackService
-import com.example.playermss.TrackList
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -31,7 +35,10 @@ data class SearchStatistic(
     val titles: Int = 0,
 )
 
-val audioColumns = arrayOf(MediaStore.Audio.AudioColumns.ARTIST,
+val audioColumns = arrayOf(
+    MediaStore.Audio.AudioColumns._ID,
+    MediaStore.Audio.AudioColumns.DATA,
+    MediaStore.Audio.AudioColumns.ARTIST,
     MediaStore.Audio.AudioColumns.ALBUM,
     MediaStore.Audio.AudioColumns.TITLE,
     MediaStore.Audio.AudioColumns.YEAR,
@@ -44,21 +51,17 @@ data class MediaTrackData(
     val album: String = (""),
     val title: String = (""),
     val year: Int = 0,
+    val uri: Uri? = null,
 )
 
-fun cursorToMediaTrackData(cursor: Cursor, columnMap: Map<String,Int?>): MediaTrackData{
-    return MediaTrackData(
-        columnMap[MediaStore.Audio.AudioColumns.ARTIST]?.let { cursor.getString(it) }.toString(),
-        columnMap[MediaStore.Audio.AudioColumns.ALBUM]?.let { cursor.getString(it) }.toString(),
-        columnMap[MediaStore.Audio.AudioColumns.TITLE]?.let { cursor.getString(it) }.toString(),
-        columnMap[MediaStore.Audio.AudioColumns.YEAR]?.let { cursor.getString(it) }!!.toInt(),
-    )
-}
 
 class MediaViewModel: ViewModel() {
 
-    private val _cursor = MutableStateFlow<Cursor?>(null)
-    val cursor: StateFlow<Cursor?> = _cursor.asStateFlow()
+    private val _mediaControllerLoaded = MutableStateFlow(false)
+    val mediaControllerLoaded: StateFlow<Boolean> = _mediaControllerLoaded.asStateFlow()
+
+    private val _currentTrackMediaMetadata = MutableStateFlow<MediaMetadata?>(null)
+    val currentTrackMediaMetadata: StateFlow<MediaMetadata?> = _currentTrackMediaMetadata.asStateFlow()
 
     private val _searchStatistic = MutableStateFlow(SearchStatistic())
     val searchStatistic: StateFlow<SearchStatistic> = _searchStatistic.asStateFlow()
@@ -74,11 +77,15 @@ class MediaViewModel: ViewModel() {
 
     lateinit var context: Context
 
+    private var bassBoost: BassBoost? = null
+    private  var visualizer: Visualizer? = null
+
 
     private var controllerFuture: ListenableFuture<MediaController>? = null
-    private var mediaController: MediaController? = null
+    var mediaController: MediaController? = null
 
     fun init(){
+
         val sessionToken =
             SessionToken(
                 context,
@@ -114,51 +121,74 @@ class MediaViewModel: ViewModel() {
                     }
 
                     override fun onMediaMetadataChanged(mediaMetadata: MediaMetadata) {
+                        _currentTrackMediaMetadata.value = mediaMetadata
                         Log.d("DMG", "mediaData changed")
                     }
                 }
             )
 
-//            mediaControllerLoaded.value = true
+            _mediaControllerLoaded.value = true
 
         }, MoreExecutors.directExecutor())
 
     }
 
+    @RequiresApi(Build.VERSION_CODES.Q)
+    fun uriFromCursor(cursor: Cursor, columnMap: Map<String,Int?>): Uri?{
+        val id = columnMap[MediaStore.Audio.AudioColumns._ID]?.let { cursor.getLong(it) }
+        val data = columnMap[MediaStore.Audio.AudioColumns.DATA]?.let { cursor.getString(it) }
+
+        val f1 = MediaStore.getExternalVolumeNames(context)
+        val contentUri = MediaStore.Audio.Media.getContentUri(f1.elementAt(0))
+        val itemUri = id?.let { ContentUris.withAppendedId(contentUri, it) }
+
+        val mediaItem: MediaItem= MediaItem.fromUri(Uri.parse(data))
+        val mediaItem2: MediaItem?= itemUri?.let { MediaItem.fromUri(it) }
+//    if(id != null && data != null){
+//        return
+//    }
+        return itemUri
+    }
+
+    @RequiresApi(Build.VERSION_CODES.Q)
+    fun cursorToMediaTrackData(cursor: Cursor, columnMap: Map<String,Int?>): MediaTrackData{
+        return MediaTrackData(
+            columnMap[MediaStore.Audio.AudioColumns.ARTIST]?.let { cursor.getString(it) }.toString(),
+            columnMap[MediaStore.Audio.AudioColumns.ALBUM]?.let { cursor.getString(it) }.toString(),
+            columnMap[MediaStore.Audio.AudioColumns.TITLE]?.let { cursor.getString(it) }.toString(),
+            columnMap[MediaStore.Audio.AudioColumns.YEAR]?.let { cursor.getString(it) }!!.toInt(),
+            uri = uriFromCursor(cursor, columnMap)
+        )
+    }
+
 
     private fun toggleInSet(inSet: Set<String>, name: String) : Set<String>{
-
-        var cSet = inSet//_expandedArtists.value
-
-        cSet = if(cSet.contains(name)){
-            cSet.minus(name)
+        return if(inSet.contains(name)){
+            inSet.minus(name)
         }else{
-            cSet.plus(name)
+            inSet.plus(name)
         }
-
-        Log.d("DBG","artist expand: ${cSet.count()} ${System.identityHashCode(_expandedArtists.value)}")
-        return cSet
     }
 
     fun toggleArtistExpanded(name: String){
         _expandedArtists.value = toggleInSet(_expandedArtists.value, name)
+//        Log.d("DBG","artist expand: ${cSet.count()} ${System.identityHashCode(_expandedArtists.value)}")
     }
 
     fun toggleAlbumExpanded(name: String){
         _expandedAlbums.value = toggleInSet(_expandedAlbums.value, name)
     }
 
-    private fun updateQueryStatistic(){
+    @RequiresApi(Build.VERSION_CODES.Q)
+    private fun updateQueryStatistic(cursor: Cursor){
 
-        val cursor = _cursor.value
-
-        val audioColumnId = audioColumns.associateWith { cursor?.getColumnIndexOrThrow(it) }
+        val audioColumnIds = audioColumns.associateWith { cursor?.getColumnIndexOrThrow(it) }
 
         if (cursor != null) {
 
             val list = (1 .. cursor.count).map {
                 cursor.moveToNext()
-                cursorToMediaTrackData(cursor, audioColumnId)
+                cursorToMediaTrackData(cursor, audioColumnIds)
             }
 
             val mapByArtist = list.groupBy { it.artist }
@@ -168,13 +198,15 @@ class MediaViewModel: ViewModel() {
     }
 
     @RequiresApi(Build.VERSION_CODES.Q)
-    fun query(queryParams: QueryParams? = QueryParams()){
+    fun query(queryParams: QueryParams? = QueryParams()): Cursor?{
+
+        var cursor: Cursor? = null
 
         viewModelScope.launch {
-            val f1 = MediaStore.getExternalVolumeNames(context)
-            val contentUri = MediaStore.Audio.Media.getContentUri(f1.elementAt(0))
+            val f1 = MediaStore.getExternalVolumeNames(context)//todo: check
+            val contentUri = MediaStore.Audio.Media.getContentUri(f1.elementAt(0))//todo: check
 
-            _cursor.value = context.contentResolver.query(
+            cursor = this@MediaViewModel.context.contentResolver.query(
                 contentUri,
                 queryParams?.projection,
                 queryParams?.selection,
@@ -182,8 +214,9 @@ class MediaViewModel: ViewModel() {
                 queryParams?.sortOrder
             )
 
-            Log.d("MVM", "Items: ${_cursor.value?.count}")
+            Log.d("MVM", "Items: ${cursor?.count}")
         }
+        return cursor
     }
 
     @RequiresApi(Build.VERSION_CODES.Q)
@@ -198,8 +231,26 @@ class MediaViewModel: ViewModel() {
             "%${searchFields[1].textField.value}%",
             "%${searchFields[2].textField.value}%")
 
-        query(queryParams)
-        updateQueryStatistic()
+        val cursor = query(queryParams)
+        cursor?.let { updateQueryStatistic(it)
+            cursor.close()
+        }
+    }
+
+    fun play(mediaTrackData: MediaTrackData){
+        val mediaItem = mediaTrackData.uri?.let { MediaItem.fromUri(it) }
+        mediaItem?.let {
+            mediaController?.setMediaItem(it)
+            mediaController?.prepare()
+            mediaController?.play()
+
+//            val count = mediaController?.mediaItemCount
+//            if (count != null) {
+//                mediaController?.seekTo(count - 1,0)
+//                mediaController?.play()
+//            }
+
+        }
     }
 
 }
