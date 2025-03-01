@@ -3,27 +3,39 @@ package com.example.playermss
 import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Card
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.playermss.data.MediaTrackData
 import com.example.playermss.data.MediaViewModel
 
 private fun LazyListScope.showTracks(tracks: List<MediaTrackData>, mediaViewModel: MediaViewModel){
-    tracks.forEach { track ->
+    tracks.forEach { trackItem ->
 
-        item {
+        item (key =  System.identityHashCode(trackItem)) {
             Card(
                 modifier = Modifier
                     .height(IntrinsicSize.Min)
@@ -37,7 +49,8 @@ private fun LazyListScope.showTracks(tracks: List<MediaTrackData>, mediaViewMode
                     .pointerInput(Unit){
                         detectTapGestures (
                             onTap = {
-                                mediaViewModel.play(track)
+                                Log.d("DTTREE","${trackItem.title}")
+                                mediaViewModel.play(trackItem)
                             },
                             onPress = {
 //                                mediaViewModel.toggleAlbumExpanded(albumName)
@@ -50,7 +63,7 @@ private fun LazyListScope.showTracks(tracks: List<MediaTrackData>, mediaViewMode
                 shape = RoundedCornerShape(10),
 //                colors = if(mediaData.listIndex == playingIndex) CardDefaults.elevatedCardColors() else CardDefaults.cardColors()
             ) {
-                Text("        ${track.title}")
+                Text("    ${trackItem.track} - ${trackItem.title}")
             }
         }
     }
@@ -59,7 +72,7 @@ private fun LazyListScope.showTracks(tracks: List<MediaTrackData>, mediaViewMode
 private fun LazyListScope.showAlbums(albums: Map<String, List<MediaTrackData>>, mediaViewModel: MediaViewModel, albumExpanded: Set<String>){
     albums.forEach(){
         val albumName = it.key
-        item {
+        item (key = System.identityHashCode(it)){
             Card(
                 modifier = Modifier
                     .height(IntrinsicSize.Min)
@@ -86,7 +99,13 @@ private fun LazyListScope.showAlbums(albums: Map<String, List<MediaTrackData>>, 
                 shape = RoundedCornerShape(10),
 //                colors = if(mediaData.listIndex == playingIndex) CardDefaults.elevatedCardColors() else CardDefaults.cardColors()
             ) {
-                Text("    ${it.key}")
+                val year =
+                if(it.value.count()>0){
+                    it.value[0].year.toString()
+                }else{
+                    ""
+                }
+                Text("  $year - ${it.key}")
             }
         }
 
@@ -98,7 +117,7 @@ private fun LazyListScope.showAlbums(albums: Map<String, List<MediaTrackData>>, 
 
 private fun LazyListScope.showArtist(artist: Map. Entry<String, Map<String, List<MediaTrackData>>>, mediaViewModel: MediaViewModel, artistExpanded: Set<String>, albumExpanded: Set<String>){
 
-    item {
+    item (key = System.identityHashCode(artist)) {
         Card(
             modifier = Modifier
                 .height(IntrinsicSize.Min)
@@ -134,10 +153,32 @@ fun ShowSearchResults(mediaViewModel: MediaViewModel){
     val artistExpanded = mediaViewModel.expandedArtists.collectAsState()
     val albumExpanded = mediaViewModel.expandedAlbums.collectAsState()
 
-    LazyColumn {
-        results.value.forEach(){
-            showArtist(it,mediaViewModel,artistExpanded.value,albumExpanded.value)
+    if(results.value.isNotEmpty()) {
+        LazyColumn {
+            results.value.forEach() {
+                showArtist(it, mediaViewModel, artistExpanded.value, albumExpanded.value)
+            }
         }
+    }else{
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier.fillMaxSize()
+        ){
+            Column( horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+                modifier = Modifier.fillMaxSize()) {
+                Icon(
+                    Icons.Default.Search,
+                    contentDescription = "Search in Library",
+                    modifier = Modifier.scale(2f).padding(24.dp)
+                )
+                Text(
+                    text = "Use query to search in Library",
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
+
     }
 }
 

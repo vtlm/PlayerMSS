@@ -11,6 +11,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
 import com.example.playermss.data.MediaViewModel
 import com.example.playermss.data.TextFieldViewModel
@@ -19,6 +20,7 @@ import com.example.playermss.data.TextFieldViewModel
 @Composable
 fun SearchField(textValue: TextFieldViewModel, onDone:  () -> Unit? = {}){
     val text = textValue.textField.collectAsState()
+    val keyboardController = LocalSoftwareKeyboardController.current
 
     OutlinedTextField(
         value = text.value,
@@ -31,7 +33,10 @@ fun SearchField(textValue: TextFieldViewModel, onDone:  () -> Unit? = {}){
             imeAction = ImeAction.Done
         ),
         keyboardActions = KeyboardActions(
-            onDone = { onDone() }
+            onDone = {
+                keyboardController?.hide()
+                onDone()
+            }
         ))
 }
 

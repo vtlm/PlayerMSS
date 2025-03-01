@@ -60,8 +60,8 @@ fun TrackTime(mediaController: MediaController?) {
         while (true) {
 //            Log.d("CRT", "Hello World from LE coroutine $currentTime, userInteraction $userInteraction")
             if ((userInteraction == 0) && mediaController?.isPlaying == true) {
-                fullTime = mediaController?.contentDuration!!
-                currentTime = mediaController?.currentPosition!!;
+                fullTime = mediaController.contentDuration
+                currentTime = mediaController.currentPosition
             }
             delay(1000)
         }

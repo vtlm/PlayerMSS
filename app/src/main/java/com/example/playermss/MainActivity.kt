@@ -32,6 +32,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -41,6 +42,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.BottomAppBarDefaults
 //import androidx.compose.material.icons.
@@ -61,8 +63,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.documentfile.provider.DocumentFile
@@ -76,6 +81,7 @@ import com.anggrayudi.storage.file.DocumentFileCompat
 import com.anggrayudi.storage.file.getAbsolutePath
 import com.example.playermss.data.MediaViewModel
 import com.example.playermss.data.QueryParams
+import com.example.playermss.data.SomeViewModel
 import com.example.playermss.data.TextFieldViewModel
 import com.example.playermss.ui.theme.PlayerMSSTheme
 import kotlinx.coroutines.flow.StateFlow
@@ -85,26 +91,22 @@ import kotlinx.serialization.Serializable
 //rotation (face state, remember)
 //permissions on startup
 
-
 @Serializable
 object NavSearch
-
 @Serializable
 object NavTrackList
-
-
 
 @UnstableApi
 class MainActivity : ComponentActivity() {
 
-//    private var mediaControllerLoaded = mutableStateOf(false)
-//    private var cMediaMetadata = mutableStateOf<MediaMetadata?>(null)
-
+    private val searchOpen = SomeViewModel(true)
+    
     private val searchFields = listOf(
         TextFieldViewModel("Artist"),
         TextFieldViewModel("Album"),
         TextFieldViewModel("Title"),
-        TextFieldViewModel("Year"),
+        TextFieldViewModel("FromYear"),
+        TextFieldViewModel("ToYear"),
     )
 
     private var mediaViewModel = MediaViewModel()
@@ -115,7 +117,7 @@ class MainActivity : ComponentActivity() {
 
         this.applicationContext.also { mediaViewModel.context = it }
         mediaViewModel.init()
-        mediaViewModel.query(queryParams = QueryParams())
+//        mediaViewModel.query(searchFields)
 
 // Register the permissions callback, which handles the user's response to the
 // system permissions dialog. Save the return value, an instance of
@@ -170,19 +172,15 @@ class MainActivity : ComponentActivity() {
         val r1= ContextCompat.checkSelfPermission(applicationContext,android.Manifest.permission.RECORD_AUDIO)
         val r2= ContextCompat.checkSelfPermission(applicationContext,android.Manifest.permission.READ_EXTERNAL_STORAGE)
 
-
 //        enableEdgeToEdge()
         setContent {
             PlayerMSSTheme {
-//                UI_Main2()
                 Column {
                     Nav()
                 }
             }
         }
     }
-
-
 
     override fun onDestroy() {
         super.onDestroy()
@@ -225,7 +223,7 @@ class MainActivity : ComponentActivity() {
 //                            TODO("Not yet implemented")
                                 Log.d("DMS","Scan completed: uri: $uri, path $path")
                                 Log.d("MVMR","after scan")
-                                mediaViewModel.query()
+                                mediaViewModel.query(searchFields)
 
                             }
 
@@ -236,7 +234,7 @@ class MainActivity : ComponentActivity() {
                         })
                 }
                 Log.d("MVMR","after scan")
-                mediaViewModel.query()
+                mediaViewModel.query(searchFields)
             }
         }
 
@@ -263,6 +261,7 @@ class MainActivity : ComponentActivity() {
                     onClick = {
 //                        trackList?.clear()
                         mediaViewModel.mediaController?.clearMediaItems()
+                        mediaViewModel.removeQuery(searchFields)
                         expanded = false
                     }
                 )
@@ -281,12 +280,25 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    @Composable
+    fun StatusLine(){
+        val generations = mediaViewModel.mediaStoreGenerations.collectAsState()
+        Row{
+            for(g in generations.value){
+                Row{
+                    Text(" $g")
+                }
+            }
+        }
+    }
+
 
 
     @RequiresApi(Build.VERSION_CODES.Q)
     @Composable
     fun SearchScreen(onNav: () -> Unit){
 
+        val isSearchOpen = searchOpen.state.collectAsState()
         val mediaControllerLoaded = mediaViewModel.mediaControllerLoaded.collectAsState()
         val currentTrackMediaMetadata = mediaViewModel.currentTrackMediaMetadata.collectAsState()
 
@@ -302,31 +314,31 @@ class MainActivity : ComponentActivity() {
         )
 
         Scaffold (
-            bottomBar = {
-                BottomAppBar(
-                    actions = {
-                        IconButton(onClick = onNav) {
-                            Icon(Icons.Filled.Check, contentDescription = "Localized description")
-                        }
-                        IconButton(onClick = { /* do something */ }) {
-                            Icon(
-                                Icons.Filled.Edit,
-                                contentDescription = "Localized description",
-                            )
-                        }
-                    },
-                    floatingActionButton = {
-                        FloatingActionButton(
-                            onClick = { /* do something */ },
-                            containerColor = BottomAppBarDefaults.bottomAppBarFabColor,
-                            elevation = FloatingActionButtonDefaults.bottomAppBarFabElevation()
-                        ) {
-//                            Icon(Icons.Filled.Add, "Localized description")
-                            MinimalDropdownMenu()
-                        }
-                    }
-                )
-            },
+//            bottomBar = {
+//                BottomAppBar(
+//                    actions = {
+//                        IconButton(onClick = onNav) {
+//                            Icon(Icons.Filled.Check, contentDescription = "Localized description")
+//                        }
+//                        IconButton(onClick = { /* do something */ }) {
+//                            Icon(
+//                                Icons.Filled.Edit,
+//                                contentDescription = "Localized description",
+//                            )
+//                        }
+//                    },
+//                    floatingActionButton = {
+//                        FloatingActionButton(
+//                            onClick = { /* do something */ },
+//                            containerColor = BottomAppBarDefaults.bottomAppBarFabColor,
+//                            elevation = FloatingActionButtonDefaults.bottomAppBarFabElevation()
+//                        ) {
+////                            Icon(Icons.Filled.Add, "Localized description")
+//                            MinimalDropdownMenu()
+//                        }
+//                    }
+//                )
+//            },
         ) { innerPadding ->
             Box(modifier = Modifier.padding(innerPadding)) {
                 Column {
@@ -340,11 +352,22 @@ class MainActivity : ComponentActivity() {
                     ) {
                         if (mediaControllerLoaded.value) {
                             Column {
-                                SearchFields(searchFields, mediaViewModel)
+                                StatusLine()
+                                if(isSearchOpen.value != null && isSearchOpen.value == true){
+                                    SearchFields(searchFields, mediaViewModel)
+                                }
                                 ShowSearchResults(mediaViewModel)
                             }
                         } else {
-                            Text("loading mediaSession")
+                            Box(
+                                contentAlignment = Alignment.Center,
+                                modifier = Modifier.fillMaxSize()
+                            ){
+                                Text(
+                                    text = "Loading MediaSession...",
+                                    textAlign = TextAlign.Center
+                                )
+                            }
                         }
                     }
                     Row(modifier = Modifier
@@ -370,7 +393,7 @@ class MainActivity : ComponentActivity() {
                                 Modifier
                                     .padding(start = 14.dp, top = 4.dp)
                                     .width(intrinsicSize = IntrinsicSize.Max)
-                                    .basicMarquee()
+                                    .basicMarquee(iterations = Int.MAX_VALUE)
                                     .weight(4f)
                             )
                             Text("", Modifier.weight(1.2f))
@@ -395,6 +418,13 @@ class MainActivity : ComponentActivity() {
                                 Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.End
                             ) {
+                                IconButton(onClick = { isSearchOpen.value?.let { searchOpen.set(!it) } }) {
+                                    Icon(
+                                        Icons.Default.Search,
+                                        contentDescription = "Search in Library"
+                                    )
+                                }
+
                                 MinimalDropdownMenu()
                             }
                         }
@@ -642,7 +672,7 @@ class MainActivity : ComponentActivity() {
                             Modifier
                                 .padding(start = 14.dp, top = 4.dp)
                                 .width(intrinsicSize = IntrinsicSize.Max)
-                                .basicMarquee()
+                                .basicMarquee(iterations = 50)
                                 .weight(4f)
                         )
                         Text("", Modifier.weight(1.2f))
