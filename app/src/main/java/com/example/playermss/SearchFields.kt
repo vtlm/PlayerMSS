@@ -46,7 +46,10 @@ fun SearchFields(searchFields: List<TextFieldViewModel>, mediaViewModel: MediaVi
     LazyColumn {
         searchFields.forEach {
             item {
-                SearchField(it) { mediaViewModel.query(searchFields) }
+                SearchField(it) {
+//                    mediaViewModel.coroTest()
+                    mediaViewModel.query(searchFields)
+                }
             }
         }
     }

@@ -19,6 +19,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
+import androidx.annotation.RequiresExtension
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.EaseInOutExpo
 import androidx.compose.animation.core.animateFloatAsState
@@ -37,6 +38,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
@@ -111,6 +113,7 @@ class MainActivity : ComponentActivity() {
 
     private var mediaViewModel = MediaViewModel()
 
+    @RequiresExtension(extension = Build.VERSION_CODES.R, version = 1)
     @RequiresApi(Build.VERSION_CODES.Q)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -175,10 +178,16 @@ class MainActivity : ComponentActivity() {
 //        enableEdgeToEdge()
         setContent {
             PlayerMSSTheme {
-                Column {
-                    Nav()
-                }
+                MainU(mediaViewModel)
             }
+        }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.Q)
+    @Composable
+    fun MainU(mediaViewModel: MediaViewModel){
+        ShowProgressOrContent(mediaViewModel.progressTitle.collectAsState().value) {
+                Nav()
         }
     }
 
@@ -299,8 +308,8 @@ class MainActivity : ComponentActivity() {
     fun SearchScreen(onNav: () -> Unit){
 
         val isSearchOpen = searchOpen.state.collectAsState()
-        val mediaControllerLoaded = mediaViewModel.mediaControllerLoaded.collectAsState()
-        val currentTrackMediaMetadata = mediaViewModel.currentTrackMediaMetadata.collectAsState()
+        val currentTrackMediaMetadata =
+            mediaViewModel.currentTrackMediaMetadata.collectAsState()
 
         var weightAdd by remember {
             mutableFloatStateOf(0f)
@@ -313,7 +322,7 @@ class MainActivity : ComponentActivity() {
             label = "offs"
         )
 
-        Scaffold (
+        Scaffold(
 //            bottomBar = {
 //                BottomAppBar(
 //                    actions = {
@@ -342,61 +351,70 @@ class MainActivity : ComponentActivity() {
         ) { innerPadding ->
             Box(modifier = Modifier.padding(innerPadding)) {
                 Column {
-                    Row(modifier = Modifier
-                        .weight(7f - offs)
-                        .animateContentSize()
-                        .clickable {
-                            Log.d("D_CLICK", "track list clicked!")
-                            weightAdd = 0f
+                    Row {
+                        StatusLine()
+                    }
+                    Row {
+                        if (isSearchOpen.value != null && isSearchOpen.value == true) {
+                            SearchFields(searchFields, mediaViewModel)
                         }
-                    ) {
-                        if (mediaControllerLoaded.value) {
-                            Column {
-                                StatusLine()
-                                if(isSearchOpen.value != null && isSearchOpen.value == true){
-                                    SearchFields(searchFields, mediaViewModel)
-                                }
-                                ShowSearchResults(mediaViewModel)
+                    }
+                    Row(Modifier.weight(7f)) {
+                        Column(Modifier.fillMaxSize()) {
+                            Row(Modifier.weight(1f)) {
+                                SleevePicture(mediaViewModel.sleevePicture.collectAsState().value)
                             }
-                        } else {
-                            Box(
-                                contentAlignment = Alignment.Center,
-                                modifier = Modifier.fillMaxSize()
-                            ){
-                                Text(
-                                    text = "Loading MediaSession...",
-                                    textAlign = TextAlign.Center
+                            Row(Modifier.weight(1f)) {
+                                ShowQueryResults(mediaViewModel)
+                            }
+
+//                            Row(horizontalArrangement = Arrangement.Center,
+//                                modifier = Modifier
+//                                    .fillMaxWidth()
+//                                    .wrapContentSize()
+////                                    .weight(1f + weightAdd)
+////                            .animateContentSize()
+////                                    .clickable { //Log.d("D_CLICK", "Box Sleeve clicked!")
+////                                        weightAdd = if (weightAdd < 1f) {
+////                                            4f
+////                                        } else {
+////                                            0f
+////                                        }
+////                                    }
+//                            ) {
+//                                SleevePicture(mediaController = mediaViewModel.mediaController)
+//                            }
+//                            Row(modifier = Modifier
+////                                .weight(7f - weightAdd)
+////                        .animateContentSize()
+//                                .clickable {
+//                                    Log.d("D_CLICK", "track list clicked!")
+//                                    weightAdd = 0f
+//                                }
+//                            )
+//                            {
+//                                ShowSearchResults(mediaViewModel)
+//                            }
+
+                        }
+                    }
+
+                    Row (Modifier.padding(top=4.dp)){
+                        Box {//for overlap
+                            Row {
+                                TrackTime(mediaViewModel.mediaController)
+                            }
+                            Row {
+                                TrackInfo(
+                                    mediaMetadata = currentTrackMediaMetadata.value,
+                                    Modifier
+                                        .padding(start = 14.dp, top = 4.dp)
+                                        .width(intrinsicSize = IntrinsicSize.Max)
+                                        .basicMarquee(iterations = Int.MAX_VALUE)
+                                        .weight(4f)
                                 )
+                                Text("", Modifier.weight(1.2f))
                             }
-                        }
-                    }
-                    Row(modifier = Modifier
-                        .weight(2f + offs)
-                        .animateContentSize()
-                        .clickable { //Log.d("D_CLICK", "Box Sleeve clicked!")
-                            weightAdd = if (weightAdd < 1f) {
-                                4f
-                            } else {
-                                0f
-                            }
-                        }
-                    ) {
-                        SleevePicture(mediaController = mediaViewModel.mediaController)
-                    }
-                    Box {
-                        Row {
-                            TrackTime(mediaViewModel.mediaController)
-                        }
-                        Row {
-                            TrackInfo(
-                                mediaMetadata = currentTrackMediaMetadata.value,
-                                Modifier
-                                    .padding(start = 14.dp, top = 4.dp)
-                                    .width(intrinsicSize = IntrinsicSize.Max)
-                                    .basicMarquee(iterations = Int.MAX_VALUE)
-                                    .weight(4f)
-                            )
-                            Text("", Modifier.weight(1.2f))
                         }
                     }
 
@@ -418,7 +436,13 @@ class MainActivity : ComponentActivity() {
                                 Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.End
                             ) {
-                                IconButton(onClick = { isSearchOpen.value?.let { searchOpen.set(!it) } }) {
+                                IconButton(onClick = {
+                                    isSearchOpen.value?.let {
+                                        searchOpen.set(
+                                            !it
+                                        )
+                                    }
+                                }) {
                                     Icon(
                                         Icons.Default.Search,
                                         contentDescription = "Search in Library"
@@ -433,6 +457,7 @@ class MainActivity : ComponentActivity() {
             }
 
         }
+
     }
 
 
@@ -660,7 +685,7 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 ) {
-                    SleevePicture(mediaController = mediaViewModel.mediaController)
+//                    SleevePicture(mediaController = mediaViewModel.mediaController)
                 }
                 Box {
                     Row {
@@ -759,7 +784,7 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 ) {
-                    SleevePicture(mediaController = mediaViewModel.mediaController)
+//                    SleevePicture(mediaController = mediaViewModel.mediaController)
                 }
                 Box {
                     Row {

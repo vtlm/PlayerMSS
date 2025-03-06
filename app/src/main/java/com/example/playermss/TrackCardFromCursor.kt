@@ -27,13 +27,6 @@ import androidx.compose.ui.unit.sp
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.MediaController
 
-fun duration(durationMs:Long):String{
-    val durationS = durationMs?.div(1000)
-    val mins = durationS?.div(60)
-    val secs = durationS?.rem(60)
-    return mins.toString()+":"+secs.toString().padStart(2,'0')
-}
-
 @Composable
 fun UI_TrackCard(
     cursor: Cursor,
@@ -232,7 +225,7 @@ fun TrackCardFromCursor(
                 .fillMaxHeight(),
                 verticalArrangement = Arrangement.Center){
                 Text(modifier = Modifier.align(Alignment.End),
-                    text = duration(cursor.getString(durationColumn).toLong()))
+                    text = duration(cursor.getString(durationColumn).toInt()))
             }
         }
     }

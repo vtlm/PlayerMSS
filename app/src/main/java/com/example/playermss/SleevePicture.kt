@@ -1,7 +1,9 @@
 package com.example.playermss
 
 import android.graphics.BitmapFactory
+import androidx.annotation.OptIn
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -9,47 +11,34 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.MediaMetadata
+import androidx.media3.common.Metadata
 import androidx.media3.common.Player
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.MediaController
+import com.example.playermss.data.MediaViewModel
+import kotlinx.coroutines.flow.StateFlow
 
-fun imageBitmapFromBytes(encodedImageData: ByteArray): ImageBitmap {
-    return BitmapFactory.decodeByteArray(encodedImageData, 0, encodedImageData.size).asImageBitmap()
-}
-
+@OptIn(UnstableApi::class)
 @Composable
-fun SleevePicture(mediaController: MediaController?){
-
-    val cMediaMetadata = remember { mutableStateOf<MediaMetadata?>(null) }
-
-    LaunchedEffect(key1 = mediaController) {
-        mediaController?.addListener(
-            object : Player.Listener {
-                override fun onMediaMetadataChanged(mediaMetadata: MediaMetadata) {
-                    super.onMediaMetadataChanged(mediaMetadata)
-                        cMediaMetadata.value = mediaMetadata
-
-                }
-
-            }
-        )
-    }//LaunchedEffect
-
-    val imageBitmap= cMediaMetadata.value?.artworkData?.let { imageBitmapFromBytes(it) }
-
+fun SleevePicture(imageBitmap: ImageBitmap?){
     if (imageBitmap != null) {
-        Image(
-            modifier = Modifier.fillMaxSize(.95f).padding(2.dp),
-//            contentScale = ContentScale.,
-            bitmap = imageBitmap,
-            contentDescription = "some useful description",
-        )
+        Box(Modifier.fillMaxWidth(),
+            contentAlignment = Alignment.Center
+        ) {
+            Image(
+                modifier = Modifier.fillMaxSize()
+                    .padding(8.dp),
+                bitmap = imageBitmap,
+                contentScale = ContentScale.FillHeight,
+                contentDescription = "Sleeve picture",
+            )
+        }
     }
-
-
 }

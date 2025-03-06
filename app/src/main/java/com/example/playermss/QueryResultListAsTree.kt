@@ -39,22 +39,22 @@ import androidx.compose.ui.unit.dp
 import com.example.playermss.data.MediaTrackData
 import com.example.playermss.data.MediaViewModel
 
-//
-//@OptIn(ExperimentalLayoutApi::class)
-//@Composable
-//fun ShowTrack(trackItem: MediaTrackData, key: Int, selectedKey: Int) {
-//
-//    val color = if (key == selectedKey) Color.Yellow else Color.White
-//
-//    FlowRow(
-//        modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
-//        horizontalArrangement = Arrangement.SpaceBetween
-//    ) {
-//        Text(color = color, text = "    ${trackItem.track} - ${trackItem.title}")
-//        Text(color = color, text = duration(trackItem.duration))
-//    }
-//    Log.d("RCT","ReCompose track")
-//}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun ShowTrack(trackItem: MediaTrackData, key: Int, selectedKey: Int) {
+
+    val color = if (key == selectedKey) Color.Yellow else Color.White
+
+    FlowRow(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(color = color, text = "    ${trackItem.track} - ${trackItem.title}")
+        Text(color = color, text = duration(trackItem.duration))
+    }
+    Log.d("RCT","ReCompose track")
+}
 
 private fun LazyListScope.showTracks(tracks: List<MediaTrackData>, mediaViewModel: MediaViewModel){
 
@@ -72,7 +72,7 @@ private fun LazyListScope.showTracks(tracks: List<MediaTrackData>, mediaViewMode
                     .pointerInput(Unit){
                         detectTapGestures (
                             onTap = {
-                                Log.d("DTTREE","${trackItem.title}")
+                                Log.d("DTTREE", trackItem.title)
                                 mediaViewModel.play(trackItem)
                             },
                             onPress = {
@@ -93,10 +93,11 @@ private fun LazyListScope.showTracks(tracks: List<MediaTrackData>, mediaViewMode
     }
 }
 
-private fun LazyListScope.showAlbums(albums: Map<String, List<MediaTrackData>>, mediaViewModel: MediaViewModel, albumExpanded: Set<String>){
+private fun LazyListScope.showAlbums(albums: List<Pair<String, List<MediaTrackData>>>, mediaViewModel: MediaViewModel, albumExpanded: Set<String>){
     albums.forEach {
-        val albumName = it.key
-        item (key = System.identityHashCode(it)){
+
+        val (albumName, albumTracks) = it
+        item (key = System.identityHashCode(albumName)){//todo: recheck case if albums names same
             Card(
                 modifier = Modifier
                     .height(IntrinsicSize.Min)
@@ -121,24 +122,26 @@ private fun LazyListScope.showAlbums(albums: Map<String, List<MediaTrackData>>, 
                 colors = CardDefaults.elevatedCardColors()
             ) {
                 val year =
-                if(it.value.isNotEmpty()){
-                    it.value[0].year
+                if(albumTracks.isNotEmpty()){
+                    albumTracks[0].year
                 }else{
                     ""
                 }
-                Text("  $year - ${it.key}")
+                Text("  $year - $albumName")
             }
         }
 
-        if(albumExpanded.contains(it.key)) {
-            showTracks(it.value, mediaViewModel)
+        if(albumExpanded.contains(albumName)) {
+            showTracks(albumTracks, mediaViewModel)
         }
     }
 }
 
-private fun LazyListScope.showArtist(artist: Map. Entry<String, Map<String, List<MediaTrackData>>>, mediaViewModel: MediaViewModel, artistExpanded: Set<String>, albumExpanded: Set<String>){
+private fun LazyListScope.showArtist(artistAsPair: Pair<String, List<Pair<String, List<MediaTrackData>>>>, mediaViewModel: MediaViewModel, artistExpanded: Set<String>, albumExpanded: Set<String>){
 
-    item (key = System.identityHashCode(artist)) {
+    val (artistName, artistAlbums) = artistAsPair
+
+    item (key = System.identityHashCode(artistAsPair)) {
         Card(
             modifier = Modifier
                 .height(IntrinsicSize.Min)
@@ -147,24 +150,24 @@ private fun LazyListScope.showArtist(artist: Map. Entry<String, Map<String, List
                 .padding(2.dp)
                 .clickable(
                     onClick = {
-                        mediaViewModel.toggleArtistExpanded(artist.key)
+                        mediaViewModel.toggleArtistExpanded(artistName)
                     }),
             shape = RoundedCornerShape(10),
 //                colors = if(mediaData.listIndex == playingIndex) CardDefaults.elevatedCardColors() else CardDefaults.cardColors()
         ) {
-            Text("Artist: ${artist.key}. albums: ${artist.value.count()}")
+            Text("Artist: ${artistName}. albums: ${artistAlbums.count()}")
         }
     }
 
-    if(artistExpanded.contains(artist.key)) {
-        showAlbums(artist.value,mediaViewModel,albumExpanded)
+    if(artistExpanded.contains(artistName)) {
+        showAlbums(artistAlbums, mediaViewModel, albumExpanded)
     }
 }
 
 @Composable
-fun ShowSearchResults(mediaViewModel: MediaViewModel){
+fun ShowQueryResults(mediaViewModel: MediaViewModel){
 
-    val results = mediaViewModel.searchResults.collectAsState()
+    val results = mediaViewModel.querySortedResults.collectAsState()
     val artistExpanded = mediaViewModel.expandedArtists.collectAsState()
     val albumExpanded = mediaViewModel.expandedAlbums.collectAsState()
 

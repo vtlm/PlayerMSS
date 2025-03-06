@@ -13,6 +13,7 @@ import android.provider.MediaStore
 import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.annotation.RequiresExtension
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.media3.common.MediaItem
@@ -23,13 +24,17 @@ import androidx.media3.datasource.HttpDataSource
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import com.example.playermss.PlaybackService
+import com.example.playermss.imageBitmapFromBytes
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlin.math.max
+import kotlin.math.min
 
 
 data class SearchStatistic(
@@ -53,16 +58,43 @@ data class MediaTrackData(
     val artist: String = (""),
     val album: String = (""),
     val title: String = (""),
-    val year: String = ("0"),
-    val track: String = ("0"),
+    val year: Int? = 0,
+    val track: Int? = 0,
+    val duration: Int? = 0,
     val uri: Uri? = null,
 )
 
+class SearchHelper(val groupedSortedTracks: List<Pair<String, List<Pair<String, List<MediaTrackData>>>>>?){
+
+    var currentArtist: String? = ""
+    var currentAlbumKey: String? = ""
+
+    fun getNext(mediaTrackData: MediaTrackData?): MediaTrackData?{
+        val currentArtist = groupedSortedTracks?.find { it.first == mediaTrackData?.artist }
+        val currentArtistIndex = groupedSortedTracks?.indexOf(currentArtist)
+        if(groupedSortedTracks != null && currentArtistIndex != null) {
+            val currentAlbumsList = groupedSortedTracks[currentArtistIndex].second
+            val currentAlbum = currentAlbumsList.find { it.first == mediaTrackData?.album }
+            val currentAlbumIndex = currentAlbumsList.indexOf(currentAlbum)
+            val currentTracks = currentAlbumsList[currentAlbumIndex].second
+            val currentTrackIndex = currentTracks.indexOf(mediaTrackData)
+            return currentTracks[currentTrackIndex + 1]
+        }
+        return null
+    }
+
+}
 
 class MediaViewModel: ViewModel() {
 
     private val _mediaControllerLoaded = MutableStateFlow(false)
     val mediaControllerLoaded: StateFlow<Boolean> = _mediaControllerLoaded.asStateFlow()
+
+    private val _progressTitle = MutableStateFlow("")
+    val progressTitle: StateFlow<String> = _progressTitle.asStateFlow()
+
+    private val _playingItemId = MutableStateFlow(0)
+    val playingItemId: StateFlow<Int> = _playingItemId.asStateFlow()
 
     private val _mediaStoreGenerations = MutableStateFlow(listOf<Long>())
     val mediaStoreGenerations: StateFlow<List<Long>> = _mediaStoreGenerations.asStateFlow()
@@ -76,17 +108,26 @@ class MediaViewModel: ViewModel() {
     private val _searchResults = MutableStateFlow<Map<String, Map<String, List<MediaTrackData>>>>(mapOf())
     val searchResults : StateFlow<Map<String, Map<String, List<MediaTrackData>>>> = _searchResults.asStateFlow()
 
+    private val _querySortedResults = MutableStateFlow<List<Pair<String, List<Pair<String, List<MediaTrackData>>>>>>(listOf())
+    val querySortedResults : StateFlow<List<Pair<String, List<Pair<String, List<MediaTrackData>>>>>> = _querySortedResults.asStateFlow()
+
     private var _expandedArtists = MutableStateFlow<Set<String>>(setOf())
     val expandedArtists: StateFlow<Set<String>> = _expandedArtists.asStateFlow()
 
     private var _expandedAlbums = MutableStateFlow<Set<String>>(setOf())
     val expandedAlbums: StateFlow<Set<String>> = _expandedAlbums.asStateFlow()
 
+    private var _sleevePicture = MutableStateFlow<ImageBitmap?>(null)
+    val sleevePicture: StateFlow<ImageBitmap?> = _sleevePicture.asStateFlow()
+
     lateinit var context: Context
 
     private var bassBoost: BassBoost? = null
     private  var visualizer: Visualizer? = null
 
+    private var searchHelper: SearchHelper? = SearchHelper(null)
+    private var currentMediaTrackData: MediaTrackData? = null
+    private var nextMediaTrackData: MediaTrackData? = null
 
     private var controllerFuture: ListenableFuture<MediaController>? = null
     var mediaController: MediaController? = null
@@ -94,6 +135,8 @@ class MediaViewModel: ViewModel() {
 
     @RequiresExtension(extension = Build.VERSION_CODES.R, version = 1)
     fun init(){
+
+        _progressTitle.value = "Loading MediaSession"
 
         val sessionToken =
             SessionToken(
@@ -130,19 +173,49 @@ class MediaViewModel: ViewModel() {
                     }
 
                     override fun onMediaMetadataChanged(mediaMetadata: MediaMetadata) {
-                        _currentTrackMediaMetadata.value = mediaMetadata
+//                        _currentTrackMediaMetadata.value = mediaMetadata
                         Log.d("DMG", "mediaData changed")
                     }
+
+                    override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+                        super.onMediaItemTransition(mediaItem, reason)
+                        if(reason == 1){
+                            currentMediaTrackData = nextMediaTrackData
+                            _playingItemId.value = System.identityHashCode(currentMediaTrackData)
+                            nextMediaTrackData = searchHelper?.getNext(nextMediaTrackData)
+                            val nextMediaItem = nextMediaTrackData?.uri?.let { MediaItem.fromUri(it) }
+                            if (nextMediaItem != null) {
+                                mediaController?.addMediaItem(nextMediaItem)
+                            }
+
+                        }
+                    }
+
+//                    override fun onPlaybackStateChanged(playbackState: Int) {
+//                        super.onPlaybackStateChanged(playbackState)
+//                        if(playbackState == Player.STATE_READY){
+//                            val md = mediaController.mediaMetadata()
+//                        }
+//                    }
 
                     override fun onEvents(player: Player, events: Player.Events) {
                         super.onEvents(player, events)
 
-//                        events.
+                        if(events.contains(Player.EVENT_PLAYBACK_STATE_CHANGED)){
+                            if(player.playbackState == Player.STATE_READY){
+                                _currentTrackMediaMetadata.value = player.mediaMetadata
+                                _sleevePicture.value = player.mediaMetadata.artworkData?.let {
+                                    imageBitmapFromBytes(it)
+                                }
+                            }
+                        }
                     }
+
                 }
             )
 
             _mediaControllerLoaded.value = true
+            _progressTitle.value = ""
 
         }, MoreExecutors.directExecutor())
 
@@ -167,7 +240,7 @@ class MediaViewModel: ViewModel() {
 
     }
 
-    private fun yearFromCursor(cursor: Cursor, columnMap: Map<String,Int?>): String {
+    private fun yearFromCursor(cursor: Cursor, columnMap: Map<String,Int?>): Int? {
 
         val patterns= arrayOf("(19|20)\\d{2}",
             "(3[01]|[12][0-9]|0[1-9]|[1-9])/(1[0-2]|0[1-9]|[1-9])/[0-9]{4}",
@@ -175,9 +248,9 @@ class MediaViewModel: ViewModel() {
             "(3[01]|[12][0-9]|0[1-9]|[1-9])\\.(1[0-2]|0[1-9]|[1-9])\\.[0-9]{2}",
         )
 
-        var year = columnMap[MediaStore.Audio.AudioColumns.YEAR]?.let { cursor.getString(it) }.toString()
+        var year = columnMap[MediaStore.Audio.AudioColumns.YEAR]?.let { cursor.getInt(it) }
 
-        if (year == "null") {
+        if (year == null || year == 0) {
             val data = columnMap[MediaStore.Audio.AudioColumns.DATA]?.let { cursor.getString(it) }
                 .toString()
 
@@ -185,7 +258,7 @@ class MediaViewModel: ViewModel() {
                 val yearPattern = Regex(pattern)
                 val res = yearPattern.find(data)
                 if (res != null) {
-                    year = res.value
+                    year = res.value.toIntOrNull()
                     return year
                 }
             }
@@ -193,27 +266,31 @@ class MediaViewModel: ViewModel() {
         return year
     }
 
-    private fun trackNumberFromCursor(cursor: Cursor, columnMap: Map<String,Int?>): String {
+    private fun trackNumberFromCursor(cursor: Cursor, columnMap: Map<String,Int?>): Int? {
 
-        val patterns= arrayOf("/d{2}",
-            "/[0-9]{2}",
+        val patterns= arrayOf("d{2}",
+            //"\\s/d{2}\\s",
+            "[0-9]{2}",
+           // "\\s/[0-9]{2}\\s",
         )
 
-        var trackNumber = columnMap[MediaStore.Audio.AudioColumns.TRACK]?.let { cursor.getString(it) }.toString()
+        var trackNumber = columnMap[MediaStore.Audio.AudioColumns.TRACK]?.let { cursor.getInt(it) }
 
-        if (trackNumber == "null") {
+        if (trackNumber == null || trackNumber == 0) {
             val data = columnMap[MediaStore.Audio.AudioColumns.DATA]?.let { cursor.getString(it) }
-                .toString()
+                .toString().split('/').last()
 
             for (pattern in patterns) {
-                val yearPattern = Regex(pattern)
-                val res = yearPattern.findAll(data)
+                val res = Regex(pattern).findAll(data)
                 if (res.count() > 0) {
-                    trackNumber = res.last().value//todo remove leading /
+                    trackNumber = res.last().value.toIntOrNull()
                     return trackNumber
+                }else{
+                    trackNumber = null
                 }
             }
         }
+
         return trackNumber
     }
 
@@ -255,17 +332,21 @@ class MediaViewModel: ViewModel() {
     @RequiresApi(Build.VERSION_CODES.Q)
     fun cursorToMediaTrackData(cursor: Cursor, columnMap: Map<String,Int>): MediaTrackData{
 
+//        val dt = columnMap[MediaStore.Audio.AudioColumns.DURATION]?.let { cursor.getType(it) }
+//        val dt1 = columnMap[MediaStore.Audio.AudioColumns.YEAR]?.let { cursor.getType(it) }
+//        val dt2 = columnMap[MediaStore.Audio.AudioColumns.TRACK]?.let { cursor.getType(it) }
+
         val rv = MediaTrackData(
             columnMap[MediaStore.Audio.AudioColumns.ARTIST]?.let { cursor.getString(it) }.toString(),
             columnMap[MediaStore.Audio.AudioColumns.ALBUM]?.let { cursor.getString(it) }.toString(),
             columnMap[MediaStore.Audio.AudioColumns.TITLE]?.let { cursor.getString(it) }.toString(),
             yearFromCursor(cursor, columnMap),
             trackNumberFromCursor(cursor, columnMap),
+            columnMap[MediaStore.Audio.AudioColumns.DURATION]?.let { cursor.getInt(it) },
             uri = uriFromCursor(cursor, columnMap)
         )
         return rv
     }
-
 
     private fun toggleInSet(inSet: Set<String>, name: String) : Set<String>{
         return if(inSet.contains(name)){
@@ -287,7 +368,7 @@ class MediaViewModel: ViewModel() {
     private fun cursorToTrackList(cursor: Cursor): List<MediaTrackData>{
         val audioColumnIds = audioColumns.associateWith { cursor.getColumnIndex(it) }
 
-        val list = (1 .. cursor.count).map {
+        val list = (1 .. min(cursor.count,Int.MAX_VALUE)).map {
             cursor.moveToNext()
             cursorToMediaTrackData(cursor, audioColumnIds)
         }
@@ -298,10 +379,21 @@ class MediaViewModel: ViewModel() {
     @RequiresApi(Build.VERSION_CODES.Q)
     private fun updateQueryStatistic(list: List<MediaTrackData>){
 
+        val setByArtist = list.groupBy { it.artist }.toList().toSortedSet(compareBy { it.first })
+        val listByArtistAlbum = setByArtist.map { Pair(it.first,it.second.groupBy { it1 -> it1.album }.toList().toSortedSet(
+            compareBy { it2 -> it2.second[0].year.toString() + it2.first }
+        )) }
+        val listByArtistAlbumTrack = listByArtistAlbum.map { Pair(it.first,it.second.map { it2 -> Pair(it2.first, it2.second.sortedBy{ mtd -> mtd.track})}) }
+        _querySortedResults.value = listByArtistAlbumTrack
+
+        searchHelper = SearchHelper(listByArtistAlbumTrack)
+
         val mapByArtist = list.groupBy { it.artist }.toList().sortedBy { it.first }.toMap()
-        val mapByArtistAlbumSortedByYear = mapByArtist.entries.associate{ it.key to it.value.groupBy { it1 -> it1.album }.toList().sortedBy { (key,value) -> value[0].year+key }.toMap() }
+//        val mapByArtistEmpty = mapByArtist.entries.associate { it.key to mapOf(Pair("",listOf<MediaTrackData>())) }
+        val mapByArtistAlbumSortedByYear = mapByArtist.entries.associate{ it.key to it.value.groupBy { it1 -> it1.album }.toList().sortedBy { (key,value) -> value[0].year.toString() + key }.toMap() }
         val mapByArtistAlbumSortedByYearTrack=mapByArtistAlbumSortedByYear.entries.associate { it.key to it.value.entries.associate {it1 -> it1.key to it1.value.sortedBy { mtd -> mtd.track } } }
         _searchResults.value = mapByArtistAlbumSortedByYearTrack
+//        _searchResults.value = mapByArtistEmpty
 
         tracksAsList = mapByArtistAlbumSortedByYearTrack.flatMap { it.value.flatMap { it1 -> it1.value } }
     }
@@ -309,26 +401,34 @@ class MediaViewModel: ViewModel() {
     @RequiresApi(Build.VERSION_CODES.Q)
     fun query(queryParams: QueryParams? = QueryParams(), contentUri: Uri): Cursor?{
 
-        var cursor: Cursor? = null
-
-//        viewModelScope.launch {
-            cursor = this@MediaViewModel.context.contentResolver.query(
+        val cursor: Cursor? = this@MediaViewModel.context.contentResolver.query(
                 contentUri,
                 queryParams?.projection,
                 queryParams?.selection,
                 queryParams?.selectionArgs,
                 queryParams?.sortOrder
             )
-            Log.d("MVM", "Items: ${cursor?.count}")
+//            Log.d("MVM", "Items: ${cursor?.count}")
 //        }
         return cursor
     }
 
+    fun coroTest(){
+        viewModelScope.launch {
+            delay(4000)
+            Log.d("CRET","Coro ends")
+        }
+        Log.d("CRET","After Coro")
+    }
+
     @RequiresApi(Build.VERSION_CODES.Q)
     fun query(searchFields : List<TextFieldViewModel>){
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.Default) {
+
+            _progressTitle.value = "Querying MediaStore"
 
             val queryParams = QueryParams()
+            queryParams.projection = audioColumns
 
             queryParams.selection = "${MediaStore.Audio.Media.ARTIST} like ? and " +
                     "${MediaStore.Audio.Media.ALBUM} like ? and " +
@@ -339,7 +439,6 @@ class MediaViewModel: ViewModel() {
                 "%${searchFields[1].textField.value}%",
                 "%${searchFields[2].textField.value}%"
             )
-
 
             val trackList = mutableListOf<MediaTrackData>()
             val externalVolumeNames = MediaStore.getExternalVolumeNames(context)
@@ -354,7 +453,10 @@ class MediaViewModel: ViewModel() {
                 }
             }
             updateQueryStatistic(trackList)
+            Log.d("CRE","End of coro")
+            _progressTitle.value = ""
         }
+        Log.d("CRE","After coro")
     }
 
     @RequiresApi(Build.VERSION_CODES.Q)
@@ -372,7 +474,7 @@ class MediaViewModel: ViewModel() {
         )
 
 
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.Default) {
             val externalVolumeNames = MediaStore.getExternalVolumeNames(context)
 
             for (name in externalVolumeNames) {
@@ -411,7 +513,9 @@ class MediaViewModel: ViewModel() {
     }
 
     fun play(mediaTrackData: MediaTrackData){
-        Log.d("DTP","${mediaTrackData.title}")
+        Log.d("DTP", mediaTrackData.title)
+        currentMediaTrackData = mediaTrackData
+        _playingItemId.value = System.identityHashCode(mediaTrackData)
         val mediaItem = mediaTrackData.uri?.let { MediaItem.fromUri(it) }
         mediaItem?.let {
             mediaController?.setMediaItem(it)
@@ -424,6 +528,12 @@ class MediaViewModel: ViewModel() {
 //                mediaController?.play()
 //            }
 
+        }
+
+        nextMediaTrackData = searchHelper?.getNext(mediaTrackData)
+        val nextMediaItem = nextMediaTrackData?.uri?.let { MediaItem.fromUri(it) }
+        if (nextMediaItem != null) {
+            mediaController?.addMediaItem(nextMediaItem)
         }
     }
 
