@@ -7,9 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -33,8 +31,10 @@ fun duration(durationMs:Int?):String{
     return mins.toString()+":"+secs.toString().padStart(2,'0')
 }
 
-fun imageBitmapFromBytes(encodedImageData: ByteArray): ImageBitmap {
-    return BitmapFactory.decodeByteArray(encodedImageData, 0, encodedImageData.size).asImageBitmap()
+fun imageBitmapFromBytes(encodedImageData: ByteArray): ImageBitmap? {
+
+    return BitmapFactory.decodeByteArray(encodedImageData, 0, encodedImageData.size)
+        ?.asImageBitmap()
 }
 
 

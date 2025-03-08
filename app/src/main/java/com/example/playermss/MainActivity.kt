@@ -351,9 +351,9 @@ class MainActivity : ComponentActivity() {
         ) { innerPadding ->
             Box(modifier = Modifier.padding(innerPadding)) {
                 Column {
-                    Row {
-                        StatusLine()
-                    }
+//                    Row {
+//                        StatusLine()
+//                    }
                     Row {
                         if (isSearchOpen.value != null && isSearchOpen.value == true) {
                             SearchFields(searchFields, mediaViewModel)

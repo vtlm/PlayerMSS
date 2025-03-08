@@ -64,27 +64,6 @@ data class MediaTrackData(
     val uri: Uri? = null,
 )
 
-class SearchHelper(val groupedSortedTracks: List<Pair<String, List<Pair<String, List<MediaTrackData>>>>>?){
-
-    var currentArtist: String? = ""
-    var currentAlbumKey: String? = ""
-
-    fun getNext(mediaTrackData: MediaTrackData?): MediaTrackData?{
-        val currentArtist = groupedSortedTracks?.find { it.first == mediaTrackData?.artist }
-        val currentArtistIndex = groupedSortedTracks?.indexOf(currentArtist)
-        if(groupedSortedTracks != null && currentArtistIndex != null) {
-            val currentAlbumsList = groupedSortedTracks[currentArtistIndex].second
-            val currentAlbum = currentAlbumsList.find { it.first == mediaTrackData?.album }
-            val currentAlbumIndex = currentAlbumsList.indexOf(currentAlbum)
-            val currentTracks = currentAlbumsList[currentAlbumIndex].second
-            val currentTrackIndex = currentTracks.indexOf(mediaTrackData)
-            return currentTracks[currentTrackIndex + 1]
-        }
-        return null
-    }
-
-}
-
 class MediaViewModel: ViewModel() {
 
     private val _mediaControllerLoaded = MutableStateFlow(false)
@@ -127,6 +106,7 @@ class MediaViewModel: ViewModel() {
 
     private var searchHelper: SearchHelper? = SearchHelper(null)
     private var currentMediaTrackData: MediaTrackData? = null
+    private var prevMediaTrackData: MediaTrackData? = null
     private var nextMediaTrackData: MediaTrackData? = null
 
     private var controllerFuture: ListenableFuture<MediaController>? = null
@@ -179,15 +159,98 @@ class MediaViewModel: ViewModel() {
 
                     override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
                         super.onMediaItemTransition(mediaItem, reason)
+
                         if(reason == 1){
+                            prevMediaTrackData = currentMediaTrackData
                             currentMediaTrackData = nextMediaTrackData
+
+                            if (!_expandedAlbums.value.contains(currentMediaTrackData?.album)) {
+                                _expandedAlbums.value += currentMediaTrackData?.album.toString()
+                            }
+
                             _playingItemId.value = System.identityHashCode(currentMediaTrackData)
                             nextMediaTrackData = searchHelper?.getNext(nextMediaTrackData)
                             val nextMediaItem = nextMediaTrackData?.uri?.let { MediaItem.fromUri(it) }
                             if (nextMediaItem != null) {
+                                mediaController?.removeMediaItem(0)
                                 mediaController?.addMediaItem(nextMediaItem)
                             }
 
+                        }
+
+                        if(reason == 2){ //prev, next buttons
+
+                            val mediaItemsCount = mediaController?.mediaItemCount
+                            if(mediaItemsCount != null) {
+                                val firstMediaItem = mediaController?.getMediaItemAt(0)
+//prev
+                                if (mediaItem == firstMediaItem) {
+                                    nextMediaTrackData = currentMediaTrackData
+                                    currentMediaTrackData = prevMediaTrackData
+
+                                    if(!_expandedAlbums.value.contains(currentMediaTrackData?.album)){
+                                        _expandedAlbums.value += currentMediaTrackData?.album.toString()
+                                    }
+
+                                    _playingItemId.value =
+                                        System.identityHashCode(currentMediaTrackData)
+                                    prevMediaTrackData = searchHelper?.getPrev(prevMediaTrackData)
+                                    val prevMediaItem =
+                                        prevMediaTrackData?.uri?.let { MediaItem.fromUri(it) }
+
+                                    if (prevMediaItem != null) {
+
+                                        val c = mutableListOf<MediaItem?>()
+                                        for (m in 0..<mediaController?.mediaItemCount!!) {
+                                            c += mediaController?.getMediaItemAt(m)
+                                        }
+
+                                        mediaController?.addMediaItem(0, prevMediaItem)
+
+                                        val c2 = mutableListOf<MediaItem?>()
+                                        for (m in 0..<mediaController?.mediaItemCount!!) {
+                                            c2 += mediaController?.getMediaItemAt(m)
+                                        }
+
+                                        val cn = mediaController?.mediaItemCount
+
+                                        if (cn == 4) {
+                                            mediaController?.removeMediaItem(3)
+                                        }
+//                                        Log.d()
+                                    }
+                                }else{
+//next
+
+                                    val lastIemIndex =
+                                        mediaItemsCount - if (mediaItemsCount > 0) 1 else 0
+                                    val lastMediaItem =
+                                        mediaController?.getMediaItemAt(lastIemIndex)
+
+                                    if (mediaItem == lastMediaItem) {
+                                        prevMediaTrackData = currentMediaTrackData
+                                        currentMediaTrackData = nextMediaTrackData
+
+                                        if (!_expandedAlbums.value.contains(currentMediaTrackData?.album)) {
+                                            _expandedAlbums.value += currentMediaTrackData?.album.toString()
+                                        }
+
+                                        _playingItemId.value =
+                                            System.identityHashCode(currentMediaTrackData)
+                                        nextMediaTrackData =
+                                            searchHelper?.getNext(nextMediaTrackData)
+                                        val nextMediaItem =
+                                            nextMediaTrackData?.uri?.let { MediaItem.fromUri(it) }
+                                        if (nextMediaItem != null) {
+                                            if (lastIemIndex == 2) {
+                                                mediaController?.removeMediaItem(0)
+                                            }
+                                            mediaController?.addMediaItem(nextMediaItem)
+//                                        Log.d()
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
 
@@ -209,6 +272,14 @@ class MediaViewModel: ViewModel() {
                                 }
                             }
                         }
+
+                        if(events.contains(Player.EVENT_MEDIA_ITEM_TRANSITION)){
+                            if(player.playbackState == Player.STATE_READY){
+                                 _currentTrackMediaMetadata.value = player.mediaMetadata
+                                 _sleevePicture.value = player.mediaMetadata.artworkData?.let {
+                                imageBitmapFromBytes(it)
+                            }
+                        }                        }
                     }
 
                 }
@@ -219,13 +290,13 @@ class MediaViewModel: ViewModel() {
 
         }, MoreExecutors.directExecutor())
 
-        viewModelScope.launch {
-            // Coroutine that will be canceled when the ViewModel is cleared.
-            while (true) {
-                reCheckMediaStoreGeneration()
-                delay(10000)
-            }
-        }
+//        viewModelScope.launch {
+//            // Coroutine that will be canceled when the ViewModel is cleared.
+//            while (true) {
+//                reCheckMediaStoreGeneration()
+//                delay(10000)
+//            }
+//        }
     }
 
     @RequiresExtension(extension = Build.VERSION_CODES.R, version = 1)
@@ -514,27 +585,42 @@ class MediaViewModel: ViewModel() {
 
     fun play(mediaTrackData: MediaTrackData){
         Log.d("DTP", mediaTrackData.title)
+        mediaController?.clearMediaItems()
+
+        var offset = 0
+
         currentMediaTrackData = mediaTrackData
         _playingItemId.value = System.identityHashCode(mediaTrackData)
+
+        prevMediaTrackData = searchHelper?.getPrev(mediaTrackData)
+        val prevMediaItem = prevMediaTrackData?.uri?.let { MediaItem.fromUri(it) }
+        if (prevMediaItem != null) {
+            mediaController?. addMediaItem(0, prevMediaItem)
+            offset = 1
+        }
+
+
         val mediaItem = mediaTrackData.uri?.let { MediaItem.fromUri(it) }
         mediaItem?.let {
-            mediaController?.setMediaItem(it)
-            mediaController?.prepare()
-            mediaController?.play()
-
-//            val count = mediaController?.mediaItemCount
-//            if (count != null) {
-//                mediaController?.seekTo(count - 1,0)
-//                mediaController?.play()
-//            }
+            mediaController?.addMediaItem(it)
 
         }
+
 
         nextMediaTrackData = searchHelper?.getNext(mediaTrackData)
         val nextMediaItem = nextMediaTrackData?.uri?.let { MediaItem.fromUri(it) }
         if (nextMediaItem != null) {
             mediaController?.addMediaItem(nextMediaItem)
         }
+
+
+        val count = mediaController?.mediaItemCount
+        if (count != null) {
+            mediaController?.seekTo(offset,0)
+            mediaController?.prepare()
+            mediaController?.play()
+        }
+
     }
 
 }
