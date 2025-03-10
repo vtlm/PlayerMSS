@@ -47,7 +47,6 @@ fun SearchFields(searchFields: List<TextFieldViewModel>, mediaViewModel: MediaVi
         searchFields.forEach {
             item {
                 SearchField(it) {
-//                    mediaViewModel.coroTest()
                     mediaViewModel.query(searchFields)
                 }
             }

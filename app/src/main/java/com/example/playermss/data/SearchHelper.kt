@@ -88,7 +88,7 @@ class SearchHelper(private val groupedSortedTracks: List<Pair<String, List<Pair<
     fun getNext(mediaTrackData: MediaTrackData?): MediaTrackData?{
         val currentArtist = groupedSortedTracks?.find { it.first == mediaTrackData?.artist }
         val currentArtistIndex = groupedSortedTracks?.indexOf(currentArtist)
-        if(groupedSortedTracks != null && currentArtistIndex != null) {
+        if(groupedSortedTracks != null && currentArtistIndex != null && currentArtistIndex != -1) {
             val currentAlbumsList = groupedSortedTracks[currentArtistIndex].second
             val currentAlbum = currentAlbumsList.find { it.first == mediaTrackData?.album }
             val currentAlbumIndex = currentAlbumsList.indexOf(currentAlbum)
