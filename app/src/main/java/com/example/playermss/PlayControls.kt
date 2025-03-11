@@ -7,20 +7,23 @@ import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.media3.common.Player
 import androidx.media3.session.MediaController
+import com.example.playermss.data.MediaViewModel
 
 @Composable
-fun PlayControls(mediaController: MediaController?, modifier: Modifier) {
+fun PlayControls(mediaViewModel: MediaViewModel, modifier: Modifier) {
+
+    val mediaController = mediaViewModel.mediaController
+    val playerRepeatMode = mediaViewModel.playerRepeatMode.collectAsState().value
 
     Log.d("DBG_PC", "play ctls called")
 
-    val repeatMode = remember { mutableIntStateOf(Player.REPEAT_MODE_OFF) }
-    val maxRepeatModeInd = 2
     val repeatModeId = arrayOf(
         R.drawable.baseline_repeat_24,
         R.drawable.baseline_repeat_one_on_24,
@@ -51,15 +54,9 @@ fun PlayControls(mediaController: MediaController?, modifier: Modifier) {
                 contentDescription = "Skip to Next"
             )
         }
-        IconButton(onClick = {
-            repeatMode.intValue += 1
-            if (repeatMode.intValue > maxRepeatModeInd) {
-                repeatMode.intValue = 0
-            }
-            mediaController?.repeatMode = repeatMode.intValue
-        }) {
+        IconButton(onClick = { mediaViewModel.incPlayerRepeatMode() }) {
             Icon(
-                painter = painterResource(id = repeatModeId[repeatMode.intValue]),
+                painter = painterResource(id = repeatModeId[playerRepeatMode]),
                 contentDescription = "Repeat Mode"
             )
         }

@@ -18,6 +18,7 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.viewModels
 import androidx.annotation.RequiresApi
 import androidx.annotation.RequiresExtension
 import androidx.compose.animation.animateContentSize
@@ -73,6 +74,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.documentfile.provider.DocumentFile
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.util.UnstableApi
@@ -111,16 +113,17 @@ class MainActivity : ComponentActivity() {
         TextFieldViewModel("ToYear"),
     )
 
-    private var mediaViewModel = MediaViewModel()
+    val mediaViewModel:MediaViewModel  by viewModels {MediaViewModel.Factory}
+
 
     @RequiresExtension(extension = Build.VERSION_CODES.R, version = 1)
     @RequiresApi(Build.VERSION_CODES.Q)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+//        mediaViewModel.query(searchFields)
         this.applicationContext.also { mediaViewModel.context = it }
         mediaViewModel.init()
-//        mediaViewModel.query(searchFields)
 
 // Register the permissions callback, which handles the user's response to the
 // system permissions dialog. Save the return value, an instance of
@@ -178,14 +181,15 @@ class MainActivity : ComponentActivity() {
 //        enableEdgeToEdge()
         setContent {
             PlayerMSSTheme {
-                MainU(mediaViewModel)
+                MainU()
             }
         }
     }
 
+    @RequiresExtension(extension = Build.VERSION_CODES.R, version = 1)
     @RequiresApi(Build.VERSION_CODES.Q)
     @Composable
-    fun MainU(mediaViewModel: MediaViewModel){
+    fun MainU(){
         ShowProgressOrContent(mediaViewModel.progressTitle.collectAsState().value) {
                 Nav()
         }
@@ -402,7 +406,7 @@ class MainActivity : ComponentActivity() {
                     Row (Modifier.padding(top=4.dp)){
                         Box {//for overlap
                             Row {
-                                TrackTime(mediaViewModel.mediaController)
+                                TrackTime(mediaViewModel)
                             }
                             Row {
                                 TrackInfo(
@@ -421,7 +425,8 @@ class MainActivity : ComponentActivity() {
                     Row {
                         Column(Modifier.weight(4f)) {
                             PlayControls(
-                                mediaController = mediaViewModel.mediaController,
+//                                mediaController = mediaViewModel.mediaController,
+                                mediaViewModel,
                                 modifier = Modifier.weight(4f)
                             )
                         }
@@ -549,284 +554,6 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-    }
-
-
-
-    enum class UI_State{
-        TrackList,
-        Search
-    }
-
-    @Deprecated("by MVMV")
-    @RequiresApi(Build.VERSION_CODES.Q)
-    @Composable
-    fun UI_TrackList(queryParams: QueryParams?, cb:(UI_State)->Unit){
-
-        var cursor:Cursor? = null// by remember { mutableStateOf<Cursor?>(null) }
-        var tracksUpdated by remember { mutableStateOf(false) }
-
-//        val titleColumnInd = remember { cursor.value?.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE) }
-
-        LaunchedEffect(queryParams) {
-
-            Log.d("DQP","Query resolver")
-
-            val f1 = MediaStore.getExternalVolumeNames(applicationContext)
-            val contentUri = MediaStore.Audio.Media.getContentUri(f1.elementAt(0))
-
-            cursor = contentResolver.query(
-            contentUri,
-            queryParams?.projection,
-            queryParams?.selection,
-            queryParams?.selectionArgs,
-            queryParams?.sortOrder
-            )
-
-            val idColumnInd = cursor?.getColumnIndexOrThrow(MediaStore.Audio.Media._ID)
-            val dataColumnInd = cursor?.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA)
-
-            while (cursor?.moveToNext() == true) {
-
-                val data: String? = dataColumnInd?.let { it1 -> cursor?.getString(it1) }
-                data?.let { Log.d("DTA", it)}
-                val id: Long? = idColumnInd?.let { it1 -> cursor?.getLong(it1) }
-                val cUri = id?.let { it1 -> ContentUris.withAppendedId(contentUri, it1) }
-                val mediaItem = cUri?.let { it1 -> MediaItem.fromUri(it1) }
-                if (mediaItem != null) {
-                    mediaViewModel.mediaController?.addMediaItem(mediaItem)
-                }
-            }
-
-            if(cursor?.count!! > 0){
-                mediaViewModel.mediaController?.prepare()
-                mediaViewModel.mediaController?.play()
-            }
-        }
-
-        DisposableEffect(queryParams) {
-            onDispose {
-                cursor?.close()
-            }
-        }
-
-        cursor?.moveToFirst()
-
-        LazyColumn {
-            cursor?.let {
-                items(it.count){itemInd->
-                    it.moveToPosition(itemInd)
-                    TrackCardFromCursor(it,mediaViewModel.mediaController)
-                }
-            }
-        }
-
-    }
-
-    @Composable
-    fun UI_Search(cb:(UI_State)->Unit){
-
-    }
-
-    @kotlin.OptIn(ExperimentalFoundationApi::class)
-    @RequiresApi(Build.VERSION_CODES.Q)
-    @Composable
-    fun UI_Main2(){
-        val mediaControllerLoaded = mediaViewModel.mediaControllerLoaded.collectAsState()
-        val currentTrackMediaMetadata = mediaViewModel.currentTrackMediaMetadata.collectAsState()
-
-        var uiState = remember { mutableStateOf(UI_State.TrackList) }
-        var queryParams = remember { mutableStateOf<QueryParams?>(null) }
-
-        fun setUI_State(ui_state: UI_State){
-            uiState.value = ui_state
-        }
-
-        var weightAdd by remember {
-            mutableFloatStateOf(0f)
-        }
-
-        val offs: Float by animateFloatAsState(
-            targetValue = weightAdd,
-            // Configure the animation duration and easing.
-            animationSpec = tween(durationMillis = 800, easing = EaseInOutExpo),
-            label = "offs"
-        )
-
-        Scaffold(
-            modifier = Modifier.fillMaxSize()//.padding(top = 36.dp)
-        ) { innerPadding ->
-            Column {
-                Row(modifier = Modifier
-                    .weight(7f - offs)
-                    .animateContentSize()
-                    .clickable {
-                        Log.d("D_CLICK", "track list clicked!")
-                        weightAdd = 0f
-                    }
-                ) {
-                    if (mediaControllerLoaded.value) {
-                        when (uiState.value){
-                            UI_State.TrackList -> UI_TrackList(queryParams.value,::setUI_State)
-                            UI_State.Search -> UI_Search(::setUI_State)
-                        }
-                    } else {
-                        Text("loading mediaSession")
-                    }
-                }
-                Row(modifier = Modifier
-                    .weight(2f + offs)
-                    .animateContentSize()
-                    .clickable { //Log.d("D_CLICK", "Box Sleeve clicked!")
-                        if (weightAdd < 1f) {
-                            weightAdd = 4f
-                        } else {
-                            weightAdd = 0f
-                        }
-                    }
-                ) {
-//                    SleevePicture(mediaController = mediaViewModel.mediaController)
-                }
-                Box {
-                    Row {
-                        TrackTime(mediaViewModel.mediaController)
-                    }
-                    Row {
-                        TrackInfo(
-                            mediaMetadata = currentTrackMediaMetadata.value,
-                            Modifier
-                                .padding(start = 14.dp, top = 4.dp)
-                                .width(intrinsicSize = IntrinsicSize.Max)
-                                .basicMarquee(iterations = 50)
-                                .weight(4f)
-                        )
-                        Text("", Modifier.weight(1.2f))
-                    }
-                }
-
-                Row {
-                    Column(Modifier.weight(4f)) {
-                        PlayControls(
-                            mediaController = mediaViewModel.mediaController,
-                            modifier = Modifier.weight(4f)
-                        )
-                    }
-                    Column(
-                        Modifier
-                            .weight(1f)
-//                        .width(intrinsicSize = IntrinsicSize.Max)
-                            .fillMaxWidth()
-                            .background(color = Color.Magenta)
-                    ) {
-                        Row(//verticalAlignment = Alignment.CenterVertically,
-                            Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.End
-                        ) {
-                            MinimalDropdownMenu()
-                        }
-                    }
-                }
-            }
-        }
-
-
-    }
-
-
-    //////////////to rem
-    @kotlin.OptIn(ExperimentalFoundationApi::class)
-    @Composable
-    fun MainUI() {
-        val mediaControllerLoaded = mediaViewModel.mediaControllerLoaded.collectAsState()
-        val currentTrackMediaMetadata = mediaViewModel.currentTrackMediaMetadata.collectAsState()
-
-        var weightAdd by remember {
-            mutableFloatStateOf(0f)
-        }
-
-        val offs: Float by animateFloatAsState(
-            targetValue = weightAdd,
-            // Configure the animation duration and easing.
-            animationSpec = tween(durationMillis = 800, easing = EaseInOutExpo),
-            label = "offs"
-        )
-
-        Scaffold(
-            modifier = Modifier.fillMaxSize()//.padding(top = 36.dp)
-        ) { innerPadding ->
-            Column {
-                Row(modifier = Modifier
-                    .weight(7f - offs)
-                    .animateContentSize()
-                    .clickable {
-                        Log.d("D_CLICK", "track list clicked!")
-                        weightAdd = 0f
-                    }
-                ) {
-                    if (mediaControllerLoaded.value) {
-//                        if (trackList != null) {
-//                            trackList!!.asList()
-//                        } else {
-//                            Text("TrackList is empty")
-//                        }
-                    } else {
-                        Text("loading mediaSession")
-                    }
-                }
-                Row(modifier = Modifier
-                    .weight(2f + offs)
-                    .animateContentSize()
-                    .clickable { //Log.d("D_CLICK", "Box Sleeve clicked!")
-                        if (weightAdd < 1f) {
-                            weightAdd = 4f
-                        } else {
-                            weightAdd = 0f
-                        }
-                    }
-                ) {
-//                    SleevePicture(mediaController = mediaViewModel.mediaController)
-                }
-                Box {
-                    Row {
-                        TrackTime(mediaViewModel.mediaController)
-                    }
-                    Row {
-                        TrackInfo(
-                            mediaMetadata = currentTrackMediaMetadata.value,
-                            Modifier
-                                .padding(start = 14.dp, top = 4.dp)
-                                .width(intrinsicSize = IntrinsicSize.Max)
-                                .basicMarquee()
-                                .weight(4f)
-                        )
-                        Text("", Modifier.weight(1.2f))
-                    }
-                }
-
-                Row {
-                    Column(Modifier.weight(4f)) {
-                        PlayControls(
-                            mediaController = mediaViewModel.mediaController,
-                            modifier = Modifier.weight(4f)
-                        )
-                    }
-                    Column(
-                        Modifier
-                            .weight(1f)
-//                        .width(intrinsicSize = IntrinsicSize.Max)
-                            .fillMaxWidth()
-                            .background(color = Color.Magenta)
-                    ) {
-                        Row(//verticalAlignment = Alignment.CenterVertically,
-                            Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.End
-                        ) {
-                            MinimalDropdownMenu()
-                        }
-                    }
-                }
-            }
-        }
     }
 
 }

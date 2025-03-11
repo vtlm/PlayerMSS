@@ -15,7 +15,11 @@ import androidx.annotation.RequiresApi
 import androidx.annotation.RequiresExtension
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.PlaybackException
@@ -24,15 +28,21 @@ import androidx.media3.datasource.HttpDataSource
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import com.example.playermss.PlaybackService
+import com.example.playermss.PlayerMSSReleaseApplication
 import com.example.playermss.imageBitmapFromBytes
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlin.math.max
 import kotlin.math.min
 
@@ -64,7 +74,8 @@ data class MediaTrackData(
     val uri: Uri? = null,
 )
 
-class MediaViewModel: ViewModel() {
+
+class MediaViewModel( private val userPreferencesRepository: UserPreferencesRepository): ViewModel() {
 
     private val _mediaControllerLoaded = MutableStateFlow(false)
     val mediaControllerLoaded: StateFlow<Boolean> = _mediaControllerLoaded.asStateFlow()
@@ -112,6 +123,74 @@ class MediaViewModel: ViewModel() {
     private var controllerFuture: ListenableFuture<MediaController>? = null
     var mediaController: MediaController? = null
     private lateinit var tracksAsList: List<MediaTrackData>
+
+
+    val isLinear: StateFlow<Boolean> =
+        userPreferencesRepository.isLinearLayout.map { isLinearLayout ->
+
+            isLinearLayout
+        }.stateIn(scope = viewModelScope,
+            // Flow is set to emits value for when app is on the foreground
+            // 5 seconds stop delay is added to ensure it flows continuously
+            // for cases such as configuration change
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = runBlocking {
+                userPreferencesRepository.isLinearLayout.first()
+            }
+        )
+
+    val isRemainTime: StateFlow<Boolean> =
+        userPreferencesRepository.isRemainTime.map { isRemainTime ->
+            isRemainTime
+        }.stateIn(scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = runBlocking {
+                userPreferencesRepository.isRemainTime.first()
+            }
+        )
+
+    fun setRemainTime(isRemainTime: Boolean) {
+        viewModelScope.launch {
+            userPreferencesRepository.saveRemainTimePreference(isRemainTime)
+        }
+    }
+
+    val playerRepeatMode: StateFlow<Int> =
+        userPreferencesRepository.playerRepeatMode.map { playerRepeatMode ->
+            playerRepeatMode
+        }.stateIn(scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = runBlocking {
+                userPreferencesRepository.playerRepeatMode.first()
+            }
+        )
+
+    fun setPlayerRepeatMode(playerRepeatMode: Int) {
+        viewModelScope.launch {
+            userPreferencesRepository.savePlayerRepeatModePreference(playerRepeatMode)
+        }
+    }
+
+    fun incPlayerRepeatMode() {
+        var nextPlayerRepeatMode = playerRepeatMode.value + 1
+        if(nextPlayerRepeatMode > Player.REPEAT_MODE_ALL){
+            nextPlayerRepeatMode = Player.REPEAT_MODE_OFF
+        }
+//        mediaController?.repeatMode = nextPlayerRepeatMode
+        setPlayerRepeatMode(nextPlayerRepeatMode)
+    }
+
+
+
+    companion object {
+        val Factory: ViewModelProvider.Factory = viewModelFactory {
+            initializer {
+                val application = (this[APPLICATION_KEY] as PlayerMSSReleaseApplication)
+                MediaViewModel(application.userPreferencesRepository)
+            }
+        }
+    }
+
 
     @RequiresExtension(extension = Build.VERSION_CODES.R, version = 1)
     fun init(){
@@ -304,6 +383,12 @@ class MediaViewModel: ViewModel() {
 //                delay(10000)
 //            }
 //        }
+
+        viewModelScope.launch {
+            playerRepeatMode.collect {
+                mediaController?.repeatMode = it
+            }
+        }
     }
 
     private fun expandArtistAlbumFor(mediaTrackData: MediaTrackData?){
