@@ -176,7 +176,6 @@ class MediaViewModel( private val userPreferencesRepository: UserPreferencesRepo
         if(nextPlayerRepeatMode > Player.REPEAT_MODE_ALL){
             nextPlayerRepeatMode = Player.REPEAT_MODE_OFF
         }
-//        mediaController?.repeatMode = nextPlayerRepeatMode
         setPlayerRepeatMode(nextPlayerRepeatMode)
     }
 
