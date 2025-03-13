@@ -83,6 +83,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.anggrayudi.storage.file.DocumentFileCompat
 import com.anggrayudi.storage.file.getAbsolutePath
+import com.example.playermss.Messages.MediaTrackData
 import com.example.playermss.data.MediaViewModel
 import com.example.playermss.data.QueryParams
 import com.example.playermss.data.SomeViewModel
@@ -305,6 +306,16 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    @Composable
+    fun ShowUnsortedTracks(tracks: Messages. MediaTrackDataList){
+        LazyColumn {
+            tracks.tracksList.forEach{
+                item {
+                    Text(it.title)
+                }
+            }
+        }
+    }
 
 
     @RequiresApi(Build.VERSION_CODES.Q)
@@ -362,6 +373,9 @@ class MainActivity : ComponentActivity() {
                         if (isSearchOpen.value != null && isSearchOpen.value == true) {
                             SearchFields(searchFields, mediaViewModel)
                         }
+                    }
+                    Row(Modifier.weight(1f)){
+                        ShowUnsortedTracks(mediaViewModel.tracksList.collectAsState().value)
                     }
                     Row(Modifier.weight(7f)) {
                         Column(Modifier.fillMaxSize()) {

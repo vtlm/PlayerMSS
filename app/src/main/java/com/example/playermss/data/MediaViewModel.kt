@@ -14,6 +14,7 @@ import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.annotation.RequiresExtension
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.datastore.core.DataStore
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
@@ -27,6 +28,7 @@ import androidx.media3.common.Player
 import androidx.media3.datasource.HttpDataSource
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
+import com.example.playermss.Messages
 import com.example.playermss.PlaybackService
 import com.example.playermss.PlayerMSSReleaseApplication
 import com.example.playermss.imageBitmapFromBytes
@@ -75,7 +77,9 @@ data class MediaTrackData(
 )
 
 
-class MediaViewModel( private val userPreferencesRepository: UserPreferencesRepository): ViewModel() {
+class MediaViewModel( private val userPreferencesRepository: UserPreferencesRepository,
+    private val appDataStore: DataStore<Messages.MediaTrackDataList>
+): ViewModel() {
 
     private val _mediaControllerLoaded = MutableStateFlow(false)
     val mediaControllerLoaded: StateFlow<Boolean> = _mediaControllerLoaded.asStateFlow()
@@ -96,10 +100,10 @@ class MediaViewModel( private val userPreferencesRepository: UserPreferencesRepo
     val searchStatistic: StateFlow<SearchStatistic> = _searchStatistic.asStateFlow()
 
     private val _searchResults = MutableStateFlow<Map<String, Map<String, List<MediaTrackData>>>>(mapOf())
-    val searchResults : StateFlow<Map<String, Map<String, List<MediaTrackData>>>> = _searchResults.asStateFlow()
+    val searchResults: StateFlow<Map<String, Map<String, List<MediaTrackData>>>> = _searchResults.asStateFlow()
 
     private val _querySortedResults = MutableStateFlow<List<Pair<String, List<Pair<String, List<MediaTrackData>>>>>>(listOf())
-    val querySortedResults : StateFlow<List<Pair<String, List<Pair<String, List<MediaTrackData>>>>>> = _querySortedResults.asStateFlow()
+    val querySortedResults: StateFlow<List<Pair<String, List<Pair<String, List<MediaTrackData>>>>>> = _querySortedResults.asStateFlow()
 
     private var _expandedArtists = MutableStateFlow<Set<String>>(setOf())
     val expandedArtists: StateFlow<Set<String>> = _expandedArtists.asStateFlow()
@@ -113,7 +117,7 @@ class MediaViewModel( private val userPreferencesRepository: UserPreferencesRepo
     lateinit var context: Context
 
     private var bassBoost: BassBoost? = null
-    private  var visualizer: Visualizer? = null
+    private var visualizer: Visualizer? = null
 
     private var searchHelper: SearchHelper? = SearchHelper(null)
     private var currentMediaTrackData: MediaTrackData? = null
@@ -124,6 +128,32 @@ class MediaViewModel( private val userPreferencesRepository: UserPreferencesRepo
     var mediaController: MediaController? = null
     private lateinit var tracksAsList: List<MediaTrackData>
 
+    val tracksList: StateFlow<Messages.MediaTrackDataList> = appDataStore.data.map {
+        it
+    }.stateIn(scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = runBlocking {
+            appDataStore.data.first()
+        }
+    )
+
+    suspend fun saveTrackList(list: List<MediaTrackData>){
+        appDataStore.updateData { mediaTrackDataList ->
+
+            val items = mutableListOf<Messages.MediaTrackData>()
+            list.forEach {
+                val item = Messages.MediaTrackData.newBuilder()
+                item.title = it.title
+                items += item.build()
+            }
+
+            mediaTrackDataList.toBuilder()
+                .clearTracks()
+                .addAllTracks(items)
+                .build()
+        }
+
+    }
 
     val isLinear: StateFlow<Boolean> =
         userPreferencesRepository.isLinearLayout.map { isLinearLayout ->
@@ -185,7 +215,8 @@ class MediaViewModel( private val userPreferencesRepository: UserPreferencesRepo
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val application = (this[APPLICATION_KEY] as PlayerMSSReleaseApplication)
-                MediaViewModel(application.userPreferencesRepository)
+                MediaViewModel(application.userPreferencesRepository,
+                    application.appDataStore)
             }
         }
     }
@@ -549,6 +580,10 @@ class MediaViewModel( private val userPreferencesRepository: UserPreferencesRepo
 
     @RequiresApi(Build.VERSION_CODES.Q)
     private fun updateQueryStatistic(list: List<MediaTrackData>){
+
+        viewModelScope.launch {
+            saveTrackList(list)
+        }
 
         val setByArtist = list.groupBy { it.artist }.toList().toSortedSet(compareBy { it.first })
         val listByArtistAlbum = setByArtist.map { Pair(it.first,it.second.groupBy { it1 -> it1.album }.toList().toSortedSet(

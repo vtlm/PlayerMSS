@@ -5,6 +5,7 @@ plugins {
 //    id("kotlin-kapt")
 //    id("com.google.dagger.hilt.android")
     kotlin("plugin.serialization") version "2.0.21"
+    id ("com.google.protobuf") version "0.9.4"
 }
 
 android {
@@ -82,8 +83,10 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.kotlinx.serialization.json)
-    implementation (libs.storage)
+    implementation(libs.storage)
     implementation(libs.androidx.datastore.preferences)
+    implementation(libs.androidx.datastore)
+    implementation(libs.protobuf.javalite)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
@@ -93,6 +96,23 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
 }
+
+protobuf {
+    protoc {
+        artifact = "com.google.protobuf:protoc:4.29.2"
+    }
+
+    generateProtoTasks {
+        all().forEach {
+            it.builtins {
+                create("java") {
+                    option ("lite")
+                }
+            }
+        }
+    }
+}
+
 
 //kapt {
 //    correctErrorTypes = true

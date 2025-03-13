@@ -43,7 +43,6 @@ import com.example.playermss.data.MediaViewModel
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ShowTrack(trackItem: MediaTrackData, key: Int, selectedKey: Int) {
-
     val color = if (key == selectedKey) Color.Yellow else Color.White
 
     FlowRow(
