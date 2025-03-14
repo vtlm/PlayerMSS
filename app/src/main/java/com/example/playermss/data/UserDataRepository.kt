@@ -10,8 +10,9 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.runBlocking
+import javax.inject.Inject
 
-class UserDataRepository(private val dataStore: DataStore<MediaTrackDataList>) {
+class UserDataRepository @Inject constructor(private val dataStore: DataStore<MediaTrackDataList>) {
 
     fun asStateFlow(launchScope:CoroutineScope): StateFlow<Messages.MediaTrackDataList> {
         return dataStore.data.map {

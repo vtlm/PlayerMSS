@@ -89,6 +89,7 @@ import com.example.playermss.data.QueryParams
 import com.example.playermss.data.SomeViewModel
 import com.example.playermss.data.TextFieldViewModel
 import com.example.playermss.ui.theme.PlayerMSSTheme
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.serialization.Serializable
 
@@ -102,6 +103,7 @@ object NavSearch
 object NavTrackList
 
 @UnstableApi
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
     private val searchOpen = SomeViewModel(true)
@@ -114,7 +116,7 @@ class MainActivity : ComponentActivity() {
         TextFieldViewModel("ToYear"),
     )
 
-    val mediaViewModel:MediaViewModel  by viewModels {MediaViewModel.Factory}
+    val mediaViewModel:MediaViewModel by viewModels()
 
 
     @RequiresExtension(extension = Build.VERSION_CODES.R, version = 1)

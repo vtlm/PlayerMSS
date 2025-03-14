@@ -2,8 +2,8 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
     alias(libs.plugins.compose.compiler)
-//    id("kotlin-kapt")
-//    id("com.google.dagger.hilt.android")
+    id("kotlin-kapt")
+    id("com.google.dagger.hilt.android")
     kotlin("plugin.serialization") version "2.0.21"
     id ("com.google.protobuf") version "0.9.4"
 }
@@ -55,10 +55,6 @@ android {
 }
 
 dependencies {
-//    val lifecycle_version = "2.8.7"
-//    val nav_version = "2.8.7"
-
-
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
@@ -67,16 +63,12 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
-//    implementation("com.google.dagger:hilt-android:2.51.1")
-//    kapt("com.google.dagger:hilt-android-compiler:2.51.1")
+    implementation("com.google.dagger:hilt-android:2.55")
+    kapt("com.google.dagger:hilt-android-compiler:2.55")
 
-    // https://mvnrepository.com/artifact/androidx.compose.material/material-icons-core-android
     implementation(libs.androidx.material.icons.core.android)
-//    implementation(libs.androidx.material3.android)
-// https://mvnrepository.com/artifact/androidx.compose.material/material-icons-extended
     runtimeOnly(libs.androidx.material.icons.extended)
 
-//    implementation(libs.androidx.compose.material:material-icons-extended)
     implementation(libs.androidx.media3.session)
     implementation(libs.androidx.media3.exoplayer)
     implementation(libs.androidx.documentfile)
@@ -113,7 +105,6 @@ protobuf {
     }
 }
 
-
-//kapt {
-//    correctErrorTypes = true
-//}
+kapt {
+    correctErrorTypes = true
+}
