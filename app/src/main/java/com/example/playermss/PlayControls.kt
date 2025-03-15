@@ -7,8 +7,10 @@ import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
@@ -17,10 +19,9 @@ import androidx.media3.session.MediaController
 import com.example.playermss.data.MediaViewModel
 
 @Composable
-fun PlayControls(mediaViewModel: MediaViewModel, modifier: Modifier) {
+fun PlayControls(isPlaying: Boolean, playerRepeatMode: Int, mediaViewModel: MediaViewModel, modifier: Modifier) {
 
     val mediaController = mediaViewModel.mediaController
-    val playerRepeatMode = mediaViewModel.playerRepeatMode.collectAsState().value
 
     Log.d("DBG_PC", "play ctls called")
 
@@ -36,17 +37,23 @@ fun PlayControls(mediaViewModel: MediaViewModel, modifier: Modifier) {
                 contentDescription = "Skip to Prev"
             )
         }
-        IconButton(onClick = {
-            mediaController?.prepare()
-            mediaController?.play()
-        }) {
-            Icon(Icons.Rounded.PlayArrow, contentDescription = "Play")
-        }
-        IconButton(onClick = { mediaController?.pause() }) {
-            Icon(
-                painter = painterResource(id = R.drawable.baseline_pause_24),
-                contentDescription = "Pause"
-            )
+        if(mediaController != null){
+            if(isPlaying){
+                IconButton(onClick = {
+                mediaViewModel.pause()
+                }) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.baseline_pause_24),
+                        contentDescription = "Pause"
+                    )
+                }
+            }else{
+                IconButton(onClick = {
+                    mediaViewModel.play()
+                }) {
+                    Icon(Icons.Rounded.PlayArrow, contentDescription = "Play")
+                }
+            }
         }
         IconButton(onClick = { mediaController?.seekToNext() }) {
             Icon(

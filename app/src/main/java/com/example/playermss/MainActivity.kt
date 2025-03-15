@@ -208,7 +208,7 @@ class MainActivity : ComponentActivity() {
 //                            TODO("Not yet implemented")
                                 Log.d("DMS","Scan completed: uri: $uri, path $path")
                                 Log.d("MVMR","after scan")
-                                mediaViewModel.query()
+//                                mediaViewModel.query()
 
                             }
 
@@ -219,7 +219,7 @@ class MainActivity : ComponentActivity() {
                         })
                 }
                 Log.d("MVMR","after scan")
-                mediaViewModel.query()
+//                mediaViewModel.query()
             }
         }
 
@@ -342,7 +342,7 @@ class MainActivity : ComponentActivity() {
 //                    }
                     Row {
                         if (isSearchOpen.value != null && isSearchOpen.value == true) {
-                            SearchFields(mediaViewModel.queryFields, mediaViewModel)
+                            SearchFields(mediaViewModel.queryFields, mediaViewModel::query)
                         }
                     }
                     Row(Modifier.weight(1f)){
@@ -410,6 +410,8 @@ class MainActivity : ComponentActivity() {
                     Row {
                         Column(Modifier.weight(4f)) {
                             PlayControls(
+                                mediaViewModel.isPlaying.collectAsState().value,
+                                mediaViewModel.playerRepeatMode.collectAsState().value,
 //                                mediaController = mediaViewModel.mediaController,
                                 mediaViewModel,
                                 modifier = Modifier.weight(4f)

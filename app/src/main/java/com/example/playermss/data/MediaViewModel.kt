@@ -35,6 +35,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -80,6 +81,9 @@ class MediaViewModel @Inject constructor(
     private val _mediaControllerLoaded = MutableStateFlow(false)
     val mediaControllerLoaded: StateFlow<Boolean> = _mediaControllerLoaded.asStateFlow()
 
+    private val _isPlaying = MutableStateFlow(false)
+    val isPlaying: StateFlow<Boolean> = _isPlaying.asStateFlow()
+
     private val _progressTitle = MutableStateFlow("")
     val progressTitle: StateFlow<String> = _progressTitle.asStateFlow()
 
@@ -123,7 +127,7 @@ class MediaViewModel @Inject constructor(
     private var bassBoost: BassBoost? = null
     private var visualizer: Visualizer? = null
 
-    private var searchHelper: SearchHelper? = SearchHelper(null)
+    lateinit var searchHelper: SearchHelper
     private var currentMediaTrackData: MediaTrackData? = null
     private var prevMediaTrackData: MediaTrackData? = null
     private var nextMediaTrackData: MediaTrackData? = null
@@ -215,6 +219,11 @@ class MediaViewModel @Inject constructor(
                     override fun onMediaMetadataChanged(mediaMetadata: MediaMetadata) {
 //                        _currentTrackMediaMetadata.value = mediaMetadata
                         Log.d("DMG", "mediaData changed")
+                    }
+
+                    override fun onIsPlayingChanged(isPlaying: Boolean) {
+                        super.onIsPlayingChanged(isPlaying)
+                        _isPlaying.value = isPlaying
                     }
 
                     override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
@@ -373,6 +382,26 @@ class MediaViewModel @Inject constructor(
 //                }
                 mediaController?.repeatMode = it
             }
+        }
+
+        viewModelScope.launch {
+            querySortedResults.collect{
+                searchHelper = SearchHelper(it)
+            }
+
+        }
+    }
+
+    fun play(){
+        if(mediaController != null){
+            mediaController?.prepare()
+            mediaController?.play()
+        }
+    }
+
+    fun pause(){
+        if(mediaController != null){
+            mediaController?.pause()
         }
     }
 
@@ -551,7 +580,7 @@ class MediaViewModel @Inject constructor(
 
         val sortedList = sortByArtistAlbumAsPairs(list)
         _querySortedResults.value = sortedList
-        searchHelper = SearchHelper(sortedList)
+//        searchHelper = SearchHelper(sortedList)
 
         val mapByArtist = list.groupBy { it.artist }.toList().sortedBy { it.first }.toMap()
 //        val mapByArtistEmpty = mapByArtist.entries.associate { it.key to mapOf(Pair("",listOf<MediaTrackData>())) }
@@ -699,8 +728,7 @@ class MediaViewModel @Inject constructor(
         val count = mediaController?.mediaItemCount
         if (count != null) {
             mediaController?.seekTo(offset,0)
-            mediaController?.prepare()
-            mediaController?.play()
+            play()
         }
 
     }
