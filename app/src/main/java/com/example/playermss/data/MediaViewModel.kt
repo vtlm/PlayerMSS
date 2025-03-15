@@ -30,6 +30,7 @@ import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -94,10 +95,12 @@ class MediaViewModel @Inject constructor(
     private val _searchStatistic = MutableStateFlow(SearchStatistic())
     val searchStatistic: StateFlow<SearchStatistic> = _searchStatistic.asStateFlow()
 
+    val tracksList: StateFlow<List<MediaTrackData>> = userDataRepository.asStateFlow(viewModelScope)
+
     private val _searchResults = MutableStateFlow<Map<String, Map<String, List<MediaTrackData>>>>(mapOf())
     val searchResults: StateFlow<Map<String, Map<String, List<MediaTrackData>>>> = _searchResults.asStateFlow()
 
-    private val _querySortedResults = MutableStateFlow<List<Pair<String, List<Pair<String, List<MediaTrackData>>>>>>(listOf())
+    private val _querySortedResults = MutableStateFlow(sortByArtistAlbumAsPairs(tracksList.value))
     val querySortedResults: StateFlow<List<Pair<String, List<Pair<String, List<MediaTrackData>>>>>> = _querySortedResults.asStateFlow()
 
     private var _expandedArtists = MutableStateFlow<Set<String>>(setOf())
@@ -108,6 +111,12 @@ class MediaViewModel @Inject constructor(
 
     private var _sleevePicture = MutableStateFlow<ImageBitmap?>(null)
     val sleevePicture: StateFlow<ImageBitmap?> = _sleevePicture.asStateFlow()
+
+    val queryFields = arrayOf(QueryTextField("Artist",userPreferencesRepository,viewModelScope),
+        QueryTextField("Album",userPreferencesRepository,viewModelScope),
+        QueryTextField("Title",userPreferencesRepository,viewModelScope),
+        QueryTextField("FromYear",userPreferencesRepository,viewModelScope),
+        QueryTextField("ToYear",userPreferencesRepository,viewModelScope),)
 
     lateinit var context: Context
 
@@ -123,29 +132,6 @@ class MediaViewModel @Inject constructor(
     var mediaController: MediaController? = null
     private lateinit var tracksAsList: List<MediaTrackData>
 
-//    val tracksList: StateFlow<Messages.MediaTrackDataList> = userDataRepository.dataStore.data.map {
-//        it
-//    }.stateIn(scope = viewModelScope,
-//        started = SharingStarted.WhileSubscribed(5_000),
-//        initialValue = runBlocking {
-//            userDataRepository.dataStore.data.first()
-//        }
-//    )
-    val tracksList: StateFlow<Messages.MediaTrackDataList> = userDataRepository.asStateFlow(viewModelScope)
-
-    val isLinear: StateFlow<Boolean> =
-        userPreferencesRepository.isLinearLayout.map { isLinearLayout ->
-
-            isLinearLayout
-        }.stateIn(scope = viewModelScope,
-            // Flow is set to emits value for when app is on the foreground
-            // 5 seconds stop delay is added to ensure it flows continuously
-            // for cases such as configuration change
-            started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = runBlocking {
-                userPreferencesRepository.isLinearLayout.first()
-            }
-        )
 
     val isRemainTime: StateFlow<Boolean> =
         userPreferencesRepository.isRemainTime.map { isRemainTime ->
@@ -367,6 +353,7 @@ class MediaViewModel @Inject constructor(
             )
 
             _mediaControllerLoaded.value = true
+            mediaController?.repeatMode = playerRepeatMode.value
             _progressTitle.value = ""
 
         }, MoreExecutors.directExecutor())
@@ -381,6 +368,9 @@ class MediaViewModel @Inject constructor(
 
         viewModelScope.launch {
             playerRepeatMode.collect {
+//                while (mediaController == null){//startup case
+//                    delay(200)
+//                }
                 mediaController?.repeatMode = it
             }
         }
@@ -543,6 +533,15 @@ class MediaViewModel @Inject constructor(
         return list
     }
 
+    private fun sortByArtistAlbumAsPairs(list: List<MediaTrackData>):  List<Pair<String, List<Pair<String, List<MediaTrackData>>>>>{
+        val setByArtist = list.groupBy { it.artist }.toList().toSortedSet(compareBy { it.first })
+        val listByArtistAlbum = setByArtist.map { Pair(it.first,it.second.groupBy { it1 -> it1.album }.toList().toSortedSet(
+            compareBy { it2 -> it2.second[0].year.toString() + it2.first }
+        )) }
+        val listByArtistAlbumTrack = listByArtistAlbum.map { Pair(it.first,it.second.map { it2 -> Pair(it2.first, it2.second.sortedBy{ mtd -> mtd.track})}) }
+        return listByArtistAlbumTrack
+    }
+
     @RequiresApi(Build.VERSION_CODES.Q)
     private fun updateQueryStatistic(list: List<MediaTrackData>){
 
@@ -550,14 +549,9 @@ class MediaViewModel @Inject constructor(
             userDataRepository.saveTrackList(list)
         }
 
-        val setByArtist = list.groupBy { it.artist }.toList().toSortedSet(compareBy { it.first })
-        val listByArtistAlbum = setByArtist.map { Pair(it.first,it.second.groupBy { it1 -> it1.album }.toList().toSortedSet(
-            compareBy { it2 -> it2.second[0].year.toString() + it2.first }
-        )) }
-        val listByArtistAlbumTrack = listByArtistAlbum.map { Pair(it.first,it.second.map { it2 -> Pair(it2.first, it2.second.sortedBy{ mtd -> mtd.track})}) }
-        _querySortedResults.value = listByArtistAlbumTrack
-
-        searchHelper = SearchHelper(listByArtistAlbumTrack)
+        val sortedList = sortByArtistAlbumAsPairs(list)
+        _querySortedResults.value = sortedList
+        searchHelper = SearchHelper(sortedList)
 
         val mapByArtist = list.groupBy { it.artist }.toList().sortedBy { it.first }.toMap()
 //        val mapByArtistEmpty = mapByArtist.entries.associate { it.key to mapOf(Pair("",listOf<MediaTrackData>())) }
@@ -585,10 +579,11 @@ class MediaViewModel @Inject constructor(
     }
 
     @RequiresApi(Build.VERSION_CODES.Q)
-    fun query(searchFields : List<TextFieldViewModel>){
+    fun query(){
         viewModelScope.launch(Dispatchers.Default) {
 
             _progressTitle.value = "Querying MediaStore"
+            queryFields.forEach { it.saveText() }
 
             val queryParams = QueryParams()
             queryParams.projection = audioColumns
@@ -598,9 +593,9 @@ class MediaViewModel @Inject constructor(
                     " ${MediaStore.Audio.Media.TITLE} like ?"
 
             queryParams.selectionArgs = arrayOf(
-                "%${searchFields[0].textField.value}%",
-                "%${searchFields[1].textField.value}%",
-                "%${searchFields[2].textField.value}%"
+                "%${queryFields[0].text.value}%",
+                "%${queryFields[1].text.value}%",
+                "%${queryFields[2].text.value}%"
             )
 
             val trackList = mutableListOf<MediaTrackData>()
@@ -616,10 +611,8 @@ class MediaViewModel @Inject constructor(
                 }
             }
             updateQueryStatistic(trackList)
-            Log.d("CRE","End of coro")
             _progressTitle.value = ""
         }
-        Log.d("CRE","After coro")
     }
 
     @RequiresApi(Build.VERSION_CODES.Q)

@@ -80,4 +80,26 @@ class UserPreferencesRepository @Inject constructor(
             preferences[PLAYER_REPEAT_MODE] = playerRepeatMode
         }
     }
+
+    fun getText(key: Preferences.Key<String>): Flow<String>{
+        val text = dataStore.data
+            .catch {
+                if (it is IOException) {
+                    Log.e(TAG, "Error reading preferences.", it)
+                    emit(emptyPreferences())
+                } else {
+                    throw it
+                }
+            }
+            .map { preferences ->
+                preferences[key] ?: ""
+            }
+        return text
+    }
+
+    suspend fun setText(key: Preferences.Key<String>, text: String){
+        dataStore.edit { preferences ->
+            preferences[key] = text
+        }
+    }
 }

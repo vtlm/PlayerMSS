@@ -1,18 +1,14 @@
 package com.example.playermss
 
-import android.content.ContentUris
+//import androidx.compose.material.icons.
 import android.content.Intent
 import android.content.res.Configuration
-import android.database.Cursor
 import android.media.MediaScannerConnection
 import android.media.MediaScannerConnection.MediaScannerConnectionClient
-import android.media.audiofx.BassBoost
-import android.media.audiofx.Visualizer
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.DocumentsContract
-import android.provider.MediaStore
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -21,25 +17,20 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.annotation.RequiresApi
 import androidx.annotation.RequiresExtension
-import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.EaseInOutExpo
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
@@ -48,7 +39,6 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.BottomAppBarDefaults
-//import androidx.compose.material.icons.
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FloatingActionButton
@@ -57,40 +47,29 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.documentfile.provider.DocumentFile
-import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.media3.common.MediaItem
-import androidx.media3.common.MediaMetadata
 import androidx.media3.common.util.UnstableApi
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.anggrayudi.storage.file.DocumentFileCompat
 import com.anggrayudi.storage.file.getAbsolutePath
-import com.example.playermss.Messages.MediaTrackData
+import com.example.playermss.data.MediaTrackData
 import com.example.playermss.data.MediaViewModel
-import com.example.playermss.data.QueryParams
 import com.example.playermss.data.SomeViewModel
-import com.example.playermss.data.TextFieldViewModel
 import com.example.playermss.ui.theme.PlayerMSSTheme
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.serialization.Serializable
 
 //todo
@@ -106,25 +85,15 @@ object NavTrackList
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
-    private val searchOpen = SomeViewModel(true)
-    
-    private val searchFields = listOf(
-        TextFieldViewModel("Artist"),
-        TextFieldViewModel("Album"),
-        TextFieldViewModel("Title"),
-        TextFieldViewModel("FromYear"),
-        TextFieldViewModel("ToYear"),
-    )
+    private val searchOpen = SomeViewModel(true)//todo move to main viewmodel
 
     val mediaViewModel:MediaViewModel by viewModels()
-
 
     @RequiresExtension(extension = Build.VERSION_CODES.R, version = 1)
     @RequiresApi(Build.VERSION_CODES.Q)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-//        mediaViewModel.query(searchFields)
         this.applicationContext.also { mediaViewModel.context = it }
         mediaViewModel.init()
 
@@ -239,7 +208,7 @@ class MainActivity : ComponentActivity() {
 //                            TODO("Not yet implemented")
                                 Log.d("DMS","Scan completed: uri: $uri, path $path")
                                 Log.d("MVMR","after scan")
-                                mediaViewModel.query(searchFields)
+                                mediaViewModel.query()
 
                             }
 
@@ -250,7 +219,7 @@ class MainActivity : ComponentActivity() {
                         })
                 }
                 Log.d("MVMR","after scan")
-                mediaViewModel.query(searchFields)
+                mediaViewModel.query()
             }
         }
 
@@ -277,7 +246,7 @@ class MainActivity : ComponentActivity() {
                     onClick = {
 //                        trackList?.clear()
                         mediaViewModel.mediaController?.clearMediaItems()
-                        mediaViewModel.removeQuery(searchFields)
+//                        mediaViewModel.removeQuery(searchFields)
                         expanded = false
                     }
                 )
@@ -309,9 +278,9 @@ class MainActivity : ComponentActivity() {
     }
 
     @Composable
-    fun ShowUnsortedTracks(tracks: Messages. MediaTrackDataList){
+    fun ShowUnsortedTracks(tracks: List<MediaTrackData>){
         LazyColumn {
-            tracks.tracksList.forEach{
+            tracks.forEach{
                 item {
                     Text(it.title)
                 }
@@ -373,7 +342,7 @@ class MainActivity : ComponentActivity() {
 //                    }
                     Row {
                         if (isSearchOpen.value != null && isSearchOpen.value == true) {
-                            SearchFields(searchFields, mediaViewModel)
+                            SearchFields(mediaViewModel.queryFields, mediaViewModel)
                         }
                     }
                     Row(Modifier.weight(1f)){
@@ -532,44 +501,5 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    @Deprecated("obsolete, by architecture changes")
-    @Composable
-    fun ShowPlayList(cursor: StateFlow<Cursor?>){
-        val _cursor=cursor.collectAsState()
-        Log.d("SHOW","update ${_cursor.value?.count}")
-        Text("${_cursor.value?.count}")
-
-        _cursor.value?.moveToFirst()
-
-        LazyColumn {
-            _cursor.let {
-                it.value?.count?.let { it1 ->
-                    items(it1){ itemInd->
-                        it.value?.moveToPosition(itemInd)
-                        it.value?.let { it1 -> TrackCardFromCursor(it1,mediaViewModel.mediaController) }
-                    }
-                }
-            }
-        }
-
-    }
 
 }

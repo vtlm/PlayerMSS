@@ -1,5 +1,6 @@
 package com.example.playermss.data
 
+import android.net.Uri
 import androidx.datastore.core.DataStore
 import com.example.playermss.Messages
 import com.example.playermss.Messages.MediaTrackDataList
@@ -11,21 +12,39 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.runBlocking
 import javax.inject.Inject
+import androidx.core.net.toUri
 
 class UserDataRepository @Inject constructor(private val dataStore: DataStore<MediaTrackDataList>) {
 
-    fun asStateFlow(launchScope:CoroutineScope): StateFlow<Messages.MediaTrackDataList> {
+    fun asStateFlow(launchScope:CoroutineScope): StateFlow<List<MediaTrackData>> {
         return dataStore.data.map {
-            it
+            toMediaTrackDataList(it)
         }.stateIn(scope = launchScope,
             started = SharingStarted.WhileSubscribed(5_000),
             initialValue = runBlocking {
-                dataStore.data.first()
+                toMediaTrackDataList(dataStore.data.first())
             }
         )
     }
 
-    //todo asSortedTreeStateFlow
+    //todo asSortedTreeStateFlow ? may be not
+
+    private fun toMediaTrackDataList(items: Messages.MediaTrackDataList):List<MediaTrackData>{
+        val trackList = mutableListOf<MediaTrackData>()
+        for(i in 0..<items.tracksCount){
+            val item = items.getTracks(i)
+            trackList += MediaTrackData(
+                item.artist,
+                item.album,
+                item.title,
+                item.year,
+                item.track,
+                item.duration,
+                item.uri.toUri()
+            )
+        }
+        return trackList
+    }
 
     suspend fun saveTrackList(list: List<MediaTrackData>){
         dataStore.updateData { mediaTrackDataList ->

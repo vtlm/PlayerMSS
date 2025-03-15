@@ -6,20 +6,27 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
 import com.example.playermss.data.MediaViewModel
+import com.example.playermss.data.QueryTextField
 import com.example.playermss.data.TextFieldViewModel
 
 @RequiresApi(Build.VERSION_CODES.Q)
 @Composable
-fun SearchField(textValue: TextFieldViewModel, onDone:  () -> Unit? = {}){
-    val text = textValue.textField.collectAsState()
+fun SearchField(textValue: QueryTextField, onDone:  () -> Unit? = {}){
+    val text = textValue.text.collectAsState()
     val keyboardController = LocalSoftwareKeyboardController.current
 
     OutlinedTextField(
@@ -28,6 +35,18 @@ fun SearchField(textValue: TextFieldViewModel, onDone:  () -> Unit? = {}){
         modifier = Modifier.fillMaxWidth(),
         onValueChange = {str -> textValue.setText(str)},
         label = { Text(textValue.description) },
+        trailingIcon = {
+            if (text.value != "") {
+                IconButton(onClick = {
+                    textValue.setText("")
+                }) {
+                    Icon(
+                        Icons.Default.Clear,
+                        contentDescription = "Search in Library"
+                    )
+                }
+            }
+        },
         isError = false,
         keyboardOptions = KeyboardOptions.Default.copy(
             imeAction = ImeAction.Done
@@ -42,12 +61,12 @@ fun SearchField(textValue: TextFieldViewModel, onDone:  () -> Unit? = {}){
 
 @RequiresApi(Build.VERSION_CODES.Q)
 @Composable
-fun SearchFields(searchFields: List<TextFieldViewModel>, mediaViewModel: MediaViewModel){
+fun SearchFields(searchFields: Array<QueryTextField>, mediaViewModel: MediaViewModel){
     LazyColumn {
-        searchFields.forEach {
-            item {
+        searchFields.forEachIndexed { ind, it ->
+            item (key = ind){
                 SearchField(it) {
-                    mediaViewModel.query(searchFields)
+                    mediaViewModel.query()
                 }
             }
         }
