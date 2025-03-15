@@ -17,6 +17,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
 import com.example.playermss.data.MediaViewModel
@@ -28,17 +30,20 @@ import com.example.playermss.data.TextFieldViewModel
 fun SearchField(textValue: QueryTextField, onDone:  () -> Unit? = {}){
     val text = textValue.text.collectAsState()
     val keyboardController = LocalSoftwareKeyboardController.current
+    val textField = FocusRequester()
 
     OutlinedTextField(
         value = text.value,
         singleLine = true,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth()
+            .focusRequester(textField),
         onValueChange = {str -> textValue.setText(str)},
         label = { Text(textValue.description) },
         trailingIcon = {
             if (text.value != "") {
                 IconButton(onClick = {
                     textValue.setText("")
+                    textField.requestFocus()
                 }) {
                     Icon(
                         Icons.Default.Clear,
@@ -61,12 +66,12 @@ fun SearchField(textValue: QueryTextField, onDone:  () -> Unit? = {}){
 
 @RequiresApi(Build.VERSION_CODES.Q)
 @Composable
-fun SearchFields(searchFields: Array<QueryTextField>, mediaViewModel: MediaViewModel){
+fun SearchFields(searchFields: Array<QueryTextField>, query: () -> Unit? ){
     LazyColumn {
         searchFields.forEachIndexed { ind, it ->
             item (key = ind){
                 SearchField(it) {
-                    mediaViewModel.query()
+                    query()
                 }
             }
         }
