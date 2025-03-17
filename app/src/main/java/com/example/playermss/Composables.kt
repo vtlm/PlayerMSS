@@ -87,8 +87,13 @@ fun TrackInfo(mediaMetadata: MediaMetadata?, modifier: Modifier =Modifier) {
         Text("Select a track to play",modifier)
     } else {
         var songInfo = "";
+        mediaMetadata.title?.let {
+            Log.d("DBG", it.toString())
+            songInfo += it.toString()
+        }
         mediaMetadata.artist?.let {
             Log.d("DBGC", it.toString())
+            songInfo += "-"
             songInfo += it.toString()
         }
         mediaMetadata.recordingYear?.let {
@@ -97,11 +102,6 @@ fun TrackInfo(mediaMetadata: MediaMetadata?, modifier: Modifier =Modifier) {
             songInfo += it.toString()
         }
         mediaMetadata.albumTitle?.let {
-            Log.d("DBG", it.toString())
-            songInfo += "-"
-            songInfo += it.toString()
-        }
-        mediaMetadata.title?.let {
             Log.d("DBG", it.toString())
             songInfo += "-"
             songInfo += it.toString()

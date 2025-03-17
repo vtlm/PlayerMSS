@@ -132,6 +132,9 @@ class MediaViewModel @Inject constructor(
     private var prevMediaTrackData: MediaTrackData? = null
     private var nextMediaTrackData: MediaTrackData? = null
 
+    private var overrunTop = false
+    private var overrunBottom = false
+
     private var controllerFuture: ListenableFuture<MediaController>? = null
     var mediaController: MediaController? = null
     private lateinit var tracksAsList: List<MediaTrackData>
@@ -231,6 +234,14 @@ class MediaViewModel @Inject constructor(
 
                         if(reason == 1){ //transition to next
                             prevMediaTrackData = currentMediaTrackData
+//                            if(!overrunBottom) {
+//                                prevMediaTrackData = currentMediaTrackData
+//                            }else{
+//                                overrunBottom = false
+//                                prevMediaTrackData = null
+//                                mediaController?.removeMediaItem(0)
+//                            }
+
                             currentMediaTrackData = nextMediaTrackData
 
                             expandArtistAlbumFor(currentMediaTrackData)
@@ -302,7 +313,7 @@ class MediaViewModel @Inject constructor(
                                             expandArtistAlbumFor(currentMediaTrackData)
                                             _playingItemId.value = System.identityHashCode(currentMediaTrackData)
 
-                                            nextMediaTrackData = searchHelper?.getNext(nextMediaTrackData)
+                                            nextMediaTrackData = searchHelper.getNext(nextMediaTrackData)
 
                                             if (nextMediaTrackData != null) {
                                                 val nextMediaItem = nextMediaTrackData?.uri?.let { MediaItem.fromUri(it) }
@@ -381,12 +392,59 @@ class MediaViewModel @Inject constructor(
 //                    delay(200)
 //                }
                 mediaController?.repeatMode = it
+                if(this@MediaViewModel::searchHelper.isInitialized) {
+                    searchHelper.setRepeatMode(it)
+
+                    if(currentMediaTrackData != null) {
+                        if (it == Player.REPEAT_MODE_ALL && nextMediaTrackData == null) {
+                            nextMediaTrackData = searchHelper.getNext(currentMediaTrackData)
+
+                            if (nextMediaTrackData != null) {
+                                val nextMediaItem = nextMediaTrackData?.uri?.let { MediaItem.fromUri(it) }
+                                if (nextMediaItem != null) {
+                                    mediaController?.addMediaItem(nextMediaItem)
+
+                                    overrunBottom = true
+
+                                    val cn = mediaController?.mediaItemCount
+                                    if (cn == 4) {
+                                        mediaController?.removeMediaItem(0)
+                                    }
+                                }
+                            } else {
+                                mediaController?.removeMediaItem(0)
+                            }
+                        }
+
+                        if (it == Player.REPEAT_MODE_ALL && prevMediaTrackData == null) {
+                            prevMediaTrackData = searchHelper.getPrev(currentMediaTrackData)
+
+                            if (prevMediaTrackData != null) {
+                                val prevMediaItem = prevMediaTrackData?.uri?.let { MediaItem.fromUri(it) }
+                                if (prevMediaItem != null) {
+                                    mediaController?.addMediaItem(0, prevMediaItem)
+
+                                    overrunTop = true
+
+                                    val cn = mediaController?.mediaItemCount
+                                    if (cn == 4) {
+                                        mediaController?.removeMediaItem(0)
+                                    }
+                                }
+                            } else {
+                                mediaController?.removeMediaItem(0)
+                            }
+                        }
+                    }
+
+                }
             }
         }
 
         viewModelScope.launch {
             querySortedResults.collect{
                 searchHelper = SearchHelper(it)
+                searchHelper.setRepeatMode(playerRepeatMode.value)
             }
 
         }

@@ -1,10 +1,40 @@
 package com.example.playermss.data
 
+import androidx.media3.common.Player
+
 
 class SearchHelper(private val groupedSortedTracks: List<Pair<String, List<Pair<String, List<MediaTrackData>>>>>?){
 
     var currentArtist: String? = ""
     var currentAlbumKey: String? = ""
+
+    private var repeatMode = Player.REPEAT_MODE_OFF
+
+    fun setRepeatMode(_repeatMode: Int){
+        repeatMode = _repeatMode
+    }
+
+    private fun getFirstTrack(): MediaTrackData? {
+        if(groupedSortedTracks != null) {
+            val albumsList = groupedSortedTracks[0].second
+            val firstAlbum = albumsList.first().second
+            val firstSong = firstAlbum.first()
+            return firstSong
+        }else{
+            return null
+        }
+    }
+
+    private fun getLastTrack(): MediaTrackData? {
+        if(groupedSortedTracks != null) {
+            val albumsList = groupedSortedTracks.last().second
+            val lastAlbum = albumsList.last().second
+            val lastSong = lastAlbum.last()
+            return lastSong
+        }else{
+            return null
+        }
+    }
 
     private fun getLastTrackFromLastAlbumFromPrevArtist(mediaTrackData: MediaTrackData?): MediaTrackData?{
         val currentArtist = groupedSortedTracks?.find { it.first == mediaTrackData?.artist }
@@ -70,7 +100,7 @@ class SearchHelper(private val groupedSortedTracks: List<Pair<String, List<Pair<
     fun getPrev(mediaTrackData: MediaTrackData?): MediaTrackData?{
         val currentArtist = groupedSortedTracks?.find { it.first == mediaTrackData?.artist }
         val currentArtistIndex = groupedSortedTracks?.indexOf(currentArtist)
-        if(groupedSortedTracks != null && currentArtistIndex != null) {
+        if(groupedSortedTracks != null && currentArtistIndex != null && currentArtistIndex != -1) {
             val currentAlbumsList = groupedSortedTracks[currentArtistIndex].second
             val currentAlbum = currentAlbumsList.find { it.first == mediaTrackData?.album }
             val currentAlbumIndex = currentAlbumsList.indexOf(currentAlbum)
@@ -79,7 +109,16 @@ class SearchHelper(private val groupedSortedTracks: List<Pair<String, List<Pair<
             return if( currentTrackIndex - 1 >= 0) {
                 currentTracks[currentTrackIndex - 1]
             } else {
-                getLastTrackFromPrevAlbum(mediaTrackData)
+                val prevTrack = getLastTrackFromPrevAlbum(mediaTrackData)
+                if(prevTrack == null){
+                    if(repeatMode == Player.REPEAT_MODE_ALL){
+                        return getLastTrack()
+                    }else {
+                        return null
+                    }
+                }else{
+                    return prevTrack
+                }
             }
         }
         return null
@@ -97,7 +136,16 @@ class SearchHelper(private val groupedSortedTracks: List<Pair<String, List<Pair<
             return if( currentTrackIndex + 1 < currentTracks.count()) {
                 currentTracks[currentTrackIndex + 1]
             } else {
-                getFirstTrackFromNextAlbum(mediaTrackData)
+                val nextTrack = getFirstTrackFromNextAlbum(mediaTrackData)
+                if(nextTrack == null){
+                    if(repeatMode == Player.REPEAT_MODE_ALL){
+                        return getFirstTrack()
+                    }else {
+                        return null
+                    }
+                }else{
+                    return nextTrack
+                }
             }
         }
         return null
