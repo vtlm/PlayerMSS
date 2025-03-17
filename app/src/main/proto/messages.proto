@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+option java_package = "com.example.playermss";
+
+message  MediaTrackData {
+    string artist = 1;
+    string album = 2;
+    string title = 3;
+    int32 year = 4;
+    int32 track = 5;
+    int32 duration = 6;
+    string uri = 7;
+}
+
+message MediaTrackDataList {
+    repeated MediaTrackData tracks = 1;
+}
