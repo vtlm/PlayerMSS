@@ -1,5 +1,6 @@
 package com.example.playermss.data
 
+import android.util.Log
 import androidx.media3.common.Player
 
 
@@ -7,6 +8,10 @@ class SearchHelper(private val groupedSortedTracks: List<Pair<String, List<Pair<
 
     var currentArtist: String? = ""
     var currentAlbumKey: String? = ""
+
+    var overrunTop = false
+    var overrunBottom = false
+
 
     private var repeatMode = Player.REPEAT_MODE_OFF
 
@@ -19,6 +24,7 @@ class SearchHelper(private val groupedSortedTracks: List<Pair<String, List<Pair<
             val albumsList = groupedSortedTracks[0].second
             val firstAlbum = albumsList.first().second
             val firstSong = firstAlbum.first()
+            overrunBottom = true
             return firstSong
         }else{
             return null
@@ -30,6 +36,7 @@ class SearchHelper(private val groupedSortedTracks: List<Pair<String, List<Pair<
             val albumsList = groupedSortedTracks.last().second
             val lastAlbum = albumsList.last().second
             val lastSong = lastAlbum.last()
+            overrunTop = true
             return lastSong
         }else{
             return null
@@ -98,6 +105,9 @@ class SearchHelper(private val groupedSortedTracks: List<Pair<String, List<Pair<
     }
 
     fun getPrev(mediaTrackData: MediaTrackData?): MediaTrackData?{
+//        overrunTop = false
+//        overrunBottom =false
+        Log.d("TRD","prev for ${mediaTrackData?.title}")
         val currentArtist = groupedSortedTracks?.find { it.first == mediaTrackData?.artist }
         val currentArtistIndex = groupedSortedTracks?.indexOf(currentArtist)
         if(groupedSortedTracks != null && currentArtistIndex != null && currentArtistIndex != -1) {
@@ -125,6 +135,9 @@ class SearchHelper(private val groupedSortedTracks: List<Pair<String, List<Pair<
     }
 
     fun getNext(mediaTrackData: MediaTrackData?): MediaTrackData?{
+//        overrunTop = false
+//        overrunBottom =false
+        Log.d("TRD","next for ${mediaTrackData?.title}")
         val currentArtist = groupedSortedTracks?.find { it.first == mediaTrackData?.artist }
         val currentArtistIndex = groupedSortedTracks?.indexOf(currentArtist)
         if(groupedSortedTracks != null && currentArtistIndex != null && currentArtistIndex != -1) {
