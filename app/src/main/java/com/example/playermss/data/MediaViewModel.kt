@@ -24,6 +24,7 @@ import androidx.media3.datasource.HttpDataSource
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import com.example.playermss.Messages
+import com.example.playermss.PlayTracksManager
 import com.example.playermss.PlaybackService
 import com.example.playermss.imageBitmapFromBytes
 import com.google.common.util.concurrent.ListenableFuture
@@ -132,11 +133,10 @@ class MediaViewModel @Inject constructor(
     private var prevMediaTrackData: MediaTrackData? = null
     private var nextMediaTrackData: MediaTrackData? = null
 
-    private var overrunTop = false
-    private var overrunBottom = false
 
     private var controllerFuture: ListenableFuture<MediaController>? = null
     var mediaController: MediaController? = null
+    lateinit var playTracksManager: PlayTracksManager
     private lateinit var tracksAsList: List<MediaTrackData>
 
 
@@ -232,17 +232,19 @@ class MediaViewModel @Inject constructor(
                     override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
                         super.onMediaItemTransition(mediaItem, reason)
 
+
                         if(reason == 1){ //transition to next
                             prevMediaTrackData = currentMediaTrackData
-//                            if(!overrunBottom) {
-//                                prevMediaTrackData = currentMediaTrackData
-//                            }else{
-//                                overrunBottom = false
-//                                prevMediaTrackData = null
-//                                mediaController?.removeMediaItem(0)
-//                            }
-
                             currentMediaTrackData = nextMediaTrackData
+
+                            if(searchHelper.overrunBottom){
+                                searchHelper.overrunTop = true
+                                searchHelper.overrunBottom = false
+                            }else{
+                                if(searchHelper.overrunTop){
+                                    searchHelper.overrunTop = false
+                                }
+                            }
 
                             expandArtistAlbumFor(currentMediaTrackData)
 
@@ -265,6 +267,16 @@ class MediaViewModel @Inject constructor(
                                 if (mediaItem == firstMediaItem) {
                                     nextMediaTrackData = currentMediaTrackData
                                     currentMediaTrackData = prevMediaTrackData
+
+                                    if(searchHelper.overrunTop){
+                                        searchHelper.overrunTop = false
+                                        searchHelper.overrunBottom = true
+                                    }else{
+                                        if(searchHelper.overrunBottom)
+                                        {
+                                            searchHelper.overrunBottom = false
+                                        }
+                                    }
 
                                     expandArtistAlbumFor(currentMediaTrackData)
 
@@ -310,6 +322,15 @@ class MediaViewModel @Inject constructor(
                                             prevMediaTrackData = currentMediaTrackData
                                             currentMediaTrackData = nextMediaTrackData
 
+                                            if(searchHelper.overrunBottom){
+                                                searchHelper.overrunTop = true
+                                                searchHelper.overrunBottom = false
+                                            }else{
+                                                if(searchHelper.overrunTop){
+                                                    searchHelper.overrunTop = false
+                                                }
+                                            }
+
                                             expandArtistAlbumFor(currentMediaTrackData)
                                             _playingItemId.value = System.identityHashCode(currentMediaTrackData)
 
@@ -338,6 +359,8 @@ class MediaViewModel @Inject constructor(
                                 }
                             }
                         }
+                        Log.d("TRD","${searchHelper.overrunTop}, ${searchHelper.overrunBottom}")
+
                     }
 
 //                    override fun onPlaybackStateChanged(playbackState: Int) {
@@ -373,6 +396,8 @@ class MediaViewModel @Inject constructor(
             )
 
             _mediaControllerLoaded.value = true
+            playTracksManager = PlayTracksManager(mediaController)
+            playTracksManager.searchHelper = searchHelper
             mediaController?.repeatMode = playerRepeatMode.value
             _progressTitle.value = ""
 
@@ -387,53 +412,76 @@ class MediaViewModel @Inject constructor(
 //        }
 
         viewModelScope.launch {
-            playerRepeatMode.collect {
+            playerRepeatMode.collect { newRepeatMode ->
 //                while (mediaController == null){//startup case
 //                    delay(200)
 //                }
-                mediaController?.repeatMode = it
+                mediaController?.repeatMode = newRepeatMode
+
                 if(this@MediaViewModel::searchHelper.isInitialized) {
-                    searchHelper.setRepeatMode(it)
+                    searchHelper.setRepeatMode(newRepeatMode)
 
                     if(currentMediaTrackData != null) {
-                        if (it == Player.REPEAT_MODE_ALL && nextMediaTrackData == null) {
+
+                        if (newRepeatMode == Player.REPEAT_MODE_ALL && nextMediaTrackData == null) {  //current is last
                             nextMediaTrackData = searchHelper.getNext(currentMediaTrackData)
 
                             if (nextMediaTrackData != null) {
-                                val nextMediaItem = nextMediaTrackData?.uri?.let { MediaItem.fromUri(it) }
+                                val nextMediaItem = nextMediaTrackData?.uri?.let { uri -> MediaItem.fromUri(uri) }
                                 if (nextMediaItem != null) {
                                     mediaController?.addMediaItem(nextMediaItem)
 
-                                    overrunBottom = true
+//                                    overrunBottom = true
 
-                                    val cn = mediaController?.mediaItemCount
-                                    if (cn == 4) {
-                                        mediaController?.removeMediaItem(0)
-                                    }
+//                                    val cn = mediaController?.mediaItemCount
+//                                    if (cn == 4) {
+//                                        mediaController?.removeMediaItem(0)
+//                                    }
                                 }
-                            } else {
-                                mediaController?.removeMediaItem(0)
                             }
+//                            else {
+//                                mediaController?.removeMediaItem(0)
+//                            }
                         }
 
-                        if (it == Player.REPEAT_MODE_ALL && prevMediaTrackData == null) {
+                        if (newRepeatMode == Player.REPEAT_MODE_ALL && prevMediaTrackData == null) {  //current is first
                             prevMediaTrackData = searchHelper.getPrev(currentMediaTrackData)
 
                             if (prevMediaTrackData != null) {
-                                val prevMediaItem = prevMediaTrackData?.uri?.let { MediaItem.fromUri(it) }
+                                val prevMediaItem = prevMediaTrackData?.uri?.let { uri -> MediaItem.fromUri(uri) }
                                 if (prevMediaItem != null) {
                                     mediaController?.addMediaItem(0, prevMediaItem)
 
-                                    overrunTop = true
+//                                    overrunTop = true
 
-                                    val cn = mediaController?.mediaItemCount
-                                    if (cn == 4) {
-                                        mediaController?.removeMediaItem(0)
-                                    }
+//                                    val cn = mediaController?.mediaItemCount
+//                                    if (cn == 4) {
+//                                        mediaController?.removeMediaItem(0)
+//                                    }
                                 }
-                            } else {
-                                mediaController?.removeMediaItem(0)
                             }
+//                            else {
+//                                mediaController?.removeMediaItem(0)
+//                            }
+                        }
+
+                        if(newRepeatMode == Player.REPEAT_MODE_OFF){
+
+                            if(searchHelper.overrunTop){
+                                searchHelper.overrunTop = false
+                                mediaController?.removeMediaItem(0)
+                                prevMediaTrackData = null
+                            }
+
+                            if(searchHelper.overrunBottom){
+                                searchHelper.overrunBottom = false
+                                val cnt = mediaController?.mediaItemCount
+                                if(cnt != null) {
+                                    mediaController?.removeMediaItem(cnt - 1)
+                                    nextMediaTrackData = null
+                                }
+                            }
+
                         }
                     }
 
@@ -445,6 +493,11 @@ class MediaViewModel @Inject constructor(
             querySortedResults.collect{
                 searchHelper = SearchHelper(it)
                 searchHelper.setRepeatMode(playerRepeatMode.value)
+                if(this@MediaViewModel::playTracksManager.isInitialized) {
+                    playTracksManager.searchHelper = searchHelper
+
+
+                }
             }
 
         }
@@ -756,13 +809,20 @@ class MediaViewModel @Inject constructor(
     }
 
     fun play(mediaTrackData: MediaTrackData){
+
+        _playingItemId.value = System.identityHashCode(mediaTrackData)
+//        playTracksManager.setTrack(mediaTrackData)
+
+        searchHelper.overrunTop = false
+        searchHelper.overrunBottom = false
+
         Log.d("DTP", mediaTrackData.title)
         mediaController?.clearMediaItems()
 
         var offset = 0
 
         currentMediaTrackData = mediaTrackData
-        _playingItemId.value = System.identityHashCode(mediaTrackData)
+//        _playingItemId.value = System.identityHashCode(mediaTrackData)
 
         prevMediaTrackData = searchHelper?.getPrev(mediaTrackData)
         val prevMediaItem = prevMediaTrackData?.uri?.let { MediaItem.fromUri(it) }
@@ -788,6 +848,7 @@ class MediaViewModel @Inject constructor(
             mediaController?.seekTo(offset,0)
             play()
         }
+
 
     }
 

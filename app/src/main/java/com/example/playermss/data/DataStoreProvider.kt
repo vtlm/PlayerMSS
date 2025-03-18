@@ -8,7 +8,9 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStoreFile
 import com.example.playermss.Messages.MediaTrackDataList
+import com.example.playermss.StringSet.NameList
 import com.example.playermss.data.serializer.MediaTrackDataListSerializer
+import com.example.playermss.data.serializer.NamesSerializer
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -18,6 +20,8 @@ import javax.inject.Singleton
 
 private const val USER_PREFERENCES_FILE_NAME = "user_preferences"
 private const val DATA_STORE_FILE_NAME = "user_data.pb"
+private const val ARTIST_STORE_FILE_NAME = "user_artist.pb"
+private const val ALBUM_STORE_FILE_NAME = "user_album.pb"
 
 @InstallIn(SingletonComponent::class)
 @Module
@@ -39,4 +43,22 @@ object DataStoreModule {
             produceFile = { appContext.dataStoreFile(DATA_STORE_FILE_NAME) }
         )
     }
+
+    @Singleton
+    @Provides
+    fun provideProtoDataStoreArtist(@ApplicationContext appContext: Context): DataStore<NameList> {
+        return DataStoreFactory.create(
+            serializer = NamesSerializer,
+            produceFile = { appContext.dataStoreFile(ARTIST_STORE_FILE_NAME) }
+        )
+    }
+
+//    @Singleton
+//    @Provides
+//    fun provideProtoDataStoreAlbum(@ApplicationContext appContext: Context): DataStore<NameList> {
+//        return DataStoreFactory.create(
+//            serializer = NamesSerializer,
+//            produceFile = { appContext.dataStoreFile(ALBUM_STORE_FILE_NAME) }
+//        )
+//    }
 }
