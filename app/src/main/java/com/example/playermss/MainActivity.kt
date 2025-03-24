@@ -17,9 +17,11 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.annotation.RequiresApi
 import androidx.annotation.RequiresExtension
+import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.animation.core.EaseInOutExpo
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.layout.Arrangement
@@ -55,6 +57,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
@@ -96,6 +100,7 @@ class MainActivity : ComponentActivity() {
 
         this.applicationContext.also { mediaViewModel.context = it }
         mediaViewModel.init()
+        lifecycle.addObserver(mediaViewModel)
 
 // Register the permissions callback, which handles the user's response to the
 // system permissions dialog. Save the return value, an instance of
@@ -288,6 +293,37 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    @Composable
+    fun ShowMagnitude(magnitudes: FloatArray){
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val canvasWidth = size.width
+            val canvasHeight = size.height
+
+            val cnt = magnitudes.size
+
+            if (cnt > 0) {
+
+                val step = canvasWidth/cnt
+                val max = magnitudes.maxOrNull()
+                if (max != null) {
+                    val mult = max / canvasHeight
+
+                    if (mult > 0f) {
+                        for (i in 0..<magnitudes.size)
+
+                            drawRect(Color.Yellow, topLeft = Offset(x = i*step.toFloat() , y = 0f),
+                                size=Size(step-1f,magnitudes[i] / mult))
+//                            drawLine(
+//                                start = Offset(x = i.toFloat() * 2, y = 0f),
+//                                end = Offset(x = i.toFloat() * 2, y = magnitudes[i] * mult),
+//                                color = Color.Yellow
+//                            )
+                    }
+                }
+            }
+        }
+    }
+
 
     @RequiresApi(Build.VERSION_CODES.Q)
     @Composable
@@ -345,8 +381,11 @@ class MainActivity : ComponentActivity() {
                             SearchFields(mediaViewModel.queryFields, mediaViewModel::query)
                         }
                     }
+//                    Row(Modifier.weight(1f)){
+//                        ShowUnsortedTracks(mediaViewModel.tracksList.collectAsState().value)
+//                    }
                     Row(Modifier.weight(1f)){
-                        ShowUnsortedTracks(mediaViewModel.tracksList.collectAsState().value)
+                        ShowMagnitude(mediaViewModel.magnitudes.collectAsState().value)
                     }
                     Row(Modifier.weight(7f)) {
                         Column(Modifier.fillMaxSize()) {

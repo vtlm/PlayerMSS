@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
@@ -81,6 +82,30 @@ class UserPreferencesRepository @Inject constructor(
         }
     }
 
+    fun getInt(key: Preferences.Key<Int>): Flow<Int>{
+        val rvNumber = dataStore.data
+            .catch {
+                if (it is IOException) {
+                    Log.e(TAG, "Error reading preferences.", it)
+                    emit(emptyPreferences())
+                } else {
+                    throw it
+                }
+            }
+            .map { preferences ->
+                preferences[key] ?: 0
+            }
+        return rvNumber
+    }
+
+    suspend fun setInt(key: Preferences.Key<Int>, number: Int?){
+        if(number != null) {
+            dataStore.edit { preferences ->
+                preferences[key] = number
+            }
+        }
+    }
+
     fun getText(key: Preferences.Key<String>): Flow<String>{
         val text = dataStore.data
             .catch {
@@ -100,6 +125,28 @@ class UserPreferencesRepository @Inject constructor(
     suspend fun setText(key: Preferences.Key<String>, text: String){
         dataStore.edit { preferences ->
             preferences[key] = text
+        }
+    }
+
+    fun getStringSet(key: Preferences.Key<Set<String>>): Flow<Set<String>>{
+        val stringSet = dataStore.data
+            .catch {
+                if (it is IOException) {
+                    Log.e(TAG, "Error reading preferences.", it)
+                    emit(emptyPreferences())
+                } else {
+                    throw it
+                }
+            }
+            .map { preferences ->
+                preferences[key] ?: setOf()
+            }
+        return stringSet
+    }
+
+    suspend fun setStringSet(key: Preferences.Key<Set<String>>, stringSet: Set<String>){
+        dataStore.edit { preferences ->
+            preferences[key] = stringSet
         }
     }
 }

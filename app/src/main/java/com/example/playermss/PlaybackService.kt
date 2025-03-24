@@ -4,6 +4,8 @@ import android.content.Intent
 import android.os.Handler
 import android.util.Log
 import android.widget.Toast
+import androidx.media3.common.AudioAttributes
+import androidx.media3.common.C
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaSession
@@ -18,6 +20,13 @@ class PlaybackService : MediaSessionService() {
     override fun onCreate() {
         super.onCreate()
          player = ExoPlayer.Builder(this).build()
+        val audioAttributes: AudioAttributes = AudioAttributes.Builder()
+            .setUsage(C.USAGE_MEDIA)
+            .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE)
+            .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
+            .build()
+        player?.setAudioAttributes(audioAttributes,true)
+
          mediaSession = MediaSession.Builder(this, player!!).build()
          Log.d("OC","Playback service created")
 

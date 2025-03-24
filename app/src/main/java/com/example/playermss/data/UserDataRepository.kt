@@ -14,11 +14,13 @@ import kotlinx.coroutines.runBlocking
 import javax.inject.Inject
 import androidx.core.net.toUri
 import com.example.playermss.StringSet
+import kotlinx.coroutines.flow.MutableStateFlow
 
 class UserDataRepository @Inject constructor(private val dataStore: DataStore<MediaTrackDataList>,
-                                             private val expArtistDataStore: DataStore<StringSet.NameList>,
+//                                             private val expArtistDataStore: DataStore<StringSet.NameList>,
 //                                             private val expAlbumDataStore: DataStore<StringSet.NameList>,
     ) {
+
 
     fun asStateFlow(launchScope:CoroutineScope): StateFlow<List<MediaTrackData>> {
         return dataStore.data.map {
@@ -74,16 +76,41 @@ class UserDataRepository @Inject constructor(private val dataStore: DataStore<Me
         }
     }
 
-    fun artistAsStateFlow(launchScope:CoroutineScope): StateFlow<Set<String>> {
-        return expArtistDataStore.data.map {
-            toMediaTrackDataList(it)
-        }.stateIn(scope = launchScope,
-            started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = runBlocking {
-                toMediaTrackDataList(dataStore.data.first())
-            }
-        )
-    }
+//    fun toSet(list: StringSet.NameList):Set<String>{
+//        val outSet = mutableSetOf<String>()
+//        for(i in 0..<list.nameCount){
+//            outSet += list.getName(i)
+//        }
+//        return outSet
+//    }
+//
+//    fun artistAsStateFlow(launchScope:CoroutineScope): StateFlow<Set<String>> {
+//        return expArtistDataStore.data.map {
+//            toSet(it)
+//        }.stateIn(scope = launchScope,
+//            started = SharingStarted.WhileSubscribed(5_000),
+//            initialValue = runBlocking {
+//                toSet(expArtistDataStore.data.first())
+//            }
+//        )
+//    }
+//
+//    suspend fun saveExpArtist(set: Set<String>){
+//        expArtistDataStore.updateData { names ->
+//
+////            val items = mutableListOf<String>()
+////
+////            set.forEach {
+////                items += it
+////            }
+//
+//            names.toBuilder()
+//                .clear()
+//                .setDirectLogic(true)
+//                .addAllName(set.toList())
+//                .build()
+//        }
+//    }
 
 
 }
