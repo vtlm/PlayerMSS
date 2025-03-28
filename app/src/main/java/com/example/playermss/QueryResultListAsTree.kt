@@ -187,12 +187,24 @@ fun ShowQueryResults(
         listState.scrollToItem(scrollPos ?: 0, offs)
     }
 
+//    LaunchedEffect(listState) {
+//        snapshotFlow { listState}
+//            .distinctUntilChanged()
+//            .collect {
+//                Log.d("DBGL", "State updated")
+//                mediaViewModel.laztListState = listState
+//            }
+//    }
+
+
     LaunchedEffect(listState) {
         snapshotFlow { listState.layoutInfo.totalItemsCount }
             .distinctUntilChanged()
             .collect {
-                mediaViewModel.setLazyListTotalItemsCount(it)// listState.firstVisibleItemIndex)
-                mediaViewModel.visibleItemsInfo = listState.layoutInfo.visibleItemsInfo
+//                mediaViewModel.setLazyListTotalItemsCount(it)// listState.firstVisibleItemIndex)
+//                mediaViewModel.visibleItemsInfo = listState.layoutInfo.visibleItemsInfo
+                mediaViewModel.laztListState = listState
+
             }
     }
 
@@ -200,8 +212,10 @@ fun ShowQueryResults(
         snapshotFlow { listState.layoutInfo.visibleItemsInfo.size }
             .distinctUntilChanged()
             .collect {
-                mediaViewModel.setLazyListVisibleItemsCount(it)// listState.firstVisibleItemIndex)
-                mediaViewModel.visibleItemsInfo = listState.layoutInfo.visibleItemsInfo
+//                mediaViewModel.setLazyListVisibleItemsCount(it)// listState.firstVisibleItemIndex)
+//                mediaViewModel.visibleItemsInfo = listState.layoutInfo.visibleItemsInfo
+                mediaViewModel.laztListState = listState
+
             }
     }
 
@@ -228,7 +242,9 @@ fun ShowQueryResults(
                         "${listState.layoutInfo.visibleItemsInfo.size} ${listState.layoutInfo.viewportStartOffset}")
 //                MyAnalyticsService.sendScrolledPastFirstItemEvent()
                 mediaViewModel.setUserScrollPos(it)// listState.firstVisibleItemIndex)
-                mediaViewModel.visibleItemsInfo = listState.layoutInfo.visibleItemsInfo
+//                mediaViewModel.visibleItemsInfo = listState.layoutInfo.visibleItemsInfo
+                mediaViewModel.laztListState = listState
+
             }
 
 

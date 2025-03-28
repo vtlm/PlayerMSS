@@ -15,6 +15,7 @@ import androidx.annotation.OptIn
 import androidx.annotation.RequiresApi
 import androidx.annotation.RequiresExtension
 import androidx.compose.foundation.lazy.LazyListItemInfo
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.graphics.ImageBitmap
@@ -54,6 +55,8 @@ import kotlin.math.hypot
 import kotlin.math.min
 
 val TRACK_LIST_SCROLL_POS = intPreferencesKey("track_list_scroll_pos")
+val IS_REMAIN_TIME = booleanPreferencesKey("is_remain_time")
+val PLAYER_REPEAT_MODE = intPreferencesKey("player_repeat_mode")
 val USER_TRACK_LIST_SCROLL_POS = intPreferencesKey("user_track_list_scroll_pos")
 val PLAYING_ITEM_ID = intPreferencesKey("playing_item_id")
 val IS_UI_SEARCH_VISIBLE = booleanPreferencesKey("is_ui_search_visible")
@@ -96,14 +99,14 @@ class MediaViewModel @Inject constructor(
     val expandedArtists = StringSetDataStorePreferences("expandedArtists", userPreferencesRepository, viewModelScope)
     val expandedAlbums = StringSetDataStorePreferences("expandedAlbums", userPreferencesRepository, viewModelScope)
 
-    private val _lazyListVisibleItemsCount = MutableStateFlow(0)
-    val lazyListVisibleItemsCount: StateFlow<Int> = _lazyListVisibleItemsCount.asStateFlow()
+//    private val _lazyListVisibleItemsCount = MutableStateFlow(0)
+//    val lazyListVisibleItemsCount: StateFlow<Int> = _lazyListVisibleItemsCount.asStateFlow()
+//
+//    private val _lazyListTotalItemsCount = MutableStateFlow(0)
+//    val lazyListTotalItemsCount: StateFlow<Int> = _lazyListTotalItemsCount.asStateFlow()
 
-    private val _lazyListTotalItemsCount = MutableStateFlow(0)
-    val lazyListTotalItemsCount: StateFlow<Int> = _lazyListTotalItemsCount.asStateFlow()
-
-    lateinit var visibleItemsInfo: List<LazyListItemInfo>
-
+//    lateinit var visibleItemsInfo: List<LazyListItemInfo>
+    lateinit var laztListState: LazyListState
 
     val userScrollPos = userPreferencesRepository.getOrDefault(USER_TRACK_LIST_SCROLL_POS, 0)
     fun setUserScrollPos(pos: Int) = userPreferencesRepository.set(USER_TRACK_LIST_SCROLL_POS, viewModelScope, pos)
@@ -119,19 +122,19 @@ class MediaViewModel @Inject constructor(
 //        return r
 //    }
 
-    fun setLazyListVisibleItemsCount(count: Int){
-        Log.d("DBGL","ll vis cnt $count")
-        _lazyListVisibleItemsCount.value = count
-    }
-
-    fun setLazyListTotalItemsCount(count: Int){
-        Log.d("DBGL","ll tot cnt $count")
-        _lazyListTotalItemsCount.value = count
-    }
+//    fun setLazyListVisibleItemsCount(count: Int){
+//        Log.d("DBGL","ll vis cnt $count")
+//        _lazyListVisibleItemsCount.value = count
+//    }
+//
+//    fun setLazyListTotalItemsCount(count: Int){
+//        Log.d("DBGL","ll tot cnt $count")
+//        _lazyListTotalItemsCount.value = count
+//    }
 
     fun getCurrentTrackLazyListIndex(): Int?{
-        if(::visibleItemsInfo.isInitialized){
-            val item = visibleItemsInfo.find { it.key == playingItemId.value}
+        if(::laztListState.isInitialized){
+            val item = laztListState.layoutInfo.visibleItemsInfo.find { it.key == playingItemId.value}
             return item?.index
         }
         return null
@@ -161,22 +164,6 @@ class MediaViewModel @Inject constructor(
 
 
 
-    val isRemainTime: StateFlow<Boolean> =
-        userPreferencesRepository.isRemainTime.map { isRemainTime ->
-            isRemainTime
-        }.stateIn(scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = runBlocking {
-                userPreferencesRepository.isRemainTime.first()
-            }
-        )
-
-    fun setRemainTime(isRemainTime: Boolean) {
-        viewModelScope.launch {
-            userPreferencesRepository.saveRemainTimePreference(isRemainTime)
-        }
-    }
-
 
 //    val trackListScrollPos: StateFlow<Int> =
 //        userPreferencesRepository.getIntOrDefault(TRACK_LIST_SCROLL_POS, 0)
@@ -200,38 +187,16 @@ class MediaViewModel @Inject constructor(
 //        currentPos += 1
 //        setTrackListScrollPos(currentPos)
 //    }
+    val isRemainTime: StateFlow<Boolean> = userPreferencesRepository.getOrDefaultAsStateFlow(
+        IS_REMAIN_TIME, viewModelScope, false)
+    fun setRemainTime(isRemainTime: Boolean) = userPreferencesRepository.set(IS_REMAIN_TIME, viewModelScope ,isRemainTime)
 
-    val playingItemId: StateFlow<Int> =
-        userPreferencesRepository.getIntOrDefault(PLAYING_ITEM_ID)
-            .stateIn(scope = viewModelScope,
-                started = SharingStarted.Eagerly,//WhileSubscribed(5_000),
-                initialValue = runBlocking {
-                    userPreferencesRepository.getIntOrDefault(PLAYING_ITEM_ID).first()
-                }
-            )
+    val playingItemId: StateFlow<Int> = userPreferencesRepository.getOrDefaultAsStateFlow(PLAYING_ITEM_ID, viewModelScope, 0)
+    fun setPlayingItemId(itemId: Int?) = userPreferencesRepository.set(PLAYING_ITEM_ID,viewModelScope, itemId)
 
-    fun setPlayingItemId(itemId: Int?) {
-        Log.d("SII","write $itemId")
-        viewModelScope.launch {
-            userPreferencesRepository.setInt(PLAYING_ITEM_ID,itemId)
-        }
-    }
-
-    val playerRepeatMode: StateFlow<Int> =
-        userPreferencesRepository.playerRepeatMode.map { playerRepeatMode ->
-            playerRepeatMode
-        }.stateIn(scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = runBlocking {
-                userPreferencesRepository.playerRepeatMode.first()
-            }
-        )
-
-    fun setPlayerRepeatMode(playerRepeatMode: Int) {
-        viewModelScope.launch {
-            userPreferencesRepository.savePlayerRepeatModePreference(playerRepeatMode)
-        }
-    }
+    val playerRepeatMode: StateFlow<Int> = userPreferencesRepository.getOrDefaultAsStateFlow(PLAYER_REPEAT_MODE, viewModelScope, 0)
+    fun setPlayerRepeatMode(playerRepeatMode: Int) = userPreferencesRepository.set(
+        PLAYER_REPEAT_MODE,viewModelScope, playerRepeatMode)
 
     fun incPlayerRepeatMode() {
         var nextPlayerRepeatMode = playerRepeatMode.value + 1
@@ -241,7 +206,7 @@ class MediaViewModel @Inject constructor(
         setPlayerRepeatMode(nextPlayerRepeatMode)
     }
 
-    val isSearchVisible = userPreferencesRepository.getBoolOrDefaultAsStateFlow(IS_UI_SEARCH_VISIBLE, viewModelScope,true)
+    val isSearchVisible = userPreferencesRepository.getOrDefaultAsStateFlow(IS_UI_SEARCH_VISIBLE, viewModelScope,true)
     fun setSearchVisible(state: Boolean) = userPreferencesRepository.set(IS_UI_SEARCH_VISIBLE, viewModelScope, state)
 
     override fun onCreate(owner: LifecycleOwner) {//override lifecycle events
@@ -591,14 +556,6 @@ class MediaViewModel @Inject constructor(
                         if (newRepeatMode == Player.REPEAT_MODE_ALL && nextMediaTrackData == null) {  //current is last
                             nextMediaTrackData = searchHelper.getNext(currentMediaTrackData)
 
-//                            if (nextMediaTrackData != null) {
-//                                val nextMediaItem = nextMediaTrackData?.uri?.let { uri -> MediaItem.fromUri(uri) }
-//
-//                                if (nextMediaItem != null) {
-//                                    mediaController.addMediaItem(nextMediaItem)
-//                                }
-//                            }
-
                             nextMediaTrackData?.let{
                                 it.uri?.let{
                                     uri -> MediaItem.fromUri(uri).let{
@@ -618,13 +575,6 @@ class MediaViewModel @Inject constructor(
                                     }
                                 }
                             }
-//                            if (prevMediaTrackData != null) {
-//                                val prevMediaItem = prevMediaTrackData?.uri?.let { uri -> MediaItem.fromUri(uri) }
-//
-//                                if (prevMediaItem != null) {
-//                                    mediaController.addMediaItem(0, prevMediaItem)
-//                                }
-//                            }
                         }
 
                         if(newRepeatMode == Player.REPEAT_MODE_OFF){
@@ -664,25 +614,28 @@ class MediaViewModel @Inject constructor(
         Log.d("LCD","on Cleared")
     }
 
-    fun scrollDown(){
+    fun scrollDown() {
         val currentTrackIndex = getCurrentTrackLazyListIndex()
-        if(currentTrackIndex != null
-            && currentTrackIndex > _scrollPos.value + lazyListVisibleItemsCount.value * 2 / 3
-            && currentTrackIndex < _scrollPos.value + lazyListVisibleItemsCount.value){
-                setTrackListScrollPos(_scrollPos.value + 1)
+        with(laztListState) {
+            if (currentTrackIndex != null
+                && currentTrackIndex > firstVisibleItemIndex + layoutInfo.visibleItemsInfo.size / 2
+                && currentTrackIndex < firstVisibleItemIndex + layoutInfo.visibleItemsInfo.size
+            ) {
+                setTrackListScrollPos(firstVisibleItemIndex + 1)
+            }
         }
     }
 
     fun scrollUp(){
         val currentTrackIndex = getCurrentTrackLazyListIndex()
-        if(currentTrackIndex != null
-            && currentTrackIndex > _scrollPos.value
-            && currentTrackIndex < _scrollPos.value + lazyListVisibleItemsCount.value / 3){
-            setTrackListScrollPos(_scrollPos.value - 1)
+        with(laztListState) {
+            if (currentTrackIndex != null
+                && currentTrackIndex > firstVisibleItemIndex
+                && currentTrackIndex < firstVisibleItemIndex + layoutInfo.visibleItemsInfo.size / 2
+            ) {
+                setTrackListScrollPos(firstVisibleItemIndex - 1)
+            }
         }
-//        if(trackListScrollPos.value > lazyListVisibleItemsCount.value*3/4){
-//            setTrackListScrollPos(trackListScrollPos.value - 1)
-//        }
     }
 
     fun play(){

@@ -25,94 +25,10 @@ class UserPreferencesRepository @Inject constructor(
     private val dataStore: DataStore<Preferences>
 ) {
     private companion object {
-        val IS_LINEAR_LAYOUT = booleanPreferencesKey("is_linear_layout")
-        val IS_REMAIN_TIME = booleanPreferencesKey("is_remain_time")
-        val PLAYER_REPEAT_MODE = intPreferencesKey("player_repeat_mode")
         const val TAG = "UserPreferencesRepo"
     }
 
-    val isLinearLayout: Flow<Boolean> = dataStore.data
-        .catch {
-            if (it is IOException) {
-                Log.e(TAG, "Error reading preferences.", it)
-                emit(emptyPreferences())
-            } else {
-                throw it
-            }
-        }
-        .map { preferences ->
-            preferences[IS_LINEAR_LAYOUT] ?: true
-        }
-
-    suspend fun saveLayoutPreference(isLinearLayout: Boolean) {
-        dataStore.edit { preferences ->
-            preferences[IS_LINEAR_LAYOUT] = isLinearLayout
-        }
-    }
-
-    val isRemainTime: Flow<Boolean> = dataStore.data
-        .catch {
-            if (it is IOException) {
-                Log.e(TAG, "Error reading preferences.", it)
-                emit(emptyPreferences())
-            } else {
-                throw it
-            }
-        }
-        .map { preferences ->
-            preferences[IS_REMAIN_TIME] ?: false
-        }
-
-    suspend fun saveRemainTimePreference(isRemainTime: Boolean) {
-        dataStore.edit { preferences ->
-            preferences[IS_REMAIN_TIME] = isRemainTime
-        }
-    }
-
-    val playerRepeatMode: Flow<Int> = dataStore.data
-        .catch {
-            if (it is IOException) {
-                Log.e(TAG, "Error reading preferences.", it)
-                emit(emptyPreferences())
-            } else {
-                throw it
-            }
-        }
-        .map { preferences ->
-            preferences[PLAYER_REPEAT_MODE] ?: 0
-        }
-
-    suspend fun savePlayerRepeatModePreference(playerRepeatMode: Int) {
-        dataStore.edit { preferences ->
-            preferences[PLAYER_REPEAT_MODE] = playerRepeatMode
-        }
-    }
-
-    fun getBoolOr(key: Preferences.Key<Boolean>, defValue: Boolean): Flow<Boolean>{
-        val rv = dataStore.data
-            .catch {
-                if (it is IOException) {
-                    Log.e(TAG, "Error reading preferences.", it)
-                    emit(emptyPreferences())
-                } else {
-                    throw it
-                }
-            }
-            .map { preferences ->
-                preferences[key] ?: defValue
-            }
-        return rv
-    }
-
-    suspend fun setBool(key: Preferences.Key<Boolean>, value: Boolean?){
-        if(value != null) {
-            dataStore.edit { preferences ->
-                preferences[key] = value
-            }
-        }
-    }
-
-    fun getBoolOrDefaultAsStateFlow(key: Preferences.Key<Boolean>, coroutineScope: CoroutineScope, defValue: Boolean): StateFlow<Boolean> {
+    fun <T>getOrDefaultAsStateFlow(key: Preferences.Key<T>, coroutineScope: CoroutineScope, defValue: T): StateFlow<T> {
         val rv = dataStore.data
             .catch {
                 if (it is IOException) {
@@ -137,22 +53,6 @@ class UserPreferencesRepository @Inject constructor(
         return rvAsStateFlow
     }
 
-    fun getIntOrDefault(key: Preferences.Key<Int>, defaultValue: Int = 0): Flow<Int>{
-        val rvNumber = dataStore.data
-            .catch {
-                if (it is IOException) {
-                    Log.e(TAG, "Error reading preferences.", it)
-                    emit(emptyPreferences())
-                } else {
-                    throw it
-                }
-            }
-            .map { preferences ->
-                preferences[key] ?: defaultValue
-            }
-        return rvNumber
-    }
-
     fun <T>getOrDefault(key: Preferences.Key<T>, defaultT: T): Flow<T>{
         val t = dataStore.data
             .catch {
@@ -167,14 +67,6 @@ class UserPreferencesRepository @Inject constructor(
                 preferences[key] ?: defaultT
             }
         return t
-    }
-
-    suspend fun setInt(key: Preferences.Key<Int>, number: Int?){
-        if(number != null) {
-            dataStore.edit { preferences ->
-                preferences[key] = number
-            }
-        }
     }
 
     fun <T>set(key: Preferences.Key<T>, coroutineScope: CoroutineScope, t: T?){
