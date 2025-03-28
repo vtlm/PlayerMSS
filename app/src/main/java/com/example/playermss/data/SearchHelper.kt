@@ -1,6 +1,7 @@
 package com.example.playermss.data
 
 import android.util.Log
+import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 
 
@@ -15,8 +16,57 @@ class SearchHelper(private val groupedSortedTracks: List<Pair<String, List<Pair<
 
     private var repeatMode = Player.REPEAT_MODE_OFF
 
+    fun clearOverruns(){
+        overrunTop = false
+        overrunBottom = false
+    }
+
+    fun checkOverrunsFromTopToBottom(){
+        if(overrunTop){
+            overrunTop = false
+            overrunBottom = true
+        }else{
+            if(overrunBottom)
+            {
+                overrunBottom = false
+            }
+        }
+    }
+
+    fun checkOverrunsFromBottomToTop() {
+        if(overrunBottom){
+            overrunTop = true
+            overrunBottom = false
+        }else{
+            if(overrunTop){
+                overrunTop = false
+            }
+        }
+    }
+
     fun setRepeatMode(_repeatMode: Int){
         repeatMode = _repeatMode
+    }
+
+    fun getMediaItem(mediaTrackData: MediaTrackData?):MediaItem?{
+        return mediaTrackData?.uri?.let { MediaItem.fromUri(it) }
+    }
+
+//    fun prevMediaItem(mediaTrackData: MediaTrackData?):MediaItem? {
+//
+//    }
+
+    fun getMediaTrackDataForCode(code: Int): MediaTrackData?{
+        groupedSortedTracks?.forEach { artistAlbums ->
+            artistAlbums.second.forEach { album ->
+                album.second.forEach { trackData ->
+                    if(trackData.testHash(code)){
+                        return  trackData
+                    }
+                }
+            }
+        }
+        return null
     }
 
     private fun getFirstTrack(): MediaTrackData? {

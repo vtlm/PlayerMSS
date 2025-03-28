@@ -10,20 +10,17 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.IntrinsicSize
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Card
-import androidx.compose.material3.CardColors
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -38,19 +35,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.playermss.data.MediaTrackData
 import com.example.playermss.data.MediaViewModel
-import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.timeout
-import kotlin.time.Duration.Companion.milliseconds
 
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -73,7 +64,7 @@ private fun LazyListScope.showTracks(tracks: List<MediaTrackData>, mediaViewMode
 
     tracks.forEach { trackItem ->
 
-        val itemKey = trackItem.getSystemId()
+        val itemKey = trackItem.getHash()
 
         item (key = itemKey) {
             Card(
@@ -110,7 +101,7 @@ private fun LazyListScope.showAlbums(albums: List<Pair<String, List<MediaTrackDa
     albums.forEach {
 
         val (albumName, albumTracks) = it
-        item (key = System.identityHashCode(it)){//todo: recheck case if albums names same
+        item (key = System.identityHashCode(albumTracks)){//todo: recheck case if albums names same
             Card(
                 modifier = Modifier
                     .height(IntrinsicSize.Min)
@@ -154,7 +145,7 @@ private fun LazyListScope.showArtist(artistAsPair: Pair<String, List<Pair<String
 
     val (artistName, artistAlbums) = artistAsPair
 
-    item (key = System.identityHashCode(artistAsPair)) {
+    item (key = System.identityHashCode(artistAlbums)) {
         Card(
             modifier = Modifier
                 .height(IntrinsicSize.Min)
@@ -178,18 +169,46 @@ private fun LazyListScope.showArtist(artistAsPair: Pair<String, List<Pair<String
 }
 
 @Composable
-fun ShowQueryResults(mediaViewModel: MediaViewModel){
+fun ShowQueryResults(
+    results: List<Pair<String, List<Pair<String, List<MediaTrackData>>>>>,
+    artistExpanded: Set<String>,
+    albumExpanded: Set<String>,
+    scrollPos: Int,
+    mediaViewModel: MediaViewModel
+){
+    Log.d("DBGL","Recomp with scrollposL $scrollPos")
+    val listState = rememberLazyListState(scrollPos)
+//    listState.firstVisibleItemIndex = scrollPos
 
-    val results = mediaViewModel.querySortedResults.collectAsState()
-    val artistExpanded = mediaViewModel.expandedArtists.externalStringSet.collectAsState()
-    val albumExpanded = mediaViewModel.expandedAlbums.externalStringSet.collectAsState()
-    val scrollPos = mediaViewModel.trackListScrollPos.collectAsState()
-
-    val listState = rememberLazyListState(scrollPos.value)
-    lateinit var c : Flow<Int>
+    LaunchedEffect(scrollPos) {
+//        delay(300)
+        val offs = listState.firstVisibleItemScrollOffset
+        Log.d("DBGL","offs $offs")
+        listState.scrollToItem(scrollPos,offs)
+    }
 
     LaunchedEffect(listState) {
-        listState.scrollToItem(listState.firstVisibleItemIndex)
+        snapshotFlow { listState.layoutInfo.totalItemsCount }
+            .distinctUntilChanged()
+            .collect {
+                mediaViewModel.setLazyListTotalItemsCount(it)// listState.firstVisibleItemIndex)
+                mediaViewModel.visibleItemsInfo = listState.layoutInfo.visibleItemsInfo
+            }
+    }
+
+    LaunchedEffect(listState) {
+        snapshotFlow { listState.layoutInfo.visibleItemsInfo.size }
+            .distinctUntilChanged()
+            .collect {
+                mediaViewModel.setLazyListVisibleItemsCount(it)// listState.firstVisibleItemIndex)
+                mediaViewModel.visibleItemsInfo = listState.layoutInfo.visibleItemsInfo
+            }
+    }
+
+    LaunchedEffect(listState) {
+
+//        listState.scrollToItem(listState.firstVisibleItemIndex)
+
         snapshotFlow { listState.firstVisibleItemIndex }
 //            .map { index -> index > 0 }
             .distinctUntilChanged()
@@ -205,25 +224,28 @@ fun ShowQueryResults(mediaViewModel: MediaViewModel){
 
 //            .filter { it == true }
             .collect {
-                Log.d("DBGL","${listState.firstVisibleItemIndex}")
+                Log.d("DBGL","${it} ${listState.layoutInfo.totalItemsCount} " +
+                        "${listState.layoutInfo.visibleItemsInfo.size} ${listState.layoutInfo.viewportStartOffset}")
 //                MyAnalyticsService.sendScrolledPastFirstItemEvent()
                 mediaViewModel.setTrackListScrollPos(it)// listState.firstVisibleItemIndex)
+                mediaViewModel.visibleItemsInfo = listState.layoutInfo.visibleItemsInfo
             }
+
 
     }
 
     DisposableEffect(results) {
         onDispose {
-            val k = listState.firstVisibleItemIndex
-            mediaViewModel.setRemainTime(true)//!mediaViewModel.isRemainTime.value)
+//            val k = listState.firstVisibleItemIndex
+//            mediaViewModel.setRemainTime(true)//!mediaViewModel.isRemainTime.value)
         }
     }
 
 
-    if(results.value.isNotEmpty()) {
+    if(results.isNotEmpty()) {
         LazyColumn(state = listState) {
-            results.value.forEach {
-                showArtist(it, mediaViewModel, artistExpanded.value, albumExpanded.value)
+            results.forEach {
+                showArtist(it, mediaViewModel, artistExpanded, albumExpanded)
             }
         }
     }else{

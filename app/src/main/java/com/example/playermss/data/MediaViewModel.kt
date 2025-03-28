@@ -2,7 +2,6 @@ package com.example.playermss.data
 
 import android.app.RecoverableSecurityException
 import android.content.ComponentName
-import android.content.ContentUris
 import android.content.Context
 import android.database.Cursor
 import android.media.audiofx.BassBoost
@@ -15,7 +14,11 @@ import android.util.Log
 import androidx.annotation.OptIn
 import androidx.annotation.RequiresApi
 import androidx.annotation.RequiresExtension
+import androidx.compose.foundation.lazy.LazyListItemInfo
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
@@ -29,7 +32,6 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.HttpDataSource
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
-import com.example.playermss.PlayTracksManager
 import com.example.playermss.PlaybackService
 import com.example.playermss.imageBitmapFromBytes
 import com.google.common.util.concurrent.ListenableFuture
@@ -50,15 +52,9 @@ import kotlin.math.atan2
 import kotlin.math.hypot
 import kotlin.math.min
 
-
-data class SearchStatistic(
-    val artists: Int = 0,
-    val albums: Int = 0,
-    val titles: Int = 0,
-)
-
 val TRACK_LIST_SCROLL_POS = intPreferencesKey("track_list_scroll_pos")
 val PLAYING_ITEM_ID = intPreferencesKey("playing_item_id")
+val IS_UI_SEARCH_VISIBLE = booleanPreferencesKey("is_ui_search_visible")
 
 @HiltViewModel
 class MediaViewModel @Inject constructor(
@@ -81,9 +77,6 @@ class MediaViewModel @Inject constructor(
     private val _currentTrackMediaMetadata = MutableStateFlow<MediaMetadata?>(null)
     val currentTrackMediaMetadata: StateFlow<MediaMetadata?> = _currentTrackMediaMetadata.asStateFlow()
 
-//    private val _searchStatistic = MutableStateFlow(SearchStatistic())
-//    val searchStatistic: StateFlow<SearchStatistic> = _searchStatistic.asStateFlow()
-
     val tracksList: StateFlow<List<MediaTrackData>> = userDataRepository.asStateFlow(viewModelScope)
 
 //    private val _searchResults = MutableStateFlow<Map<String, Map<String, List<MediaTrackData>>>>(mapOf())
@@ -97,6 +90,34 @@ class MediaViewModel @Inject constructor(
 
     val expandedArtists = StringSetDataStorePreferences("expandedArtists", userPreferencesRepository, viewModelScope)
     val expandedAlbums = StringSetDataStorePreferences("expandedAlbums", userPreferencesRepository, viewModelScope)
+
+    private val _lazyListVisibleItemsCount = MutableStateFlow(0)
+    val lazyListVisibleItemsCount: StateFlow<Int> = _lazyListVisibleItemsCount.asStateFlow()
+
+    private val _lazyListTotalItemsCount = MutableStateFlow(0)
+    val lazyListTotalItemsCount: StateFlow<Int> = _lazyListTotalItemsCount.asStateFlow()
+
+    lateinit var visibleItemsInfo: List<LazyListItemInfo>
+//    private val _scrollPos = MutableStateFlow(0)
+//    val scrollPos: StateFlow<Int> = _scrollPos.asStateFlow()
+
+    fun setLazyListVisibleItemsCount(count: Int){
+        Log.d("DBGL","ll vis cnt $count")
+        _lazyListVisibleItemsCount.value = count
+    }
+
+    fun setLazyListTotalItemsCount(count: Int){
+        Log.d("DBGL","ll tot cnt $count")
+        _lazyListTotalItemsCount.value = count
+    }
+
+    fun getCurrentTrackLazyListIndex(): Int?{
+        if(::visibleItemsInfo.isInitialized){
+            val item = visibleItemsInfo.find { it.key == playingItemId.value}
+            return item?.index
+        }
+        return null
+    }
 
     val queryFields = arrayOf(
         QueryTextField("Artist", userPreferencesRepository, viewModelScope),
@@ -123,9 +144,6 @@ class MediaViewModel @Inject constructor(
 
     private lateinit var controllerFuture: ListenableFuture<MediaController>
     lateinit var mediaController: MediaController
-//    lateinit var playTracksManager: PlayTracksManager
-//    private lateinit var tracksAsList: List<MediaTrackData>
-
 
     val isRemainTime: StateFlow<Boolean> =
         userPreferencesRepository.isRemainTime.map { isRemainTime ->
@@ -146,16 +164,23 @@ class MediaViewModel @Inject constructor(
     val trackListScrollPos: StateFlow<Int> =
         userPreferencesRepository.getInt(TRACK_LIST_SCROLL_POS)
             .stateIn(scope = viewModelScope,
-                started = SharingStarted.WhileSubscribed(5_000),
+                started = SharingStarted.WhileSubscribed(),
                 initialValue = runBlocking {
                     userPreferencesRepository.getInt(TRACK_LIST_SCROLL_POS).first()
                 }
             )
 
     fun setTrackListScrollPos(trackListScrollPos: Int) {
+//        _scrollPos.value = trackListScrollPos
         viewModelScope.launch {
             userPreferencesRepository.setInt(TRACK_LIST_SCROLL_POS,trackListScrollPos)
         }
+    }
+
+    fun incTrackListScrollPos(){
+        var currentPos = trackListScrollPos.value
+        currentPos += 1
+        setTrackListScrollPos(currentPos)
     }
 
     val playingItemId: StateFlow<Int> =
@@ -198,6 +223,10 @@ class MediaViewModel @Inject constructor(
         setPlayerRepeatMode(nextPlayerRepeatMode)
     }
 
+    val isSearchVisible = userPreferencesRepository.getBoolOrDefaultAsStateFlow(IS_UI_SEARCH_VISIBLE,viewModelScope,true)
+    fun setSearchVisible(state: Boolean){
+        userPreferencesRepository.setBool(IS_UI_SEARCH_VISIBLE,viewModelScope,state)
+    }
     override fun onCreate(owner: LifecycleOwner) {//override lifecycle events
         super.onCreate(owner)
         Log.d("VMO","create")
@@ -225,7 +254,6 @@ class MediaViewModel @Inject constructor(
         if(::visualizer.isInitialized) {
             visualizer.setEnabled(false)
         }
-
     }
 
     override fun onStop(owner: LifecycleOwner) {
@@ -344,12 +372,12 @@ class MediaViewModel @Inject constructor(
 //                        }
 
                     }
-                    override fun onAudioSessionIdChanged(audioSessionId: Int) {
-                        super.onAudioSessionIdChanged(audioSessionId)
-
-                        val eq = Equalizer(0,audioSessionId)
-
-                    }
+//                    override fun onAudioSessionIdChanged(audioSessionId: Int) {
+//                        super.onAudioSessionIdChanged(audioSessionId)
+//
+//                        val eq = Equalizer(0,audioSessionId)
+//
+//                    }
                     override fun onPlayerError(error: PlaybackException) {
                         val cause = error.cause
                         if (cause is HttpDataSource.HttpDataSourceException) {
@@ -386,7 +414,6 @@ class MediaViewModel @Inject constructor(
 
                     override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
                         super.onMediaItemTransition(mediaItem, reason)
-return
 
                         if(reason == 1){ //transition to next
                             prevMediaTrackData = currentMediaTrackData
@@ -403,119 +430,83 @@ return
 
                             expandArtistAlbumFor(currentMediaTrackData)
 
-                            setPlayingItemId(System.identityHashCode(currentMediaTrackData))
-                            nextMediaTrackData = searchHelper?.getNext(nextMediaTrackData)
+                            setPlayingItemId(currentMediaTrackData?.getHash())
+                            nextMediaTrackData = searchHelper.getNext(nextMediaTrackData)
                             val nextMediaItem = nextMediaTrackData?.uri?.let { MediaItem.fromUri(it) }
                             if (nextMediaItem != null) {
-                                mediaController?.removeMediaItem(0)
-                                mediaController?.addMediaItem(nextMediaItem)
+                                mediaController.removeMediaItem(0)
+                                mediaController.addMediaItem(nextMediaItem)
                             }
-
                         }
 
                         if(reason == 2){ //seek to prev, next buttons
 
-                            val mediaItemsCount = mediaController?.mediaItemCount
-                            if(mediaItemsCount != null) {
-                                val firstMediaItem = mediaController?.getMediaItemAt(0)
+                            if(mediaController.mediaItemCount > 0) {
+                                val firstMediaItem = mediaController.getMediaItemAt(0)
 //prev
                                 if (mediaItem == firstMediaItem) {
                                     nextMediaTrackData = currentMediaTrackData
                                     currentMediaTrackData = prevMediaTrackData
 
-                                    if(searchHelper.overrunTop){
-                                        searchHelper.overrunTop = false
-                                        searchHelper.overrunBottom = true
-                                    }else{
-                                        if(searchHelper.overrunBottom)
-                                        {
-                                            searchHelper.overrunBottom = false
-                                        }
-                                    }
-
+                                    searchHelper.checkOverrunsFromTopToBottom()
                                     expandArtistAlbumFor(currentMediaTrackData)
+                                    setPlayingItemId(currentMediaTrackData?.getHash())
 
-                                    setPlayingItemId(currentMediaTrackData?.getSystemId())
-
-                                    prevMediaTrackData = searchHelper?.getPrev(prevMediaTrackData)
+                                    prevMediaTrackData = searchHelper.getPrev(prevMediaTrackData)
                                     val prevMediaItem = prevMediaTrackData?.uri?.let { MediaItem.fromUri(it) }
 
                                     if (prevMediaItem != null) {
+                                        mediaController.addMediaItem(0, prevMediaItem)
 
-//                                        val c = mutableListOf<MediaItem?>()
-//                                        for (m in 0..<mediaController?.mediaItemCount!!) {
-//                                            c += mediaController?.getMediaItemAt(m)
-//                                        }
-
-                                        mediaController?.addMediaItem(0, prevMediaItem)
-
-//                                        val c2 = mutableListOf<MediaItem?>()
-//                                        for (m in 0..<mediaController?.mediaItemCount!!) {
-//                                            c2 += mediaController?.getMediaItemAt(m)
-//                                        }
-
-                                        val cn = mediaController?.mediaItemCount
-
+                                        val cn = mediaController.mediaItemCount
                                         if (cn == 4) {
-                                            mediaController?.removeMediaItem(3)
+                                            mediaController.removeMediaItem(3)
                                         }
                                     }else{
-                                        val cn = mediaController?.mediaItemCount
-                                        if(cn != null) {
-                                            mediaController?.removeMediaItem(cn - 1)
+                                        val cn = mediaController.mediaItemCount
+                                        if(cn != 0) {
+                                            mediaController.removeMediaItem(cn - 1)
                                         }
                                     }
+
                                 }else{
-//next
-                                    val lastIemIndex = mediaItemsCount - if (mediaItemsCount > 0) 1 else 0
-                                    val lastMediaItem = mediaController?.getMediaItemAt(lastIemIndex)
+//next?
+                                    val lastIemIndex = mediaController.mediaItemCount - if (mediaController.mediaItemCount > 0) 1 else 0
+                                    val lastMediaItem = mediaController.getMediaItemAt(lastIemIndex)
 
                                     if (mediaItem == lastMediaItem) {
-
+//next
                                         if (nextMediaTrackData != null) {
 
                                             prevMediaTrackData = currentMediaTrackData
                                             currentMediaTrackData = nextMediaTrackData
 
-                                            if(searchHelper.overrunBottom){
-                                                searchHelper.overrunTop = true
-                                                searchHelper.overrunBottom = false
-                                            }else{
-                                                if(searchHelper.overrunTop){
-                                                    searchHelper.overrunTop = false
-                                                }
-                                            }
-
+                                            searchHelper.checkOverrunsFromBottomToTop()
                                             expandArtistAlbumFor(currentMediaTrackData)
-                                            setPlayingItemId(currentMediaTrackData?.getSystemId())
+                                            setPlayingItemId(currentMediaTrackData?.getHash())
 
                                             nextMediaTrackData = searchHelper.getNext(nextMediaTrackData)
 
                                             if (nextMediaTrackData != null) {
                                                 val nextMediaItem = nextMediaTrackData?.uri?.let { MediaItem.fromUri(it) }
-                                                if (nextMediaItem != null) {
-                                                    mediaController?.addMediaItem(nextMediaItem)
 
-                                                    val cn = mediaController?.mediaItemCount
+                                                if (nextMediaItem != null) {
+                                                    mediaController.addMediaItem(nextMediaItem)
+
+                                                    val cn = mediaController.mediaItemCount
                                                     if (cn == 4) {
-                                                        mediaController?.removeMediaItem(0)
+                                                        mediaController.removeMediaItem(0)
                                                     }
                                                 }
                                             }else{
-                                                mediaController?.removeMediaItem(0)
+                                                mediaController.removeMediaItem(0)
                                             }
-
-
-
                                         }
-
                                     }
-
                                 }
                             }
                         }
                         Log.d("TRD","${searchHelper.overrunTop}, ${searchHelper.overrunBottom}")
-
                     }
 
 //                    override fun onPlaybackStateChanged(playbackState: Int) {
@@ -527,11 +518,11 @@ return
 
                     override fun onEvents(player: Player, events: Player.Events) {
                         super.onEvents(player, events)
-return
-                        if(events.contains(Player.EVENT_AUDIO_SESSION_ID)){
-                            val eq = Equalizer(0,0)//player.audioSessionId)
 
-                        }
+//                        if(events.contains(Player.EVENT_AUDIO_SESSION_ID)){
+//                            val eq = Equalizer(0,0)//player.audioSessionId)
+//
+//                        }
 
                         if(events.contains(Player.EVENT_PLAYBACK_STATE_CHANGED)){
                             if(player.playbackState == Player.STATE_READY){
@@ -566,94 +557,85 @@ return
 //        }
 
 
-//        viewModelScope.launch {
-//            playerRepeatMode.collect { newRepeatMode ->
-//                if(::mediaController.isInitialized) {
-//                    mediaController.repeatMode = newRepeatMode
-//                }
-//
-//                if(this@MediaViewModel::searchHelper.isInitialized) {
-//                    searchHelper.setRepeatMode(newRepeatMode)
-//
-//                    if(currentMediaTrackData != null) {
-//
-//                        if (newRepeatMode == Player.REPEAT_MODE_ALL && nextMediaTrackData == null) {  //current is last
-//                            nextMediaTrackData = searchHelper.getNext(currentMediaTrackData)
-//
+        viewModelScope.launch {
+            playerRepeatMode.collect { newRepeatMode ->
+                if(::mediaController.isInitialized) {
+                    mediaController.repeatMode = newRepeatMode
+                }
+
+                if(this@MediaViewModel::searchHelper.isInitialized) {
+                    searchHelper.setRepeatMode(newRepeatMode)
+
+                    if(currentMediaTrackData != null) {
+
+                        if (newRepeatMode == Player.REPEAT_MODE_ALL && nextMediaTrackData == null) {  //current is last
+                            nextMediaTrackData = searchHelper.getNext(currentMediaTrackData)
+
 //                            if (nextMediaTrackData != null) {
 //                                val nextMediaItem = nextMediaTrackData?.uri?.let { uri -> MediaItem.fromUri(uri) }
+//
 //                                if (nextMediaItem != null) {
-//                                    mediaController?.addMediaItem(nextMediaItem)
-//
-////                                    overrunBottom = true
-//
-////                                    val cn = mediaController?.mediaItemCount
-////                                    if (cn == 4) {
-////                                        mediaController?.removeMediaItem(0)
-////                                    }
+//                                    mediaController.addMediaItem(nextMediaItem)
 //                                }
 //                            }
-////                            else {
-////                                mediaController?.removeMediaItem(0)
-////                            }
-//                        }
-//
-//                        if (newRepeatMode == Player.REPEAT_MODE_ALL && prevMediaTrackData == null) {  //current is first
-//                            prevMediaTrackData = searchHelper.getPrev(currentMediaTrackData)
-//
+
+                            nextMediaTrackData?.let{
+                                it.uri?.let{
+                                    uri -> MediaItem.fromUri(uri).let{
+                                        mediaItem -> mediaController.addMediaItem(mediaItem)
+                                    }
+                                }
+                            }
+                        }
+
+                        if (newRepeatMode == Player.REPEAT_MODE_ALL && prevMediaTrackData == null) {  //current is first
+                            prevMediaTrackData = searchHelper.getPrev(currentMediaTrackData)
+
+                            prevMediaTrackData?.let{
+                                it.uri?.let{
+                                    uri -> MediaItem.fromUri(uri).let{
+                                        mediaItem -> mediaController.addMediaItem(0, mediaItem)
+                                    }
+                                }
+                            }
 //                            if (prevMediaTrackData != null) {
 //                                val prevMediaItem = prevMediaTrackData?.uri?.let { uri -> MediaItem.fromUri(uri) }
+//
 //                                if (prevMediaItem != null) {
-//                                    mediaController?.addMediaItem(0, prevMediaItem)
-//
-////                                    overrunTop = true
-//
-////                                    val cn = mediaController?.mediaItemCount
-////                                    if (cn == 4) {
-////                                        mediaController?.removeMediaItem(0)
-////                                    }
+//                                    mediaController.addMediaItem(0, prevMediaItem)
 //                                }
 //                            }
-////                            else {
-////                                mediaController?.removeMediaItem(0)
-////                            }
-//                        }
-//
-//                        if(newRepeatMode == Player.REPEAT_MODE_OFF){
-//
-//                            if(searchHelper.overrunTop){
-//                                searchHelper.overrunTop = false
-//                                mediaController?.removeMediaItem(0)
-//                                prevMediaTrackData = null
-//                            }
-//
-//                            if(searchHelper.overrunBottom){
-//                                searchHelper.overrunBottom = false
-//                                val cnt = mediaController?.mediaItemCount
-//                                if(cnt != null) {
-//                                    mediaController?.removeMediaItem(cnt - 1)
-//                                    nextMediaTrackData = null
-//                                }
-//                            }
-//
-//                        }
-//                    }
-//
-//                }
-//            }
-//        }
+                        }
+
+                        if(newRepeatMode == Player.REPEAT_MODE_OFF){
+
+                            if(searchHelper.overrunTop){
+                                searchHelper.overrunTop = false
+                                mediaController.removeMediaItem(0)
+                                prevMediaTrackData = null
+                            }
+
+                            if(searchHelper.overrunBottom){
+                                searchHelper.overrunBottom = false
+                                val cnt = mediaController.mediaItemCount
+                                if(cnt != 0) {
+                                    mediaController.removeMediaItem(cnt - 1)
+                                    nextMediaTrackData = null
+                                }
+                            }
+
+                        }
+                    }
+
+                }
+            }
+        }
 
         viewModelScope.launch {
             querySortedResults.collect{
                 searchHelper = SearchHelper(it)
                 searchHelper.setRepeatMode(playerRepeatMode.value)
-//                if(this@MediaViewModel::playTracksManager.isInitialized) {
-//                    playTracksManager.searchHelper = searchHelper
-
-
-//                }
             }
-
         }
     }
 
@@ -662,14 +644,61 @@ return
         Log.d("LCD","on Cleared")
     }
 
-    fun play(){
-        mediaController.prepare()
-        mediaController.play()
+    fun scrollDown(){
+        val currentTrackIndex = getCurrentTrackLazyListIndex()
+        if(currentTrackIndex != null
+            && currentTrackIndex > trackListScrollPos.value + lazyListVisibleItemsCount.value * 2 / 3
+            && currentTrackIndex < trackListScrollPos.value + lazyListVisibleItemsCount.value){
+                setTrackListScrollPos(trackListScrollPos.value + 1)
+        }
+    }
 
+    fun scrollUp(){
+        val currentTrackIndex = getCurrentTrackLazyListIndex()
+        if(currentTrackIndex != null
+            && currentTrackIndex > trackListScrollPos.value
+            && currentTrackIndex < trackListScrollPos.value + lazyListVisibleItemsCount.value / 3){
+            setTrackListScrollPos(trackListScrollPos.value - 1)
+        }
+//        if(trackListScrollPos.value > lazyListVisibleItemsCount.value*3/4){
+//            setTrackListScrollPos(trackListScrollPos.value - 1)
+//        }
+    }
+
+    fun play(){
+        if(mediaController.mediaItemCount == 0){
+            currentMediaTrackData = searchHelper.getMediaTrackDataForCode(playingItemId.value)
+            currentMediaTrackData?.let { play(it) }
+        }else {
+            mediaController.prepare()
+            mediaController.play()
+        }
     }
 
     fun pause(){
         mediaController.pause()
+    }
+
+    fun seekToPrevious(){
+        if(mediaController.mediaItemCount == 0){
+            currentMediaTrackData = searchHelper.getMediaTrackDataForCode(playingItemId.value)
+            prevMediaTrackData = searchHelper.getPrev(currentMediaTrackData)
+            prevMediaTrackData?.let { play(it) }
+        }else {
+            mediaController.seekToPrevious()
+        }
+        scrollUp()
+    }
+
+    fun seekToNext(){
+        if(mediaController.mediaItemCount == 0){
+            currentMediaTrackData = searchHelper.getMediaTrackDataForCode(playingItemId.value)
+            nextMediaTrackData = searchHelper.getNext(currentMediaTrackData)
+            nextMediaTrackData?.let { play(it) }
+        }else {
+            mediaController.seekToNext()
+        }
+        scrollDown()
     }
 
 
@@ -836,89 +865,41 @@ return
 
     fun play(mediaTrackData: MediaTrackData){
 
-        var cnt = 0
-
-        try {
-            val total = tracksList.value.count()
-            for (i in 0..<tracksList.value.count()) {
-                val it = tracksList.value[i]
-
-                if (it.uri != null) {
-                    Log.d("ADDT","${it.artist} ${it.title} $total")
-                    val item = MediaItem.fromUri(it.uri)
-                    mediaController.addMediaItem(item)
-//                cnt =
-                    cnt += 1
-
-                    if (cnt > 40) {
-                        break
-                    }
-                }
-            }
-
-//        tracksList.value.forEach{
-//            if(it.uri != null) {
-//                mediaController.addMediaItem(MediaItem.fromUri(it.uri))
-//                cnt+=1
-//
-//                if(cnt > 1000){
-//                    break
-//                }
-//            }
-//        }
-
-            mediaController.prepare()
-//            mediaController.play()
-        }catch (e:Exception){
-            Log.d("EXC",e.toString())
-//            mediaController.seekToNext()
-//            mediaController.prepare()
-//            mediaController.play()
-        }
-        return
-
-        val sysId=mediaTrackData.getSystemId()
+        val sysId=mediaTrackData.getHash()
         Log.d("SII","at play: $sysId, title: ${mediaTrackData.title}")
         setPlayingItemId(sysId)
-//        playTracksManager.setTrack(mediaTrackData)
 
-        searchHelper.overrunTop = false
-        searchHelper.overrunBottom = false
+        searchHelper.clearOverruns()
 
         Log.d("DTP", mediaTrackData.title)
-        mediaController?.clearMediaItems()
+        mediaController.clearMediaItems()
 
         var offset = 0
 
         currentMediaTrackData = mediaTrackData
-//        _playingItemId.value = System.identityHashCode(mediaTrackData)
 
-        prevMediaTrackData = searchHelper?.getPrev(mediaTrackData)
+        prevMediaTrackData = searchHelper.getPrev(mediaTrackData)
         val prevMediaItem = prevMediaTrackData?.uri?.let { MediaItem.fromUri(it) }
-        if (prevMediaItem != null) {
-            mediaController?. addMediaItem(0, prevMediaItem)
+
+        prevMediaItem?.let {
+            mediaController. addMediaItem(0, prevMediaItem)
             offset = 1
         }
 
         val mediaItem = mediaTrackData.uri?.let { MediaItem.fromUri(it) }
-        mediaItem?.let {
-            mediaController?.addMediaItem(it)
-        }
 
-        nextMediaTrackData = searchHelper?.getNext(mediaTrackData)
+        mediaItem?.let { mediaController.addMediaItem(it) }
+
+        nextMediaTrackData = searchHelper.getNext(mediaTrackData)
         val nextMediaItem = nextMediaTrackData?.uri?.let { MediaItem.fromUri(it) }
-        if (nextMediaItem != null) {
-            mediaController?.addMediaItem(nextMediaItem)
-        }
 
+        nextMediaItem?.let { mediaController.addMediaItem(it) }
 
         val count = mediaController?.mediaItemCount
         if (count != null) {
             mediaController?.seekTo(offset,0)
             play()
         }
-
-
     }
 
 }

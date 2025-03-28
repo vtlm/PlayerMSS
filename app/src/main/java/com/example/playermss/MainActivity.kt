@@ -89,8 +89,6 @@ object NavTrackList
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
-    private val searchOpen = SomeViewModel(true)//todo move to main viewmodel
-
     val mediaViewModel:MediaViewModel by viewModels()
 
     @RequiresExtension(extension = Build.VERSION_CODES.R, version = 1)
@@ -309,15 +307,21 @@ class MainActivity : ComponentActivity() {
                     val mult = max / canvasHeight
 
                     if (mult > 0f) {
-                        for (i in 0..<magnitudes.size)
+                        for (i in 0..<magnitudes.size) {
 
-                            drawRect(Color.Yellow, topLeft = Offset(x = i*step.toFloat() , y = 0f),
-                                size=Size(step-1f,magnitudes[i] / mult))
+                            val barHeight = magnitudes[i] / mult
+
+                            drawRect(
+                                Color.Yellow,
+                                topLeft = Offset(x = i * step.toFloat(), y = canvasHeight - barHeight),
+                                size = Size(step - 1f, barHeight)
+                            )
 //                            drawLine(
 //                                start = Offset(x = i.toFloat() * 2, y = 0f),
 //                                end = Offset(x = i.toFloat() * 2, y = magnitudes[i] * mult),
 //                                color = Color.Yellow
 //                            )
+                        }
                     }
                 }
             }
@@ -329,9 +333,8 @@ class MainActivity : ComponentActivity() {
     @Composable
     fun SearchScreen(onNav: () -> Unit){
 
-        val isSearchOpen = searchOpen.state.collectAsState()
-        val currentTrackMediaMetadata =
-            mediaViewModel.currentTrackMediaMetadata.collectAsState()
+        val currentTrackMediaMetadata = mediaViewModel.currentTrackMediaMetadata.collectAsState()
+        val isSearchOpen = mediaViewModel.isSearchVisible.collectAsState()
 
         var weightAdd by remember {
             mutableFloatStateOf(0f)
@@ -377,7 +380,7 @@ class MainActivity : ComponentActivity() {
 //                        StatusLine()
 //                    }
                     Row {
-                        if (isSearchOpen.value != null && isSearchOpen.value == true) {
+                        if (isSearchOpen.value == true) {
                             SearchFields(mediaViewModel.queryFields, mediaViewModel::query)
                         }
                     }
@@ -393,7 +396,14 @@ class MainActivity : ComponentActivity() {
                                 SleevePicture(mediaViewModel.sleevePicture.collectAsState().value)
                             }
                             Row(Modifier.weight(1f)) {
-                                ShowQueryResults(mediaViewModel)
+                                ShowQueryResults(
+                                    mediaViewModel.querySortedResults.collectAsState().value,
+                                    mediaViewModel.expandedArtists.externalStringSet.collectAsState().value,
+                                    mediaViewModel.expandedAlbums.externalStringSet.collectAsState().value,
+                                    mediaViewModel.trackListScrollPos.collectAsState().value,
+//                                    mediaViewModel.scrollPos.collectAsState().value,
+                                    mediaViewModel
+                                )
                             }
 
 //                            Row(horizontalArrangement = Arrangement.Center,
@@ -468,8 +478,8 @@ class MainActivity : ComponentActivity() {
                                 horizontalArrangement = Arrangement.End
                             ) {
                                 IconButton(onClick = {
-                                    isSearchOpen.value?.let {
-                                        searchOpen.set(
+                                    isSearchOpen.value.let {
+                                        mediaViewModel.setSearchVisible(
                                             !it
                                         )
                                     }

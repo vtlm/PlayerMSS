@@ -9,6 +9,12 @@ import android.provider.MediaStore
 import androidx.annotation.RequiresApi
 import androidx.media3.common.MediaItem
 
+data class SearchStatistic(
+    val artists: Int = 0,
+    val albums: Int = 0,
+    val titles: Int = 0,
+)
+
 val audioColumns = arrayOf(
     MediaStore.Audio.AudioColumns._ID,
     MediaStore.Audio.AudioColumns.DATA,
@@ -29,8 +35,12 @@ class MediaTrackData(
     val duration: Int? = 0,
     val uri: Uri? = null,
 ){
-    fun getSystemId():Int{
+    fun getHash():Int{
         return uri.hashCode()
+    }
+
+    fun testHash(hash: Int):Boolean{
+        return hash == uri.hashCode()
     }
 }
 

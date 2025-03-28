@@ -19,9 +19,12 @@ import androidx.media3.session.MediaController
 import com.example.playermss.data.MediaViewModel
 
 @Composable
-fun PlayControls(isPlaying: Boolean, playerRepeatMode: Int, mediaViewModel: MediaViewModel, modifier: Modifier) {
-
-    val mediaController = mediaViewModel.mediaController
+fun PlayControls(
+    isPlaying: Boolean,
+    playerRepeatMode: Int,
+    mediaViewModel: MediaViewModel,
+    modifier: Modifier
+) {
 
     Log.d("DBG_PC", "play ctls called")
 
@@ -31,31 +34,29 @@ fun PlayControls(isPlaying: Boolean, playerRepeatMode: Int, mediaViewModel: Medi
         R.drawable.baseline_repeat_on_24,
     )
     Row {//(modifier = Modifier.weight(1f))
-        IconButton(onClick = { mediaController?.seekToPrevious() }) {
+        IconButton(onClick = { mediaViewModel.seekToPrevious() }) {
             Icon(
                 painter = painterResource(id = R.drawable.baseline_skip_previous_24),
                 contentDescription = "Skip to Prev"
             )
         }
-        if(mediaController != null){
-            if(isPlaying){
-                IconButton(onClick = {
+        if (isPlaying) {
+            IconButton(onClick = {
                 mediaViewModel.pause()
-                }) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.baseline_pause_24),
-                        contentDescription = "Pause"
-                    )
-                }
-            }else{
-                IconButton(onClick = {
-                    mediaViewModel.play()
-                }) {
-                    Icon(Icons.Rounded.PlayArrow, contentDescription = "Play")
-                }
+            }) {
+                Icon(
+                    painter = painterResource(id = R.drawable.baseline_pause_24),
+                    contentDescription = "Pause"
+                )
+            }
+        } else {
+            IconButton(onClick = {
+                mediaViewModel.play()
+            }) {
+                Icon(Icons.Rounded.PlayArrow, contentDescription = "Play")
             }
         }
-        IconButton(onClick = { mediaController?.seekToNext() }) {
+        IconButton(onClick = { mediaViewModel.seekToNext() }) {
             Icon(
                 painter = painterResource(id = R.drawable.baseline_skip_next_24),
                 contentDescription = "Skip to Next"
