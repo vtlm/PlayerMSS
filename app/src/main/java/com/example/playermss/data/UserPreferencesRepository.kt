@@ -137,17 +137,7 @@ class UserPreferencesRepository @Inject constructor(
         return rvAsStateFlow
     }
 
-    fun setBool(key: Preferences.Key<Boolean>, coroutineScope: CoroutineScope, value: Boolean?){
-        if(value != null) {
-            coroutineScope.launch {
-                dataStore.edit { preferences ->
-                    preferences[key] = value
-                }
-            }
-        }
-    }
-
-    fun getInt(key: Preferences.Key<Int>): Flow<Int>{
+    fun getIntOrDefault(key: Preferences.Key<Int>, defaultValue: Int = 0): Flow<Int>{
         val rvNumber = dataStore.data
             .catch {
                 if (it is IOException) {
@@ -158,9 +148,25 @@ class UserPreferencesRepository @Inject constructor(
                 }
             }
             .map { preferences ->
-                preferences[key] ?: 0
+                preferences[key] ?: defaultValue
             }
         return rvNumber
+    }
+
+    fun <T>getOrDefault(key: Preferences.Key<T>, defaultT: T): Flow<T>{
+        val t = dataStore.data
+            .catch {
+                if (it is IOException) {
+                    Log.e(TAG, "Error reading preferences.", it)
+                    emit(emptyPreferences())
+                } else {
+                    throw it
+                }
+            }
+            .map { preferences ->
+                preferences[key] ?: defaultT
+            }
+        return t
     }
 
     suspend fun setInt(key: Preferences.Key<Int>, number: Int?){
@@ -170,6 +176,17 @@ class UserPreferencesRepository @Inject constructor(
             }
         }
     }
+
+    fun <T>set(key: Preferences.Key<T>, coroutineScope: CoroutineScope, t: T?){
+        t?.let {
+            coroutineScope.launch {
+                dataStore.edit { preferences ->
+                    preferences[key] = it
+                }
+            }
+        }
+    }
+
 
     fun getText(key: Preferences.Key<String>): Flow<String>{
         val text = dataStore.data

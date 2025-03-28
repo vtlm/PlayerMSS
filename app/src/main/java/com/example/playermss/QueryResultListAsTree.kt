@@ -173,18 +173,18 @@ fun ShowQueryResults(
     results: List<Pair<String, List<Pair<String, List<MediaTrackData>>>>>,
     artistExpanded: Set<String>,
     albumExpanded: Set<String>,
-    scrollPos: Int,
+    scrollPos: Int?,
     mediaViewModel: MediaViewModel
 ){
     Log.d("DBGL","Recomp with scrollposL $scrollPos")
-    val listState = rememberLazyListState(scrollPos)
+    val listState = rememberLazyListState(scrollPos ?: 0)
 //    listState.firstVisibleItemIndex = scrollPos
 
     LaunchedEffect(scrollPos) {
 //        delay(300)
         val offs = listState.firstVisibleItemScrollOffset
         Log.d("DBGL","offs $offs")
-        listState.scrollToItem(scrollPos,offs)
+        listState.scrollToItem(scrollPos ?: 0, offs)
     }
 
     LaunchedEffect(listState) {
@@ -227,7 +227,7 @@ fun ShowQueryResults(
                 Log.d("DBGL","${it} ${listState.layoutInfo.totalItemsCount} " +
                         "${listState.layoutInfo.visibleItemsInfo.size} ${listState.layoutInfo.viewportStartOffset}")
 //                MyAnalyticsService.sendScrolledPastFirstItemEvent()
-                mediaViewModel.setTrackListScrollPos(it)// listState.firstVisibleItemIndex)
+                mediaViewModel.setUserScrollPos(it)// listState.firstVisibleItemIndex)
                 mediaViewModel.visibleItemsInfo = listState.layoutInfo.visibleItemsInfo
             }
 
