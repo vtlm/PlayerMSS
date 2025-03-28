@@ -400,8 +400,8 @@ class MainActivity : ComponentActivity() {
                                     mediaViewModel.querySortedResults.collectAsState().value,
                                     mediaViewModel.expandedArtists.externalStringSet.collectAsState().value,
                                     mediaViewModel.expandedAlbums.externalStringSet.collectAsState().value,
-                                    mediaViewModel.trackListScrollPos.collectAsState().value,
-//                                    mediaViewModel.scrollPos.collectAsState().value,
+//                                    mediaViewModel.trackListScrollPos.collectAsState().value,
+                                    mediaViewModel.scrollPos.collectAsState().value,
                                     mediaViewModel
                                 )
                             }

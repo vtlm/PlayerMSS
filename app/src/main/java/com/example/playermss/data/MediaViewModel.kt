@@ -38,6 +38,7 @@ import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -53,6 +54,7 @@ import kotlin.math.hypot
 import kotlin.math.min
 
 val TRACK_LIST_SCROLL_POS = intPreferencesKey("track_list_scroll_pos")
+val USER_TRACK_LIST_SCROLL_POS = intPreferencesKey("user_track_list_scroll_pos")
 val PLAYING_ITEM_ID = intPreferencesKey("playing_item_id")
 val IS_UI_SEARCH_VISIBLE = booleanPreferencesKey("is_ui_search_visible")
 
@@ -61,6 +63,9 @@ class MediaViewModel @Inject constructor(
     private val userPreferencesRepository: UserPreferencesRepository,
     private val userDataRepository: UserDataRepository
 ): ViewModel(), DefaultLifecycleObserver {
+
+    private lateinit var controllerFuture: ListenableFuture<MediaController>
+    lateinit var mediaController: MediaController
 
     private val _mediaControllerLoaded = MutableStateFlow(false)
     val mediaControllerLoaded: StateFlow<Boolean> = _mediaControllerLoaded.asStateFlow()
@@ -98,8 +103,21 @@ class MediaViewModel @Inject constructor(
     val lazyListTotalItemsCount: StateFlow<Int> = _lazyListTotalItemsCount.asStateFlow()
 
     lateinit var visibleItemsInfo: List<LazyListItemInfo>
-//    private val _scrollPos = MutableStateFlow(0)
-//    val scrollPos: StateFlow<Int> = _scrollPos.asStateFlow()
+
+
+    val userScrollPos = userPreferencesRepository.getOrDefault(USER_TRACK_LIST_SCROLL_POS, 0)
+    fun setUserScrollPos(pos: Int) = userPreferencesRepository.set(USER_TRACK_LIST_SCROLL_POS, viewModelScope, pos)
+
+    private val _scrollPos = MutableStateFlow(0)
+    val scrollPos: StateFlow<Int?> = _scrollPos.asStateFlow()
+
+//    private fun <T>getFirstFromFlow(t: Flow<T>):T?{
+//        var r: T? = null
+//        viewModelScope.launch {
+//            r = t.first()
+//        }
+//        return r
+//    }
 
     fun setLazyListVisibleItemsCount(count: Int){
         Log.d("DBGL","ll vis cnt $count")
@@ -142,8 +160,6 @@ class MediaViewModel @Inject constructor(
     private var nextMediaTrackData: MediaTrackData? = null
 
 
-    private lateinit var controllerFuture: ListenableFuture<MediaController>
-    lateinit var mediaController: MediaController
 
     val isRemainTime: StateFlow<Boolean> =
         userPreferencesRepository.isRemainTime.map { isRemainTime ->
@@ -161,34 +177,36 @@ class MediaViewModel @Inject constructor(
         }
     }
 
-    val trackListScrollPos: StateFlow<Int> =
-        userPreferencesRepository.getInt(TRACK_LIST_SCROLL_POS)
-            .stateIn(scope = viewModelScope,
-                started = SharingStarted.WhileSubscribed(),
-                initialValue = runBlocking {
-                    userPreferencesRepository.getInt(TRACK_LIST_SCROLL_POS).first()
-                }
-            )
+
+//    val trackListScrollPos: StateFlow<Int> =
+//        userPreferencesRepository.getIntOrDefault(TRACK_LIST_SCROLL_POS, 0)
+//            .stateIn(scope = viewModelScope,
+//                started = SharingStarted.WhileSubscribed(),
+//                initialValue = runBlocking {
+//                    userPreferencesRepository.getIntOrDefault(TRACK_LIST_SCROLL_POS, 0).first()
+//                }
+//            )
 
     fun setTrackListScrollPos(trackListScrollPos: Int) {
-//        _scrollPos.value = trackListScrollPos
-        viewModelScope.launch {
-            userPreferencesRepository.setInt(TRACK_LIST_SCROLL_POS,trackListScrollPos)
-        }
+        _scrollPos.value = trackListScrollPos
+//        setUserScrollPos(trackListScrollPos)
+//        viewModelScope.launch {
+//            userPreferencesRepository.setInt(TRACK_LIST_SCROLL_POS,trackListScrollPos)
+//        }
     }
 
-    fun incTrackListScrollPos(){
-        var currentPos = trackListScrollPos.value
-        currentPos += 1
-        setTrackListScrollPos(currentPos)
-    }
+//    fun incTrackListScrollPos(){
+//        var currentPos = trackListScrollPos.value
+//        currentPos += 1
+//        setTrackListScrollPos(currentPos)
+//    }
 
     val playingItemId: StateFlow<Int> =
-        userPreferencesRepository.getInt(PLAYING_ITEM_ID)
+        userPreferencesRepository.getIntOrDefault(PLAYING_ITEM_ID)
             .stateIn(scope = viewModelScope,
                 started = SharingStarted.Eagerly,//WhileSubscribed(5_000),
                 initialValue = runBlocking {
-                    userPreferencesRepository.getInt(PLAYING_ITEM_ID).first()
+                    userPreferencesRepository.getIntOrDefault(PLAYING_ITEM_ID).first()
                 }
             )
 
@@ -223,10 +241,9 @@ class MediaViewModel @Inject constructor(
         setPlayerRepeatMode(nextPlayerRepeatMode)
     }
 
-    val isSearchVisible = userPreferencesRepository.getBoolOrDefaultAsStateFlow(IS_UI_SEARCH_VISIBLE,viewModelScope,true)
-    fun setSearchVisible(state: Boolean){
-        userPreferencesRepository.setBool(IS_UI_SEARCH_VISIBLE,viewModelScope,state)
-    }
+    val isSearchVisible = userPreferencesRepository.getBoolOrDefaultAsStateFlow(IS_UI_SEARCH_VISIBLE, viewModelScope,true)
+    fun setSearchVisible(state: Boolean) = userPreferencesRepository.set(IS_UI_SEARCH_VISIBLE, viewModelScope, state)
+
     override fun onCreate(owner: LifecycleOwner) {//override lifecycle events
         super.onCreate(owner)
         Log.d("VMO","create")
@@ -245,7 +262,6 @@ class MediaViewModel @Inject constructor(
                 visualizer.setEnabled(true)
             }
         }
-
     }
 
     override fun onPause(owner: LifecycleOwner) {
@@ -556,6 +572,10 @@ class MediaViewModel @Inject constructor(
 //            }
 //        }
 
+        viewModelScope.launch {
+            _scrollPos.value = userScrollPos.first()
+        }
+
 
         viewModelScope.launch {
             playerRepeatMode.collect { newRepeatMode ->
@@ -647,18 +667,18 @@ class MediaViewModel @Inject constructor(
     fun scrollDown(){
         val currentTrackIndex = getCurrentTrackLazyListIndex()
         if(currentTrackIndex != null
-            && currentTrackIndex > trackListScrollPos.value + lazyListVisibleItemsCount.value * 2 / 3
-            && currentTrackIndex < trackListScrollPos.value + lazyListVisibleItemsCount.value){
-                setTrackListScrollPos(trackListScrollPos.value + 1)
+            && currentTrackIndex > _scrollPos.value + lazyListVisibleItemsCount.value * 2 / 3
+            && currentTrackIndex < _scrollPos.value + lazyListVisibleItemsCount.value){
+                setTrackListScrollPos(_scrollPos.value + 1)
         }
     }
 
     fun scrollUp(){
         val currentTrackIndex = getCurrentTrackLazyListIndex()
         if(currentTrackIndex != null
-            && currentTrackIndex > trackListScrollPos.value
-            && currentTrackIndex < trackListScrollPos.value + lazyListVisibleItemsCount.value / 3){
-            setTrackListScrollPos(trackListScrollPos.value - 1)
+            && currentTrackIndex > _scrollPos.value
+            && currentTrackIndex < _scrollPos.value + lazyListVisibleItemsCount.value / 3){
+            setTrackListScrollPos(_scrollPos.value - 1)
         }
 //        if(trackListScrollPos.value > lazyListVisibleItemsCount.value*3/4){
 //            setTrackListScrollPos(trackListScrollPos.value - 1)
