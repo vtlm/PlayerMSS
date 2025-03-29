@@ -1,6 +1,7 @@
 package com.example.playermss
 
 //import androidx.compose.material.icons.
+import android.app.Activity
 import android.content.Intent
 import android.content.res.Configuration
 import android.media.MediaScannerConnection
@@ -47,6 +48,7 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -56,6 +58,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -74,6 +77,8 @@ import com.example.playermss.data.MediaViewModel
 import com.example.playermss.data.SomeViewModel
 import com.example.playermss.ui.theme.PlayerMSSTheme
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.serialization.Serializable
 
 //todo
@@ -91,14 +96,14 @@ class MainActivity : ComponentActivity() {
 
     val mediaViewModel:MediaViewModel by viewModels()
 
+    var _permissionsGranted = MutableStateFlow(false)
+    val permissionsGranted = _permissionsGranted.asStateFlow()
+
     @RequiresExtension(extension = Build.VERSION_CODES.R, version = 1)
     @RequiresApi(Build.VERSION_CODES.Q)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        this.applicationContext.also { mediaViewModel.context = it }
-        mediaViewModel.init()
-        lifecycle.addObserver(mediaViewModel)
 
 // Register the permissions callback, which handles the user's response to the
 // system permissions dialog. Save the return value, an instance of
@@ -131,42 +136,80 @@ class MainActivity : ComponentActivity() {
             registerForActivityResult(
                 ActivityResultContracts.RequestMultiplePermissions()
             ) { permissions ->
+                _permissionsGranted.value = true
                 permissions.entries.forEach {
                     Log.i("DEBUG", "${it.key} = ${it.value}")
                     if (it.value) {
                         println("Successful......")
 
+                    }else{
+                        _permissionsGranted.value = false
                     }
+                }
+
+                if(_permissionsGranted.value){
+                    this.applicationContext.also { mediaViewModel.context = it }
+                    mediaViewModel.init()
+                    lifecycle.addObserver(mediaViewModel)
                 }
             }
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            requestPermissionLauncher.launch(arrayOf(
-                android.Manifest.permission.RECORD_AUDIO,
-                android.Manifest.permission.READ_MEDIA_AUDIO,
-                android.Manifest.permission.WRITE_EXTERNAL_STORAGE,
-                android.Manifest.permission.READ_EXTERNAL_STORAGE
-            ))
-        }
+            val requiredPermissions: MutableList<String> = mutableListOf()
 
-        val r= ContextCompat.checkSelfPermission(applicationContext,android.Manifest.permission.READ_MEDIA_AUDIO)
-        val r1= ContextCompat.checkSelfPermission(applicationContext,android.Manifest.permission.RECORD_AUDIO)
-        val r2= ContextCompat.checkSelfPermission(applicationContext,android.Manifest.permission.READ_EXTERNAL_STORAGE)
+            checkIsPermissionGranted(android.Manifest.permission.RECORD_AUDIO, requiredPermissions)
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+                checkIsPermissionGranted(android.Manifest.permission.READ_EXTERNAL_STORAGE, requiredPermissions)
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                checkIsPermissionGranted(android.Manifest.permission.READ_MEDIA_AUDIO, requiredPermissions)
+            }
+
+            requestPermissionLauncher.launch(requiredPermissions.toTypedArray())
+
 
 //        enableEdgeToEdge()
         setContent {
             PlayerMSSTheme {
-                MainU()
+                MainU(permissionsGranted.collectAsState().value)
             }
         }
+    }
+
+    fun checkIsPermissionGranted(permission: String, collector: MutableList<String>){
+        if(ContextCompat.checkSelfPermission(applicationContext, permission) == -1){
+            collector += permission
+        }
+    }
+
+    fun triggerRestart(context: Activity) {
+        val intent = Intent(context, MainActivity::class.java)
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        context.startActivity(intent)
+        if (context is Activity) {
+            (context as Activity).finish()
+        }
+        Runtime.getRuntime().exit(0)
     }
 
     @RequiresExtension(extension = Build.VERSION_CODES.R, version = 1)
     @RequiresApi(Build.VERSION_CODES.Q)
     @Composable
-    fun MainU(){
-        ShowProgressOrContent(mediaViewModel.progressTitle.collectAsState().value) {
-                Nav()
+    fun MainU(permissionsGranted: Boolean){
+        when(permissionsGranted) {
+         false -> {
+             Box(
+                 contentAlignment = Alignment.Center,
+                 modifier = Modifier.fillMaxSize()
+                     .background(color = MaterialTheme.colorScheme.background)
+             ) {
+                 Text("wait for permissions")
+             }
+         }
+         true -> {
+                ShowProgressOrContent(mediaViewModel.progressTitle.collectAsState().value) {
+                    Nav()
+                }
+            }
         }
     }
 
@@ -174,18 +217,18 @@ class MainActivity : ComponentActivity() {
         super.onDestroy()
     }
 
-    //todo check it
-    override fun onConfigurationChanged(newConfig: Configuration) {
-        super.onConfigurationChanged(newConfig)
-//        findViewById<ConstraintLayout>(R.id.main).invalidate();
-
-        // Checks whether a keyboard is available
-        if (newConfig.keyboardHidden === Configuration.KEYBOARDHIDDEN_YES) {
-            Toast.makeText(this, "Keyboard available", Toast.LENGTH_SHORT).show()
-        } else if (newConfig.keyboardHidden === Configuration.KEYBOARDHIDDEN_NO) {
-            Toast.makeText(this, "No keyboard", Toast.LENGTH_SHORT).show()
-        }
-    }
+//    //todo check it
+//    override fun onConfigurationChanged(newConfig: Configuration) {
+//        super.onConfigurationChanged(newConfig)
+////        findViewById<ConstraintLayout>(R.id.main).invalidate();
+//
+//        // Checks whether a keyboard is available
+//        if (newConfig.keyboardHidden === Configuration.KEYBOARDHIDDEN_YES) {
+//            Toast.makeText(this, "Keyboard available", Toast.LENGTH_SHORT).show()
+//        } else if (newConfig.keyboardHidden === Configuration.KEYBOARDHIDDEN_NO) {
+//            Toast.makeText(this, "No keyboard", Toast.LENGTH_SHORT).show()
+//        }
+//    }
 
     //todo: to coroutine
     @RequiresApi(Build.VERSION_CODES.Q)
