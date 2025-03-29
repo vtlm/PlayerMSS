@@ -613,7 +613,12 @@ class MediaViewModel @Inject constructor(
                 && currentTrackIndex > firstVisibleItemIndex + layoutInfo.visibleItemsInfo.size / 2
                 && currentTrackIndex < firstVisibleItemIndex + layoutInfo.visibleItemsInfo.size
             ) {
-                setTrackListScrollPos(firstVisibleItemIndex + 1)
+                var newFirstVisibleItemIndex = firstVisibleItemIndex + 1
+                if(newFirstVisibleItemIndex > layoutInfo.totalItemsCount - layoutInfo.visibleItemsInfo.size){
+                    newFirstVisibleItemIndex = 0
+                }
+
+                setTrackListScrollPos(newFirstVisibleItemIndex)
             }
         }
     }
@@ -625,7 +630,17 @@ class MediaViewModel @Inject constructor(
                 && currentTrackIndex > firstVisibleItemIndex
                 && currentTrackIndex < firstVisibleItemIndex + layoutInfo.visibleItemsInfo.size / 2
             ) {
-                setTrackListScrollPos(firstVisibleItemIndex - 1)
+                var newFirstVisibleItemIndex = firstVisibleItemIndex - 1
+                if(newFirstVisibleItemIndex < 0){
+                    newFirstVisibleItemIndex = when(playerRepeatMode.value){
+                        Player.REPEAT_MODE_OFF -> 0
+                        Player.REPEAT_MODE_ALL -> layoutInfo.totalItemsCount - layoutInfo.visibleItemsInfo.size
+                        Player.REPEAT_MODE_ONE -> 0
+                        else -> { 0 }
+                    }
+                }
+
+                setTrackListScrollPos(newFirstVisibleItemIndex)
             }
         }
     }

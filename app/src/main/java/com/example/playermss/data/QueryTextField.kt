@@ -19,17 +19,7 @@ class QueryTextField (
     private val launchScope: CoroutineScope
 ){
     private val key = stringPreferencesKey(description)
-
-    val savedText: StateFlow<String> =
-        userPreferencesRepository.getText(key)
-            .stateIn(
-                scope = launchScope,
-                started = SharingStarted.WhileSubscribed(5_000),
-                initialValue = runBlocking {
-                    userPreferencesRepository.getText(key).first()
-                }
-            )
-
+    val savedText: StateFlow<String> = userPreferencesRepository.getOrDefaultAsStateFlow(key,launchScope,"")
     private val _text = MutableStateFlow(savedText.value)
     val text: StateFlow<String> = _text.asStateFlow()
 
@@ -37,10 +27,5 @@ class QueryTextField (
         _text.value = text
     }
 
-    fun saveText() {
-        launchScope.launch {
-            userPreferencesRepository.setText(key, _text.value)
-        }
-    }
-
+    fun saveText() = userPreferencesRepository.set(key, launchScope, _text.value)
 }
