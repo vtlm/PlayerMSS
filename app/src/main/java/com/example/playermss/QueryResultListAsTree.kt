@@ -39,8 +39,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.playermss.data.MediaTrackData
 import com.example.playermss.data.MediaViewModel
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 
 
@@ -203,7 +201,7 @@ fun ShowQueryResults(
             .collect {
 //                mediaViewModel.setLazyListTotalItemsCount(it)// listState.firstVisibleItemIndex)
 //                mediaViewModel.visibleItemsInfo = listState.layoutInfo.visibleItemsInfo
-                mediaViewModel.laztListState = listState
+                mediaViewModel.lazyListState = listState
 
             }
     }
@@ -214,7 +212,7 @@ fun ShowQueryResults(
             .collect {
 //                mediaViewModel.setLazyListVisibleItemsCount(it)// listState.firstVisibleItemIndex)
 //                mediaViewModel.visibleItemsInfo = listState.layoutInfo.visibleItemsInfo
-                mediaViewModel.laztListState = listState
+                mediaViewModel.lazyListState = listState
 
             }
     }
@@ -243,7 +241,7 @@ fun ShowQueryResults(
 //                MyAnalyticsService.sendScrolledPastFirstItemEvent()
                 mediaViewModel.setUserScrollPos(it)// listState.firstVisibleItemIndex)
 //                mediaViewModel.visibleItemsInfo = listState.layoutInfo.visibleItemsInfo
-                mediaViewModel.laztListState = listState
+                mediaViewModel.lazyListState = listState
 
             }
 

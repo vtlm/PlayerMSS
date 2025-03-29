@@ -14,10 +14,7 @@ import android.util.Log
 import androidx.annotation.OptIn
 import androidx.annotation.RequiresApi
 import androidx.annotation.RequiresExtension
-import androidx.compose.foundation.lazy.LazyListItemInfo
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
@@ -39,16 +36,11 @@ import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import javax.inject.Inject
 import kotlin.math.atan2
 import kotlin.math.hypot
@@ -70,8 +62,8 @@ class MediaViewModel @Inject constructor(
     private lateinit var controllerFuture: ListenableFuture<MediaController>
     lateinit var mediaController: MediaController
 
-    private val _mediaControllerLoaded = MutableStateFlow(false)
-    val mediaControllerLoaded: StateFlow<Boolean> = _mediaControllerLoaded.asStateFlow()
+//    private val _mediaControllerLoaded = MutableStateFlow(false)
+//    val mediaControllerLoaded: StateFlow<Boolean> = _mediaControllerLoaded.asStateFlow()
 
     private val _isPlaying = MutableStateFlow(false)
     val isPlaying: StateFlow<Boolean> = _isPlaying.asStateFlow()
@@ -106,7 +98,7 @@ class MediaViewModel @Inject constructor(
 //    val lazyListTotalItemsCount: StateFlow<Int> = _lazyListTotalItemsCount.asStateFlow()
 
 //    lateinit var visibleItemsInfo: List<LazyListItemInfo>
-    lateinit var laztListState: LazyListState
+    lateinit var lazyListState: LazyListState
 
     val userScrollPos = userPreferencesRepository.getOrDefault(USER_TRACK_LIST_SCROLL_POS, 0)
     fun setUserScrollPos(pos: Int) = userPreferencesRepository.set(USER_TRACK_LIST_SCROLL_POS, viewModelScope, pos)
@@ -133,8 +125,8 @@ class MediaViewModel @Inject constructor(
 //    }
 
     fun getCurrentTrackLazyListIndex(): Int?{
-        if(::laztListState.isInitialized){
-            val item = laztListState.layoutInfo.visibleItemsInfo.find { it.key == playingItemId.value}
+        if(::lazyListState.isInitialized){
+            val item = lazyListState.layoutInfo.visibleItemsInfo.find { it.key == playingItemId.value}
             return item?.index
         }
         return null
@@ -521,7 +513,7 @@ class MediaViewModel @Inject constructor(
                 }
             )
 
-            _mediaControllerLoaded.value = true
+//            _mediaControllerLoaded.value = true
 //            playTracksManager = PlayTracksManager(mediaController)
 //            playTracksManager.searchHelper = searchHelper
             mediaController.repeatMode = playerRepeatMode.value
@@ -616,7 +608,7 @@ class MediaViewModel @Inject constructor(
 
     fun scrollDown() {
         val currentTrackIndex = getCurrentTrackLazyListIndex()
-        with(laztListState) {
+        with(lazyListState) {
             if (currentTrackIndex != null
                 && currentTrackIndex > firstVisibleItemIndex + layoutInfo.visibleItemsInfo.size / 2
                 && currentTrackIndex < firstVisibleItemIndex + layoutInfo.visibleItemsInfo.size
@@ -628,7 +620,7 @@ class MediaViewModel @Inject constructor(
 
     fun scrollUp(){
         val currentTrackIndex = getCurrentTrackLazyListIndex()
-        with(laztListState) {
+        with(lazyListState) {
             if (currentTrackIndex != null
                 && currentTrackIndex > firstVisibleItemIndex
                 && currentTrackIndex < firstVisibleItemIndex + layoutInfo.visibleItemsInfo.size / 2
