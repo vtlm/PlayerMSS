@@ -5,9 +5,12 @@ import android.content.Context
 import android.database.Cursor
 import android.net.Uri
 import android.os.Build
+import android.os.Environment
 import android.provider.MediaStore
+import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.media3.common.MediaItem
+import java.io.File
 
 data class SearchStatistic(
     val artists: Int = 0,
@@ -105,7 +108,17 @@ fun uriFromCursor(cursor: Cursor, columnMap: Map<String,Int?>, context: Context)
     val id = columnMap[MediaStore.Audio.AudioColumns._ID]?.let { cursor.getLong(it) }
     val data = columnMap[MediaStore.Audio.AudioColumns.DATA]?.let { cursor.getString(it) }
 
-    val externalVolumeNames = MediaStore.getExternalVolumeNames(context)//.map { it.uppercase(context.resources.configuration.locales[0]) }
+    val file = File(data)
+    if(!file.exists()){
+        Log.d("MTCF","not exists $data")
+        return null
+    }
+
+    val c = Environment.getExternalStorageDirectory().absolutePath
+
+    val externalVolumeNames = MediaStore.getExternalVolumeNames(context) + "emulated/0"//.map { it.uppercase(context.resources.configuration.locales[0]) }
+
+    val contentUri = MediaStore.Audio.Media.getContentUri("emulated/0")
 
     if(data != null){
         val externalVolumeName = externalVolumeNames.filter { data.uppercase(context.resources.configuration.locales[0])
@@ -136,11 +149,13 @@ fun uriFromCursor(cursor: Cursor, columnMap: Map<String,Int?>, context: Context)
 }
 
 @RequiresApi(Build.VERSION_CODES.Q)
-fun cursorToMediaTrackData(cursor: Cursor, columnMap: Map<String,Int>, context: Context): MediaTrackData{
+fun cursorToMediaTrackData(cursor: Cursor, columnMap: Map<String,Int>, context: Context): MediaTrackData?{
 
 //        val dt = columnMap[MediaStore.Audio.AudioColumns.DURATION]?.let { cursor.getType(it) }
 //        val dt1 = columnMap[MediaStore.Audio.AudioColumns.YEAR]?.let { cursor.getType(it) }
 //        val dt2 = columnMap[MediaStore.Audio.AudioColumns.TRACK]?.let { cursor.getType(it) }
+
+    val uri = uriFromCursor(cursor, columnMap, context) ?: return null
 
     val rv = MediaTrackData(
         columnMap[MediaStore.Audio.AudioColumns.ARTIST]?.let { cursor.getString(it) }.toString(),
@@ -149,7 +164,7 @@ fun cursorToMediaTrackData(cursor: Cursor, columnMap: Map<String,Int>, context: 
         yearFromCursor(cursor, columnMap),
         trackNumberFromCursor(cursor, columnMap),
         columnMap[MediaStore.Audio.AudioColumns.DURATION]?.let { cursor.getInt(it) },
-        uri = uriFromCursor(cursor, columnMap, context)
+        uri
     )
     return rv
 }
