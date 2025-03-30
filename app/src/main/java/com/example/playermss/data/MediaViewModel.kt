@@ -167,6 +167,7 @@ class MediaViewModel @Inject constructor(
 //            )
 
     fun setTrackListScrollPos(trackListScrollPos: Int) {
+        Log.d("DBGL","VM: traCkListScrollPos: $trackListScrollPos")
         _scrollPos.value = trackListScrollPos
 //        setUserScrollPos(trackListScrollPos)
 //        viewModelScope.launch {
@@ -179,16 +180,14 @@ class MediaViewModel @Inject constructor(
 //        currentPos += 1
 //        setTrackListScrollPos(currentPos)
 //    }
-    val isRemainTime: StateFlow<Boolean> = userPreferencesRepository.getOrDefaultAsStateFlow(
-        IS_REMAIN_TIME, viewModelScope, false)
+    val isRemainTime: StateFlow<Boolean> = userPreferencesRepository.getOrDefaultAsStateFlow(IS_REMAIN_TIME, viewModelScope, false)
     fun setRemainTime(isRemainTime: Boolean) = userPreferencesRepository.set(IS_REMAIN_TIME, viewModelScope ,isRemainTime)
 
     val playingItemId: StateFlow<Int> = userPreferencesRepository.getOrDefaultAsStateFlow(PLAYING_ITEM_ID, viewModelScope, 0)
     fun setPlayingItemId(itemId: Int?) = userPreferencesRepository.set(PLAYING_ITEM_ID,viewModelScope, itemId)
 
     val playerRepeatMode: StateFlow<Int> = userPreferencesRepository.getOrDefaultAsStateFlow(PLAYER_REPEAT_MODE, viewModelScope, 0)
-    fun setPlayerRepeatMode(playerRepeatMode: Int) = userPreferencesRepository.set(
-        PLAYER_REPEAT_MODE,viewModelScope, playerRepeatMode)
+    fun setPlayerRepeatMode(playerRepeatMode: Int) = userPreferencesRepository.set(PLAYER_REPEAT_MODE,viewModelScope, playerRepeatMode)
 
     fun incPlayerRepeatMode() {
         var nextPlayerRepeatMode = playerRepeatMode.value + 1
@@ -421,7 +420,16 @@ class MediaViewModel @Inject constructor(
                                     nextMediaTrackData = currentMediaTrackData
                                     currentMediaTrackData = prevMediaTrackData
 
-                                    searchHelper.checkOverrunsFromTopToBottom()
+                                    if(searchHelper.checkOverrunsFromTopToBottom()){
+                                        Log.d("DBGL", "Overrun T B")
+                                        with(lazyListState){
+                                            val topFromEndItemIndex = layoutInfo.totalItemsCount - layoutInfo.visibleItemsInfo.size
+                                            setTrackListScrollPos(topFromEndItemIndex)
+                                        }
+                                    }else{
+                                        scrollUp()
+                                    }
+
                                     expandArtistAlbumFor(currentMediaTrackData)
                                     setPlayingItemId(currentMediaTrackData?.getHash())
 
@@ -454,7 +462,15 @@ class MediaViewModel @Inject constructor(
                                             prevMediaTrackData = currentMediaTrackData
                                             currentMediaTrackData = nextMediaTrackData
 
-                                            searchHelper.checkOverrunsFromBottomToTop()
+                                            if(searchHelper.checkOverrunsFromBottomToTop()){
+                                                Log.d("DBGL", "Overrun B T")
+                                                with(lazyListState){
+                                                    setTrackListScrollPos(0)
+                                                }
+                                            }else{
+                                                scrollDown()
+                                            }
+
                                             expandArtistAlbumFor(currentMediaTrackData)
                                             setPlayingItemId(currentMediaTrackData?.getHash())
 
@@ -614,9 +630,11 @@ class MediaViewModel @Inject constructor(
                 && currentTrackIndex < firstVisibleItemIndex + layoutInfo.visibleItemsInfo.size
             ) {
                 var newFirstVisibleItemIndex = firstVisibleItemIndex + 1
-                if(newFirstVisibleItemIndex > layoutInfo.totalItemsCount - layoutInfo.visibleItemsInfo.size){
-                    newFirstVisibleItemIndex = 0
+                val topFromEndItemIndex = layoutInfo.totalItemsCount - layoutInfo.visibleItemsInfo.size
+                if(newFirstVisibleItemIndex > topFromEndItemIndex){
+                    newFirstVisibleItemIndex = topFromEndItemIndex
                 }
+                Log.d("DBGL", "ScrollDown to $newFirstVisibleItemIndex")
 
                 setTrackListScrollPos(newFirstVisibleItemIndex)
             }
@@ -632,13 +650,9 @@ class MediaViewModel @Inject constructor(
             ) {
                 var newFirstVisibleItemIndex = firstVisibleItemIndex - 1
                 if(newFirstVisibleItemIndex < 0){
-                    newFirstVisibleItemIndex = when(playerRepeatMode.value){
-                        Player.REPEAT_MODE_OFF -> 0
-                        Player.REPEAT_MODE_ALL -> layoutInfo.totalItemsCount - layoutInfo.visibleItemsInfo.size
-                        Player.REPEAT_MODE_ONE -> 0
-                        else -> { 0 }
-                    }
+                    newFirstVisibleItemIndex = 0
                 }
+                Log.d("DBGL", "Scrollup to $newFirstVisibleItemIndex")
 
                 setTrackListScrollPos(newFirstVisibleItemIndex)
             }
@@ -667,7 +681,6 @@ class MediaViewModel @Inject constructor(
         }else {
             mediaController.seekToPrevious()
         }
-        scrollUp()
     }
 
     fun seekToNext(){
@@ -678,9 +691,7 @@ class MediaViewModel @Inject constructor(
         }else {
             mediaController.seekToNext()
         }
-        scrollDown()
     }
-
 
     @RequiresExtension(extension = Build.VERSION_CODES.R, version = 1)
     @RequiresApi(Build.VERSION_CODES.Q)
@@ -693,8 +704,6 @@ class MediaViewModel @Inject constructor(
         }
 
     }
-
-
 
     @RequiresApi(Build.VERSION_CODES.Q)
     private fun cursorToTrackList(cursor: Cursor): List<MediaTrackData>{

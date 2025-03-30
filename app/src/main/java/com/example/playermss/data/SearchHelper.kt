@@ -21,27 +21,33 @@ class SearchHelper(private val groupedSortedTracks: List<Pair<String, List<Pair<
         overrunBottom = false
     }
 
-    fun checkOverrunsFromTopToBottom(){
+    fun checkOverrunsFromTopToBottom():Boolean {
+        var overrun = false
         if(overrunTop){
             overrunTop = false
             overrunBottom = true
+            overrun = true
         }else{
             if(overrunBottom)
             {
                 overrunBottom = false
             }
         }
+        return overrun
     }
 
-    fun checkOverrunsFromBottomToTop() {
+    fun checkOverrunsFromBottomToTop():Boolean {
+        var overrun = false
         if(overrunBottom){
             overrunTop = true
             overrunBottom = false
+            overrun = true
         }else{
             if(overrunTop){
                 overrunTop = false
             }
         }
+        return overrun
     }
 
     fun setRepeatMode(_repeatMode: Int){
