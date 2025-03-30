@@ -108,19 +108,17 @@ fun uriFromCursor(cursor: Cursor, columnMap: Map<String,Int?>, context: Context)
     val id = columnMap[MediaStore.Audio.AudioColumns._ID]?.let { cursor.getLong(it) }
     val data = columnMap[MediaStore.Audio.AudioColumns.DATA]?.let { cursor.getString(it) }
 
-    val file = File(data)
-    if(!file.exists()){
-        Log.d("MTCF","not exists $data")
-        return null
-    }
-
-    val c = Environment.getExternalStorageDirectory().absolutePath
-
-    val externalVolumeNames = MediaStore.getExternalVolumeNames(context) + "emulated/0"//.map { it.uppercase(context.resources.configuration.locales[0]) }
-
-    val contentUri = MediaStore.Audio.Media.getContentUri("emulated/0")
-
     if(data != null){
+
+        val file = File(data)
+        if(!file.exists()){
+            Log.d("MTCF","not exists $data")
+            return null
+        }
+
+        val externalPrimaryStoragePath = Environment.getExternalStorageDirectory().absolutePath
+
+        val externalVolumeNames = MediaStore.getExternalVolumeNames(context) + externalPrimaryStoragePath
         val externalVolumeName = externalVolumeNames.filter { data.uppercase(context.resources.configuration.locales[0])
             .contains(
                 it.uppercase(context.resources.configuration.locales[0])
@@ -128,7 +126,10 @@ fun uriFromCursor(cursor: Cursor, columnMap: Map<String,Int?>, context: Context)
 
         if(externalVolumeName.count() == 1){
 
-            val volumeName = externalVolumeName[0]
+            val volumeName = when(externalVolumeName[0]){
+                externalPrimaryStoragePath -> MediaStore.VOLUME_EXTERNAL_PRIMARY
+                else -> externalVolumeName[0]
+            }
 
             if(volumeName != null){
 
