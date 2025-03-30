@@ -62,8 +62,10 @@ private fun LazyListScope.showTracks(tracks: List<MediaTrackData>, mediaViewMode
 
     tracks.forEach { trackItem ->
 
-        val itemKey = trackItem.getHash()
-
+        var itemKey = trackItem.getHash()
+        if(itemKey == 0){
+            itemKey = System.identityHashCode(trackItem)
+        }
         item (key = itemKey) {
             Card(
                 modifier = Modifier

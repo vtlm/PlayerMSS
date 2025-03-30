@@ -167,6 +167,7 @@ class MediaViewModel @Inject constructor(
 //            )
 
     fun setTrackListScrollPos(trackListScrollPos: Int) {
+        Log.d("DBGL","VM: traCkListScrollPos: $trackListScrollPos")
         _scrollPos.value = trackListScrollPos
 //        setUserScrollPos(trackListScrollPos)
 //        viewModelScope.launch {
@@ -179,16 +180,14 @@ class MediaViewModel @Inject constructor(
 //        currentPos += 1
 //        setTrackListScrollPos(currentPos)
 //    }
-    val isRemainTime: StateFlow<Boolean> = userPreferencesRepository.getOrDefaultAsStateFlow(
-        IS_REMAIN_TIME, viewModelScope, false)
+    val isRemainTime: StateFlow<Boolean> = userPreferencesRepository.getOrDefaultAsStateFlow(IS_REMAIN_TIME, viewModelScope, false)
     fun setRemainTime(isRemainTime: Boolean) = userPreferencesRepository.set(IS_REMAIN_TIME, viewModelScope ,isRemainTime)
 
     val playingItemId: StateFlow<Int> = userPreferencesRepository.getOrDefaultAsStateFlow(PLAYING_ITEM_ID, viewModelScope, 0)
     fun setPlayingItemId(itemId: Int?) = userPreferencesRepository.set(PLAYING_ITEM_ID,viewModelScope, itemId)
 
     val playerRepeatMode: StateFlow<Int> = userPreferencesRepository.getOrDefaultAsStateFlow(PLAYER_REPEAT_MODE, viewModelScope, 0)
-    fun setPlayerRepeatMode(playerRepeatMode: Int) = userPreferencesRepository.set(
-        PLAYER_REPEAT_MODE,viewModelScope, playerRepeatMode)
+    fun setPlayerRepeatMode(playerRepeatMode: Int) = userPreferencesRepository.set(PLAYER_REPEAT_MODE,viewModelScope, playerRepeatMode)
 
     fun incPlayerRepeatMode() {
         var nextPlayerRepeatMode = playerRepeatMode.value + 1
@@ -392,18 +391,10 @@ class MediaViewModel @Inject constructor(
                             prevMediaTrackData = currentMediaTrackData
                             currentMediaTrackData = nextMediaTrackData
 
-                            if(searchHelper.overrunBottom){
-                                searchHelper.overrunTop = true
-                                searchHelper.overrunBottom = false
-                            }else{
-                                if(searchHelper.overrunTop){
-                                    searchHelper.overrunTop = false
-                                }
-                            }
-
+                            checkTrackListScrollDown()
                             expandArtistAlbumFor(currentMediaTrackData)
-
                             setPlayingItemId(currentMediaTrackData?.getHash())
+
                             nextMediaTrackData = searchHelper.getNext(nextMediaTrackData)
                             val nextMediaItem = nextMediaTrackData?.uri?.let { MediaItem.fromUri(it) }
                             if (nextMediaItem != null) {
@@ -421,7 +412,7 @@ class MediaViewModel @Inject constructor(
                                     nextMediaTrackData = currentMediaTrackData
                                     currentMediaTrackData = prevMediaTrackData
 
-                                    searchHelper.checkOverrunsFromTopToBottom()
+                                    checkTrackListScrollUp()
                                     expandArtistAlbumFor(currentMediaTrackData)
                                     setPlayingItemId(currentMediaTrackData?.getHash())
 
@@ -454,7 +445,7 @@ class MediaViewModel @Inject constructor(
                                             prevMediaTrackData = currentMediaTrackData
                                             currentMediaTrackData = nextMediaTrackData
 
-                                            searchHelper.checkOverrunsFromBottomToTop()
+                                            checkTrackListScrollDown()
                                             expandArtistAlbumFor(currentMediaTrackData)
                                             setPlayingItemId(currentMediaTrackData?.getHash())
 
@@ -601,6 +592,29 @@ class MediaViewModel @Inject constructor(
         }
     }
 
+    fun checkTrackListScrollUp() {
+        if (searchHelper.checkOverrunsFromTopToBottom()) {
+            Log.d("DBGL", "Overrun T B")
+            with(lazyListState) {
+                val topFromEndItemIndex = layoutInfo.totalItemsCount - layoutInfo.visibleItemsInfo.size
+                setTrackListScrollPos(topFromEndItemIndex)
+            }
+        } else {
+            scrollUp()
+        }
+    }
+
+    fun checkTrackListScrollDown(){
+        if(searchHelper.checkOverrunsFromBottomToTop()){
+            Log.d("DBGL", "Overrun B T")
+            with(lazyListState){
+                setTrackListScrollPos(0)
+            }
+        }else{
+            scrollDown()
+        }
+    }
+
     override fun onCleared() {
         super.onCleared()
         Log.d("LCD","on Cleared")
@@ -614,9 +628,11 @@ class MediaViewModel @Inject constructor(
                 && currentTrackIndex < firstVisibleItemIndex + layoutInfo.visibleItemsInfo.size
             ) {
                 var newFirstVisibleItemIndex = firstVisibleItemIndex + 1
-                if(newFirstVisibleItemIndex > layoutInfo.totalItemsCount - layoutInfo.visibleItemsInfo.size){
-                    newFirstVisibleItemIndex = 0
+                val topFromEndItemIndex = layoutInfo.totalItemsCount - layoutInfo.visibleItemsInfo.size
+                if(newFirstVisibleItemIndex > topFromEndItemIndex){
+                    newFirstVisibleItemIndex = topFromEndItemIndex
                 }
+                Log.d("DBGL", "ScrollDown to $newFirstVisibleItemIndex")
 
                 setTrackListScrollPos(newFirstVisibleItemIndex)
             }
@@ -632,13 +648,9 @@ class MediaViewModel @Inject constructor(
             ) {
                 var newFirstVisibleItemIndex = firstVisibleItemIndex - 1
                 if(newFirstVisibleItemIndex < 0){
-                    newFirstVisibleItemIndex = when(playerRepeatMode.value){
-                        Player.REPEAT_MODE_OFF -> 0
-                        Player.REPEAT_MODE_ALL -> layoutInfo.totalItemsCount - layoutInfo.visibleItemsInfo.size
-                        Player.REPEAT_MODE_ONE -> 0
-                        else -> { 0 }
-                    }
+                    newFirstVisibleItemIndex = 0
                 }
+                Log.d("DBGL", "Scrollup to $newFirstVisibleItemIndex")
 
                 setTrackListScrollPos(newFirstVisibleItemIndex)
             }
@@ -667,7 +679,6 @@ class MediaViewModel @Inject constructor(
         }else {
             mediaController.seekToPrevious()
         }
-        scrollUp()
     }
 
     fun seekToNext(){
@@ -678,9 +689,7 @@ class MediaViewModel @Inject constructor(
         }else {
             mediaController.seekToNext()
         }
-        scrollDown()
     }
-
 
     @RequiresExtension(extension = Build.VERSION_CODES.R, version = 1)
     @RequiresApi(Build.VERSION_CODES.Q)
@@ -694,8 +703,6 @@ class MediaViewModel @Inject constructor(
 
     }
 
-
-
     @RequiresApi(Build.VERSION_CODES.Q)
     private fun cursorToTrackList(cursor: Cursor): List<MediaTrackData>{
         val audioColumnIds = audioColumns.associateWith { cursor.getColumnIndex(it) }
@@ -705,7 +712,7 @@ class MediaViewModel @Inject constructor(
             cursorToMediaTrackData(cursor, audioColumnIds, context)
         }
 
-        return list
+        return list.filterNotNull()
     }
 
     private fun sortByArtistAlbumAsPairs(list: List<MediaTrackData>):  List<Pair<String, List<Pair<String, List<MediaTrackData>>>>>{
@@ -745,7 +752,7 @@ class MediaViewModel @Inject constructor(
                 contentUri,
                 queryParams?.projection,
                 queryParams?.selection,
-                queryParams?.selectionArgs,
+                queryParams?.selectionArgs?.toTypedArray(),
                 queryParams?.sortOrder
             )
 //            Log.d("MVM", "Items: ${cursor?.count}")
@@ -763,15 +770,28 @@ class MediaViewModel @Inject constructor(
             val queryParams = QueryParams()
             queryParams.projection = audioColumns
 
-            queryParams.selection = "${MediaStore.Audio.Media.ARTIST} like ? and " +
-                    "${MediaStore.Audio.Media.ALBUM} like ? and " +
-                    " ${MediaStore.Audio.Media.TITLE} like ?"
+            queryParams.selection = "${MediaStore.Audio.Media.ARTIST} like ?" +
+                    " and ${MediaStore.Audio.Media.ALBUM} like ?" +
+                    " and ${MediaStore.Audio.Media.TITLE} like ?"// +
+              //      " ${MediaStore.Audio.Media.YEAR} >= CAST(? as integer) and" +
+           //         " ${MediaStore.Audio.Media.YEAR} <= CAST(? as integer)"
 
-            queryParams.selectionArgs = arrayOf(
+            queryParams.selectionArgs = mutableListOf(
                 "%${queryFields[0].text.value}%",
                 "%${queryFields[1].text.value}%",
-                "%${queryFields[2].text.value}%"
+                "%${queryFields[2].text.value}%",
             )
+
+            val fromYear = queryFields[3].text.value.toIntOrNull()
+            fromYear?.let {
+                queryParams.selection += " and ${MediaStore.Audio.Media.YEAR} >= CAST(? as integer)"
+                queryParams.selectionArgs += it.toString()
+            }
+
+            queryFields[4].text.value.toIntOrNull()?.let {
+                queryParams.selection += " and ${MediaStore.Audio.Media.YEAR} <= CAST(? as integer)"
+                queryParams.selectionArgs += it.toString()
+            }
 
             val trackList = mutableListOf<MediaTrackData>()
             val externalVolumeNames = MediaStore.getExternalVolumeNames(context)
@@ -790,58 +810,6 @@ class MediaViewModel @Inject constructor(
         }
     }
 
-    @RequiresApi(Build.VERSION_CODES.Q)
-    fun removeQuery(searchFields : List<TextFieldViewModel>) {
-        val queryParams = QueryParams()
-
-        queryParams.selection = "${MediaStore.Audio.Media.ARTIST} like ? and " +
-                "${MediaStore.Audio.Media.ALBUM} like ? and " +
-                " ${MediaStore.Audio.Media.TITLE} like ?"
-
-        queryParams.selectionArgs = arrayOf(
-            "%${searchFields[0].textField.value}%",
-            "%${searchFields[1].textField.value}%",
-            "%${searchFields[2].textField.value}%"
-        )
-
-
-        viewModelScope.launch(Dispatchers.Default) {
-            val externalVolumeNames = MediaStore.getExternalVolumeNames(context)
-
-            for (name in externalVolumeNames) {
-                val contentUri = MediaStore.Audio.Media.getContentUri(name)
-                try {
-                    // "w" for write.
-                    val removed = this@MediaViewModel.context.contentResolver.delete(
-                        contentUri,
-                        queryParams.selection,
-                        queryParams.selectionArgs,
-                    )
-                    Log.d("MVM", "Items removed: $removed")
-
-                } catch (securityException: SecurityException) {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                        val recoverableSecurityException = securityException as?
-                                RecoverableSecurityException ?:
-                        throw RuntimeException(securityException.message, securityException)
-
-//                        val intentSender =
-//                            recoverableSecurityException.userAction.actionIntent.intentSender
-//                        intentSender?.let {
-//                            startIntentSenderForResult(intentSender, image-request-code
-//
-//                                ,
-//                                null, 0, 0, 0, null)
-                      //  }
-                    } else {
-                        throw RuntimeException(securityException.message, securityException)
-                    }
-                }
-
-            }
-
-        }
-    }
 
     fun play(mediaTrackData: MediaTrackData){
 
