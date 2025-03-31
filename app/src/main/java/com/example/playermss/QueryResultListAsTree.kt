@@ -24,6 +24,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -46,7 +47,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 @Composable
 fun ShowTrack(trackItem: MediaTrackData, key: Int, selectedKey: Int) {
     Log.d("SII","selected: $selectedKey, current: $key name: ${trackItem.title}")
-    val color = if (key == selectedKey) Color.Yellow else Color.White
+    val color = if (key == selectedKey) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary
 
     FlowRow(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
@@ -67,12 +68,13 @@ private fun LazyListScope.showTracks(tracks: List<MediaTrackData>, mediaViewMode
             itemKey = System.identityHashCode(trackItem)
         }
         item (key = itemKey) {
-            Card(
+            Surface(
                 modifier = Modifier
                     .height(IntrinsicSize.Min)
                     .fillMaxSize()
 //        .border(width = Dp.Hairline, color = Color.Gray, shape = RectangleShape)//border(width = Dp.Hairline , brush = Brush.,shape=null )
                     .padding(2.dp)
+                    .background(color = MaterialTheme.colorScheme.primaryContainer)
                     .pointerInput(Unit){
                         detectTapGestures (
                             onTap = {
@@ -88,6 +90,7 @@ private fun LazyListScope.showTracks(tracks: List<MediaTrackData>, mediaViewMode
                         )
                     },
                 shape = RoundedCornerShape(10),
+
 //                colors = if(mediaData.listIndex == playingIndex) CardDefaults.elevatedCardColors() else CardDefaults.cardColors()
             ) {
                 val selected = mediaViewModel.playingItemId.collectAsState()
@@ -102,13 +105,13 @@ private fun LazyListScope.showAlbums(albums: List<Pair<String, List<MediaTrackDa
 
         val (albumKey, albumTracks) = it
         item (key = albumKey.hashCode()){//todo: recheck case if albums names same
-            Card(
+            Surface (
                 modifier = Modifier
                     .height(IntrinsicSize.Min)
                     .fillMaxSize()
 //        .border(width = Dp.Hairline, color = Color.Gray, shape = RectangleShape)//border(width = Dp.Hairline , brush = Brush.,shape=null )
                     .padding(start = 2.dp, end = 2.dp, top = 2.dp, bottom = 2.dp)
-                    .background(color = MaterialTheme.colorScheme.primaryContainer)
+                    .background(color = MaterialTheme.colorScheme.secondaryContainer)
                     .pointerInput(Unit){
                         detectTapGestures (
                             onTap = {
@@ -146,7 +149,7 @@ private fun LazyListScope.showArtist(artistAsPair: Pair<String, List<Pair<String
     val (artistName, artistAlbums) = artistAsPair
 
     item (key = System.identityHashCode(artistAlbums)) {
-        Card(
+        Surface(
             modifier = Modifier
                 .height(IntrinsicSize.Min)
                 .fillMaxSize()
