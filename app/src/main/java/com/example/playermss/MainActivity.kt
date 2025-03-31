@@ -72,10 +72,9 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.anggrayudi.storage.file.DocumentFileCompat
 import com.anggrayudi.storage.file.getAbsolutePath
+import com.example.compose.AppTheme
 import com.example.playermss.data.MediaTrackData
 import com.example.playermss.data.MediaViewModel
-import com.example.playermss.data.SomeViewModel
-import com.example.playermss.ui.theme.PlayerMSSTheme
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -169,7 +168,7 @@ class MainActivity : ComponentActivity() {
 
 //        enableEdgeToEdge()
         setContent {
-            PlayerMSSTheme {
+            AppTheme {
                 MainU(permissionsGranted.collectAsState().value)
             }
         }

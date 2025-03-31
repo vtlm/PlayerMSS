@@ -47,7 +47,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 @Composable
 fun ShowTrack(trackItem: MediaTrackData, key: Int, selectedKey: Int) {
     Log.d("SII","selected: $selectedKey, current: $key name: ${trackItem.title}")
-    val color = if (key == selectedKey) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary
+    val color = if (key == selectedKey) MaterialTheme.colorScheme.inversePrimary else MaterialTheme.colorScheme.onPrimaryContainer
 
     FlowRow(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
@@ -74,7 +74,7 @@ private fun LazyListScope.showTracks(tracks: List<MediaTrackData>, mediaViewMode
                     .fillMaxSize()
 //        .border(width = Dp.Hairline, color = Color.Gray, shape = RectangleShape)//border(width = Dp.Hairline , brush = Brush.,shape=null )
                     .padding(2.dp)
-                    .background(color = MaterialTheme.colorScheme.primaryContainer)
+//                    .background(color = Color.Blue)//MaterialTheme.colorScheme.primary)
                     .pointerInput(Unit){
                         detectTapGestures (
                             onTap = {
@@ -89,7 +89,9 @@ private fun LazyListScope.showTracks(tracks: List<MediaTrackData>, mediaViewMode
                             }
                         )
                     },
+                color = MaterialTheme.colorScheme.primaryContainer,
                 shape = RoundedCornerShape(10),
+
 
 //                colors = if(mediaData.listIndex == playingIndex) CardDefaults.elevatedCardColors() else CardDefaults.cardColors()
             ) {
