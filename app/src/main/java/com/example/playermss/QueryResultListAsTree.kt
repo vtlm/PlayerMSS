@@ -100,30 +100,30 @@ private fun LazyListScope.showTracks(tracks: List<MediaTrackData>, mediaViewMode
 private fun LazyListScope.showAlbums(albums: List<Pair<String, List<MediaTrackData>>>, mediaViewModel: MediaViewModel, albumExpanded: Set<String>){
     albums.forEach {
 
-        val (albumName, albumTracks) = it
-        item (key = System.identityHashCode(albumTracks)){//todo: recheck case if albums names same
+        val (albumKey, albumTracks) = it
+        item (key = albumKey.hashCode()){//todo: recheck case if albums names same
             Card(
                 modifier = Modifier
                     .height(IntrinsicSize.Min)
                     .fillMaxSize()
 //        .border(width = Dp.Hairline, color = Color.Gray, shape = RectangleShape)//border(width = Dp.Hairline , brush = Brush.,shape=null )
-                    .padding(2.dp)
+                    .padding(start = 2.dp, end = 2.dp, top = 2.dp, bottom = 2.dp)
                     .background(color = MaterialTheme.colorScheme.primaryContainer)
                     .pointerInput(Unit){
                         detectTapGestures (
                             onTap = {
-                                mediaViewModel.expandedAlbums.toggle(albumName)
+                                mediaViewModel.expandedAlbums.toggle(albumKey)
                             },
                             onPress = {
 //                                mediaViewModel.toggleAlbumExpanded(albumName)
                             },
                             onLongPress = {
-                                Log.d("LP","Album long press: $albumName")
+                                Log.d("LP","Album long press: $albumKey")
                             }
                         )
                     },
                 shape = RoundedCornerShape(10),
-                colors = CardDefaults.elevatedCardColors()
+//                colors = CardDefaults.elevatedCardColors()
             ) {
                 val year =
                 if(albumTracks.isNotEmpty()){
@@ -131,11 +131,11 @@ private fun LazyListScope.showAlbums(albums: List<Pair<String, List<MediaTrackDa
                 }else{
                     ""
                 }
-                Text("  $year - $albumName")
+                Text("$year - $albumKey")
             }
         }
 
-        if(albumExpanded.contains(albumName)) {
+        if(albumExpanded.contains(albumKey)) {
             showTracks(albumTracks, mediaViewModel)
         }
     }
