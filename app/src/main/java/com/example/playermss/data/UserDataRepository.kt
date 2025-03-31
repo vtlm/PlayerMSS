@@ -43,6 +43,7 @@ class UserDataRepository @Inject constructor(private val dataStore: DataStore<Me
                 item.artist,
                 item.album,
                 item.title,
+                item.relativePath,
                 item.year,
                 item.track,
                 item.duration,
@@ -62,6 +63,7 @@ class UserDataRepository @Inject constructor(private val dataStore: DataStore<Me
                 item.artist = it.artist
                 item.album = it.album
                 item.title = it.title
+                item.relativePath = it.relativePath
                 it.track?.let { track -> item.track = track }
                 it.year?.let { year -> item.year = year }
                 it.duration?.let { duration -> item.duration = duration }

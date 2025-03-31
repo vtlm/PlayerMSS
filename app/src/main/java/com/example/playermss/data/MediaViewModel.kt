@@ -138,6 +138,7 @@ class MediaViewModel @Inject constructor(
         QueryTextField("Title", userPreferencesRepository, viewModelScope),
         QueryTextField("FromYear", userPreferencesRepository, viewModelScope),
         QueryTextField("ToYear", userPreferencesRepository, viewModelScope),
+        QueryTextField("Path", userPreferencesRepository, viewModelScope),
     )
 
     lateinit var context: Context
@@ -715,9 +716,27 @@ class MediaViewModel @Inject constructor(
         return list.filterNotNull()
     }
 
-    private fun sortByArtistAlbumAsPairs(list: List<MediaTrackData>):  List<Pair<String, List<Pair<String, List<MediaTrackData>>>>>{
+//    fun keyFor(mtd: MediaTrackData): String{
+//        val p = mtd.
+//    }
+
+        private fun sortByArtistAlbumAsPairs(list: List<MediaTrackData>):  List<Pair<String, List<Pair<String, List<MediaTrackData>>>>>{
+
+
         val setByArtist = list.groupBy { it.artist }.toList().toSortedSet(compareBy { it.first })
-        val listByArtistAlbum = setByArtist.map { Pair(it.first,it.second.groupBy { it1 -> it1.album }.toList().toSortedSet(
+        val listByArtistAlbum = setByArtist.map { Pair(it.first,it.second.groupBy { it1 -> it1.relativePath }.toList().toSortedSet(
+            compareBy { it2 -> it2.second[0].year.toString() + it2.first }
+        )) }
+        val listByArtistAlbumTrack = listByArtistAlbum.map { Pair(it.first,it.second.map { it2 -> Pair(it2.first, it2.second.sortedBy{ mtd -> mtd.track})}) }
+        return listByArtistAlbumTrack
+    }
+    //    private fun sortByArtistAlbumAsPairs(list: List<MediaTrackData>):  List<Pair<String, List<Pair<String, List<MediaTrackData>>>>>{
+
+    private fun sortByArtistAlbumAsPairsW(list: List<MediaTrackData>):  List<Pair<String, List<Pair<Pair<String, String>, List<MediaTrackData>>>>>{
+
+
+        val setByArtist = list.groupBy { it.artist }.toList().toSortedSet(compareBy { it.first })
+        val listByArtistAlbum = setByArtist.map { Pair(it.first,it.second.groupBy { it1 -> Pair(it1.album, it1.relativePath) }.toList().toSortedSet(
             compareBy { it2 -> it2.second[0].year.toString() + it2.first }
         )) }
         val listByArtistAlbumTrack = listByArtistAlbum.map { Pair(it.first,it.second.map { it2 -> Pair(it2.first, it2.second.sortedBy{ mtd -> mtd.track})}) }
@@ -730,6 +749,8 @@ class MediaViewModel @Inject constructor(
         viewModelScope.launch {
             userDataRepository.saveTrackList(list)
         }
+
+        val l2 = sortByArtistAlbumAsPairsW(list)
 
         val sortedList = sortByArtistAlbumAsPairs(list)
         _querySortedResults.value = sortedList
@@ -772,14 +793,15 @@ class MediaViewModel @Inject constructor(
 
             queryParams.selection = "${MediaStore.Audio.Media.ARTIST} like ?" +
                     " and ${MediaStore.Audio.Media.ALBUM} like ?" +
-                    " and ${MediaStore.Audio.Media.TITLE} like ?"// +
-              //      " ${MediaStore.Audio.Media.YEAR} >= CAST(? as integer) and" +
-           //         " ${MediaStore.Audio.Media.YEAR} <= CAST(? as integer)"
+                    " and ${MediaStore.Audio.Media.TITLE} like ?" +
+                    " and ${MediaStore.Audio.Media.DATA} like ?" +
+                    " and ${MediaStore.Audio.Media.DATA} not like '%.wma%'"
 
             queryParams.selectionArgs = mutableListOf(
                 "%${queryFields[0].text.value}%",
                 "%${queryFields[1].text.value}%",
                 "%${queryFields[2].text.value}%",
+                "%${queryFields[5].text.value}%",
             )
 
             val fromYear = queryFields[3].text.value.toIntOrNull()

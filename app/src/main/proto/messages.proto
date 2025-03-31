@@ -10,6 +10,7 @@ message  MediaTrackData {
     int32 track = 5;
     int32 duration = 6;
     string uri = 7;
+    string relative_path = 8;
 }
 
 message MediaTrackDataList {

@@ -132,7 +132,7 @@ class SearchHelper(private val groupedSortedTracks: List<Pair<String, List<Pair<
         val currentArtistIndex = groupedSortedTracks?.indexOf(currentArtist)
         if(groupedSortedTracks != null && currentArtistIndex != null) {
             val currentAlbumsList = groupedSortedTracks[currentArtistIndex].second
-            val currentAlbum = currentAlbumsList.find { it.first == mediaTrackData?.album }
+            val currentAlbum = currentAlbumsList.find { it.first == mediaTrackData?.albumKey() }
             val prevAlbumIndex = currentAlbumsList.indexOf(currentAlbum) - 1
             if(prevAlbumIndex >= 0){
                 val lastTrackIndex = currentAlbumsList[prevAlbumIndex].second.count() - 1
@@ -149,7 +149,7 @@ class SearchHelper(private val groupedSortedTracks: List<Pair<String, List<Pair<
         val currentArtistIndex = groupedSortedTracks?.indexOf(currentArtist)
         if(groupedSortedTracks != null && currentArtistIndex != null) {
             val currentAlbumsList = groupedSortedTracks[currentArtistIndex].second
-            val currentAlbum = currentAlbumsList.find { it.first == mediaTrackData?.album }
+            val currentAlbum = currentAlbumsList.find { it.first == mediaTrackData?.albumKey() }
             val nextAlbumIndex = currentAlbumsList.indexOf(currentAlbum) + 1
             if(nextAlbumIndex < currentAlbumsList.count()){
                 return currentAlbumsList[nextAlbumIndex].second[0]
@@ -168,7 +168,7 @@ class SearchHelper(private val groupedSortedTracks: List<Pair<String, List<Pair<
         val currentArtistIndex = groupedSortedTracks?.indexOf(currentArtist)
         if(groupedSortedTracks != null && currentArtistIndex != null && currentArtistIndex != -1) {
             val currentAlbumsList = groupedSortedTracks[currentArtistIndex].second
-            val currentAlbum = currentAlbumsList.find { it.first == mediaTrackData?.album }
+            val currentAlbum = currentAlbumsList.find { it.first == mediaTrackData?.albumKey() }
             val currentAlbumIndex = currentAlbumsList.indexOf(currentAlbum)
             val currentTracks = currentAlbumsList[currentAlbumIndex].second
             val currentTrackIndex = currentTracks.indexOf(mediaTrackData)
@@ -198,7 +198,7 @@ class SearchHelper(private val groupedSortedTracks: List<Pair<String, List<Pair<
         val currentArtistIndex = groupedSortedTracks?.indexOf(currentArtist)
         if(groupedSortedTracks != null && currentArtistIndex != null && currentArtistIndex != -1) {
             val currentAlbumsList = groupedSortedTracks[currentArtistIndex].second
-            val currentAlbum = currentAlbumsList.find { it.first == mediaTrackData?.album }
+            val currentAlbum = currentAlbumsList.find { it.first == mediaTrackData?.albumKey() }
             val currentAlbumIndex = currentAlbumsList.indexOf(currentAlbum)
             val currentTracks = currentAlbumsList[currentAlbumIndex].second
             val currentTrackIndex = currentTracks.indexOf(mediaTrackData)

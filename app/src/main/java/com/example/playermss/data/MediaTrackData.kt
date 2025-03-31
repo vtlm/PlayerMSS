@@ -27,12 +27,17 @@ val audioColumns = arrayOf(
     MediaStore.Audio.AudioColumns.YEAR,
     MediaStore.Audio.AudioColumns.TRACK,
     MediaStore.Audio.AudioColumns.DURATION,
+    MediaStore.Audio.AudioColumns.DISC_NUMBER,
+//    MediaStore.Audio.AudioColumns.DISPLAY_NAME,
+    MediaStore.Audio.AudioColumns.RELATIVE_PATH
 )
 
 class MediaTrackData(
     val artist: String = (""),
     val album: String = (""),
     val title: String = (""),
+//    val displayName: String = (""),
+    val relativePath: String = (""),
     val year: Int? = 0,
     val track: Int? = 0,
     val duration: Int? = 0,
@@ -45,6 +50,8 @@ class MediaTrackData(
     fun testHash(hash: Int):Boolean{
         return hash == uri.hashCode()
     }
+
+    fun albumKey():String = relativePath
 }
 
 private fun yearFromCursor(cursor: Cursor, columnMap: Map<String,Int?>): Int? {
@@ -108,6 +115,9 @@ fun uriFromCursor(cursor: Cursor, columnMap: Map<String,Int?>, context: Context)
     val id = columnMap[MediaStore.Audio.AudioColumns._ID]?.let { cursor.getLong(it) }
     val data = columnMap[MediaStore.Audio.AudioColumns.DATA]?.let { cursor.getString(it) }
 
+    val dn = columnMap[MediaStore.Audio.AudioColumns.DISC_NUMBER]?.let { cursor.getString(it) }
+    val rp = columnMap[MediaStore.Audio.AudioColumns.RELATIVE_PATH]?.let { cursor.getString(it) }
+
     if(data != null){
 
         val file = File(data)
@@ -158,10 +168,15 @@ fun cursorToMediaTrackData(cursor: Cursor, columnMap: Map<String,Int>, context: 
 
     val uri = uriFromCursor(cursor, columnMap, context) ?: return null
 
+    val dn = columnMap[MediaStore.Audio.AudioColumns.DISPLAY_NAME]?.let { cursor.getString(it) }.toString()
+    val rp = columnMap[MediaStore.Audio.AudioColumns.RELATIVE_PATH]?.let { cursor.getString(it) }.toString()
+
+
     val rv = MediaTrackData(
         columnMap[MediaStore.Audio.AudioColumns.ARTIST]?.let { cursor.getString(it) }.toString(),
         columnMap[MediaStore.Audio.AudioColumns.ALBUM]?.let { cursor.getString(it) }.toString(),
         columnMap[MediaStore.Audio.AudioColumns.TITLE]?.let { cursor.getString(it) }.toString(),
+        columnMap[MediaStore.Audio.AudioColumns.RELATIVE_PATH]?.let { cursor.getString(it) }.toString(),
         yearFromCursor(cursor, columnMap),
         trackNumberFromCursor(cursor, columnMap),
         columnMap[MediaStore.Audio.AudioColumns.DURATION]?.let { cursor.getInt(it) },
