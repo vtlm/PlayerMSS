@@ -49,7 +49,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 @Composable
 fun ShowTrack(trackItem: MediaTrackData, key: Int, selectedKey: Int) {
     Log.d("SII","selected: $selectedKey, current: $key name: ${trackItem.title}")
-    val color = if (key == selectedKey) Color.Yellow else MaterialTheme.colorScheme.onPrimaryContainer
+    val color = if (key == selectedKey) Color.Yellow else MaterialTheme.colorScheme.onSecondaryContainer
 
     FlowRow(
         modifier = Modifier.fillMaxWidth().padding(start = 12.dp, end = 2.dp),
@@ -90,7 +90,7 @@ private fun LazyListScope.showTracks(tracks: List<MediaTrackData>, mediaViewMode
                             }
                         )
                     },
-                color = MaterialTheme.colorScheme.primaryContainer,
+                color = MaterialTheme.colorScheme.secondaryContainer,
                 shape = RoundedCornerShape(10),
             ) {
                 val selected = mediaViewModel.playingItemId.collectAsState().value
@@ -124,7 +124,7 @@ private fun LazyListScope.showAlbums(albums: List<Pair<String, List<MediaTrackDa
                             }
                         )
                     },
-                color = MaterialTheme.colorScheme.secondaryContainer,
+                color = MaterialTheme.colorScheme.primaryContainer,
 //                shape = RoundedCornerShape(10),
             ) {
                 val year =
@@ -148,13 +148,25 @@ private fun LazyListScope.showAlbums(albums: List<Pair<String, List<MediaTrackDa
                     }
                 }
 
+                var namesMatch = descr.endsWith(albumName,true)
+
+                if(!namesMatch){
+                    descr = descr.replace(year.toString(),"")
+                    descr = descr.replace(albumName,"")
+                    descr = descr.replace(" - ","")
+                }
+
+                if(albumName.contains(descr)){
+                    namesMatch = true
+                }
+
                 Row {
                     Box(
-                        Modifier.fillMaxHeight(),
+                        Modifier.fillMaxHeight().padding(start = 2.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
                             text = "$year"
                         )
                     }
@@ -163,15 +175,17 @@ private fun LazyListScope.showAlbums(albums: List<Pair<String, List<MediaTrackDa
                     ){
                         Text(
                             modifier = Modifier.padding(start = 6.dp),
-                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
                             text = "$albumName"
                         )
-                        Text(
-                            modifier = Modifier.padding(start = 6.dp),
-                            fontSize = MaterialTheme.typography.bodySmall.fontSize,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer,
-                            text = descr
-                        )
+                        if(!namesMatch) {
+                            Text(
+                                modifier = Modifier.padding(start = 6.dp),
+                                fontSize = MaterialTheme.typography.bodySmall.fontSize,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                text = descr
+                            )
+                        }
                         }
                 }
             }

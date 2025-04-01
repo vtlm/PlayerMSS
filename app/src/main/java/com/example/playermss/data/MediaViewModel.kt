@@ -713,10 +713,11 @@ class MediaViewModel @Inject constructor(
             userDataRepository.saveTrackList(list)
         }
 
-        val l2 = sortByArtistAlbumAsPairsW(list)
+//        val l2 = sortByArtistAlbumAsPairsW(list)
 
         val sortedList = sortByArtistAlbumAsPairs(list)
         _querySortedResults.value = sortedList
+        setUserScrollPos(0)
 //        searchHelper = SearchHelper(sortedList)
 
 //        val mapByArtist = list.groupBy { it.artist }.toList().sortedBy { it.first }.toMap()
@@ -746,6 +747,10 @@ class MediaViewModel @Inject constructor(
 
     @RequiresApi(Build.VERSION_CODES.Q)
     fun query(){
+
+        mediaController.stop()
+        _sleevePicture.value = null
+
         viewModelScope.launch(Dispatchers.Default) {
 
             _progressTitle.value = "Querying MediaStore"

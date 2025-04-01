@@ -435,7 +435,7 @@ class MainActivity : ComponentActivity() {
                                 .weight(1f)
 //                        .width(intrinsicSize = IntrinsicSize.Max)
                                 .fillMaxWidth()
-                                .background(color = Color.Magenta)
+//                                .background(color = Color.Magenta)
                         ) {
                             Row(//verticalAlignment = Alignment.CenterVertically,
                                 Modifier.fillMaxWidth(),
