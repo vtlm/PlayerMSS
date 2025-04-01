@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -47,13 +49,13 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 @Composable
 fun ShowTrack(trackItem: MediaTrackData, key: Int, selectedKey: Int) {
     Log.d("SII","selected: $selectedKey, current: $key name: ${trackItem.title}")
-    val color = if (key == selectedKey) MaterialTheme.colorScheme.inversePrimary else MaterialTheme.colorScheme.onPrimaryContainer
+    val color = if (key == selectedKey) Color.Yellow else MaterialTheme.colorScheme.onPrimaryContainer
 
     FlowRow(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+        modifier = Modifier.fillMaxWidth().padding(start = 12.dp, end = 2.dp),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Text(color = color, text = "    ${trackItem.track} - ${trackItem.title}")
+        Text(color = color, text = "${trackItem.track} - ${trackItem.title}")
         Text(color = color, text = duration(trackItem.duration))
     }
     Log.d("RCT","ReCompose track")
@@ -74,7 +76,6 @@ private fun LazyListScope.showTracks(tracks: List<MediaTrackData>, mediaViewMode
                     .fillMaxSize()
 //        .border(width = Dp.Hairline, color = Color.Gray, shape = RectangleShape)//border(width = Dp.Hairline , brush = Brush.,shape=null )
                     .padding(2.dp)
-//                    .background(color = Color.Blue)//MaterialTheme.colorScheme.primary)
                     .pointerInput(Unit){
                         detectTapGestures (
                             onTap = {
@@ -91,12 +92,9 @@ private fun LazyListScope.showTracks(tracks: List<MediaTrackData>, mediaViewMode
                     },
                 color = MaterialTheme.colorScheme.primaryContainer,
                 shape = RoundedCornerShape(10),
-
-
-//                colors = if(mediaData.listIndex == playingIndex) CardDefaults.elevatedCardColors() else CardDefaults.cardColors()
             ) {
-                val selected = mediaViewModel.playingItemId.collectAsState()
-                ShowTrack(trackItem, itemKey, selected.value)
+                val selected = mediaViewModel.playingItemId.collectAsState().value
+                ShowTrack(trackItem, itemKey, selected)
             }
         }
     }
@@ -106,14 +104,13 @@ private fun LazyListScope.showAlbums(albums: List<Pair<String, List<MediaTrackDa
     albums.forEach {
 
         val (albumKey, albumTracks) = it
-        item (key = albumKey.hashCode()){//todo: recheck case if albums names same
+        item (key = System.identityHashCode(it)){//todo: recheck case if albums names same
             Surface (
                 modifier = Modifier
                     .height(IntrinsicSize.Min)
                     .fillMaxSize()
 //        .border(width = Dp.Hairline, color = Color.Gray, shape = RectangleShape)//border(width = Dp.Hairline , brush = Brush.,shape=null )
                     .padding(start = 2.dp, end = 2.dp, top = 2.dp, bottom = 2.dp)
-                    .background(color = MaterialTheme.colorScheme.secondaryContainer)
                     .pointerInput(Unit){
                         detectTapGestures (
                             onTap = {
@@ -127,16 +124,56 @@ private fun LazyListScope.showAlbums(albums: List<Pair<String, List<MediaTrackDa
                             }
                         )
                     },
-                shape = RoundedCornerShape(10),
-//                colors = CardDefaults.elevatedCardColors()
+                color = MaterialTheme.colorScheme.secondaryContainer,
+//                shape = RoundedCornerShape(10),
             ) {
                 val year =
-                if(albumTracks.isNotEmpty()){
-                    albumTracks[0].year
-                }else{
-                    ""
+                    if(albumTracks.isNotEmpty()){
+                        albumTracks[0].year
+                    }else{
+                        ""
+                    }
+                val albumName =
+                    if(albumTracks.isNotEmpty()){
+                        albumTracks[0].album
+                    }else{
+                        ""
+                    }
+
+                var descr = ""
+                if (albumKey != ""){
+                    val s =albumKey.split('/')
+                    if(s.size > 1) {
+                        descr = s[s.size - 2]
+                    }
                 }
-                Text("$year - $albumKey")
+
+                Row {
+                    Box(
+                        Modifier.fillMaxHeight(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                            text = "$year"
+                        )
+                    }
+                    Column (Modifier.fillMaxWidth(),
+//                        horizontalAlignment = Alignment.CenterHorizontally
+                    ){
+                        Text(
+                            modifier = Modifier.padding(start = 6.dp),
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                            text = "$albumName"
+                        )
+                        Text(
+                            modifier = Modifier.padding(start = 6.dp),
+                            fontSize = MaterialTheme.typography.bodySmall.fontSize,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
+                            text = descr
+                        )
+                        }
+                }
             }
         }
 

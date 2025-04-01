@@ -3,7 +3,6 @@ package com.example.playermss
 //import androidx.compose.material.icons.
 import android.app.Activity
 import android.content.Intent
-import android.content.res.Configuration
 import android.media.MediaScannerConnection
 import android.media.MediaScannerConnection.MediaScannerConnectionClient
 import android.net.Uri
@@ -11,20 +10,17 @@ import android.os.Build
 import android.os.Bundle
 import android.provider.DocumentsContract
 import android.util.Log
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.annotation.RequiresApi
 import androidx.annotation.RequiresExtension
-import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.animation.core.EaseInOutExpo
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -102,30 +98,6 @@ class MainActivity : ComponentActivity() {
     @RequiresApi(Build.VERSION_CODES.Q)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-
-// Register the permissions callback, which handles the user's response to the
-// system permissions dialog. Save the return value, an instance of
-// ActivityResultLauncher. You can use either a val, as shown in this snippet,
-// or a lateinit var in your onAttach() or onCreate() method.
-
-//        val requestPermissionLauncher1 =
-//            registerForActivityResult(
-//                ActivityResultContracts.RequestPermission()
-//            ) { isGranted: Boolean ->
-//                if (isGranted) {
-//                    // Permission is granted. Continue the action or workflow in your
-//                    // app.
-//                } else {
-//                    // Explain to the user that the feature is unavailable because the
-//                    // feature requires a permission that the user has denied. At the
-//                    // same time, respect the user's decision. Don't link to system
-//                    // settings in an effort to convince the user to change their
-//                    // decision.
-//                }
-//            }
-//        requestPermissionLauncher1.launch(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
-
 
 // Register the permissions callback, which handles the user's response to the
 // system permissions dialog. Save the return value, an instance of
@@ -215,19 +187,6 @@ class MainActivity : ComponentActivity() {
     override fun onDestroy() {
         super.onDestroy()
     }
-
-//    //todo check it
-//    override fun onConfigurationChanged(newConfig: Configuration) {
-//        super.onConfigurationChanged(newConfig)
-////        findViewById<ConstraintLayout>(R.id.main).invalidate();
-//
-//        // Checks whether a keyboard is available
-//        if (newConfig.keyboardHidden === Configuration.KEYBOARDHIDDEN_YES) {
-//            Toast.makeText(this, "Keyboard available", Toast.LENGTH_SHORT).show()
-//        } else if (newConfig.keyboardHidden === Configuration.KEYBOARDHIDDEN_NO) {
-//            Toast.makeText(this, "No keyboard", Toast.LENGTH_SHORT).show()
-//        }
-//    }
 
     //todo: to coroutine
     @RequiresApi(Build.VERSION_CODES.Q)
@@ -375,19 +334,9 @@ class MainActivity : ComponentActivity() {
     @Composable
     fun SearchScreen(onNav: () -> Unit){
 
-        val currentTrackMediaMetadata = mediaViewModel.currentTrackMediaMetadata.collectAsState()
-        val isSearchOpen = mediaViewModel.isSearchVisible.collectAsState()
-
-        var weightAdd by remember {
-            mutableFloatStateOf(0f)
-        }
-
-        val offs: Float by animateFloatAsState(
-            targetValue = weightAdd,
-            // Configure the animation duration and easing.
-            animationSpec = tween(durationMillis = 800, easing = EaseInOutExpo),
-            label = "offs"
-        )
+        val currentTrackMediaMetadata = mediaViewModel.currentTrackMediaMetadata.collectAsState().value
+        val isSearchOpen = mediaViewModel.isSearchVisible.collectAsState().value
+        val isVisualizerVisible = mediaViewModel.isVisualizerVisible.collectAsState().value
 
         Scaffold(
 //            bottomBar = {
@@ -422,15 +371,17 @@ class MainActivity : ComponentActivity() {
 //                        StatusLine()
 //                    }
                     Row {
-                        if (isSearchOpen.value == true) {
+                        if (isSearchOpen) {
                             SearchFields(mediaViewModel.queryFields, mediaViewModel::query)
                         }
                     }
 //                    Row(Modifier.weight(1f)){
 //                        ShowUnsortedTracks(mediaViewModel.tracksList.collectAsState().value)
 //                    }
-                    Row(Modifier.weight(1f)){
-                        ShowMagnitude(mediaViewModel.magnitudes.collectAsState().value)
+                    if(isVisualizerVisible) {
+                        Row(Modifier.weight(1f)) {
+                            ShowMagnitude(mediaViewModel.magnitudes.collectAsState().value)
+                        }
                     }
                     Row(Modifier.weight(7f)) {
                         Column(Modifier.fillMaxSize()) {
@@ -447,35 +398,6 @@ class MainActivity : ComponentActivity() {
                                     mediaViewModel
                                 )
                             }
-
-//                            Row(horizontalArrangement = Arrangement.Center,
-//                                modifier = Modifier
-//                                    .fillMaxWidth()
-//                                    .wrapContentSize()
-////                                    .weight(1f + weightAdd)
-////                            .animateContentSize()
-////                                    .clickable { //Log.d("D_CLICK", "Box Sleeve clicked!")
-////                                        weightAdd = if (weightAdd < 1f) {
-////                                            4f
-////                                        } else {
-////                                            0f
-////                                        }
-////                                    }
-//                            ) {
-//                                SleevePicture(mediaController = mediaViewModel.mediaController)
-//                            }
-//                            Row(modifier = Modifier
-////                                .weight(7f - weightAdd)
-////                        .animateContentSize()
-//                                .clickable {
-//                                    Log.d("D_CLICK", "track list clicked!")
-//                                    weightAdd = 0f
-//                                }
-//                            )
-//                            {
-//                                ShowSearchResults(mediaViewModel)
-//                            }
-
                         }
                     }
 
@@ -486,11 +408,11 @@ class MainActivity : ComponentActivity() {
                             }
                             Row {
                                 TrackInfo(
-                                    mediaMetadata = currentTrackMediaMetadata.value,
+                                    mediaMetadata = currentTrackMediaMetadata,
                                     Modifier
                                         .padding(start = 14.dp, top = 4.dp)
                                         .width(intrinsicSize = IntrinsicSize.Max)
-                                        .basicMarquee(iterations = Int.MAX_VALUE)
+//                                        .basicMarquee(iterations = Int.MAX_VALUE)
                                         .weight(4f)
                                 )
                                 Text("", Modifier.weight(1.2f))
@@ -520,7 +442,7 @@ class MainActivity : ComponentActivity() {
                                 horizontalArrangement = Arrangement.End
                             ) {
                                 IconButton(onClick = {
-                                    isSearchOpen.value.let {
+                                    isSearchOpen.let {
                                         mediaViewModel.setSearchVisible(
                                             !it
                                         )

@@ -44,14 +44,14 @@ object DataStoreModule {
         )
     }
 
-    @Singleton
-    @Provides
-    fun provideProtoDataStoreArtist(@ApplicationContext appContext: Context): DataStore<NameList> {
-        return DataStoreFactory.create(
-            serializer = NamesSerializer,
-            produceFile = { appContext.dataStoreFile(ARTIST_STORE_FILE_NAME) }
-        )
-    }
+//    @Singleton
+//    @Provides
+//    fun provideProtoDataStoreArtist(@ApplicationContext appContext: Context): DataStore<NameList> {
+//        return DataStoreFactory.create(
+//            serializer = NamesSerializer,
+//            produceFile = { appContext.dataStoreFile(ARTIST_STORE_FILE_NAME) }
+//        )
+//    }
 
 //    @Singleton
 //    @Provides
