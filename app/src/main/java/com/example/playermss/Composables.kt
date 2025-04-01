@@ -91,21 +91,21 @@ fun TrackInfo(mediaMetadata: MediaMetadata?, modifier: Modifier =Modifier) {
             Log.d("DBG", it.toString())
             songInfo += it.toString()
         }
-        mediaMetadata.artist?.let {
-            Log.d("DBGC", it.toString())
-            songInfo += "-"
-            songInfo += it.toString()
-        }
-        mediaMetadata.recordingYear?.let {
-            Log.d("DBG", it.toString())
-            songInfo += "-"
-            songInfo += it.toString()
-        }
-        mediaMetadata.albumTitle?.let {
-            Log.d("DBG", it.toString())
-            songInfo += "-"
-            songInfo += it.toString()
-        }
+//        mediaMetadata.artist?.let {
+//            Log.d("DBGC", it.toString())
+//            songInfo += "-"
+//            songInfo += it.toString()
+//        }
+//        mediaMetadata.recordingYear?.let {
+//            Log.d("DBG", it.toString())
+//            songInfo += "-"
+//            songInfo += it.toString()
+//        }
+//        mediaMetadata.albumTitle?.let {
+//            Log.d("DBG", it.toString())
+//            songInfo += "-"
+//            songInfo += it.toString()
+//        }
         Text(songInfo,modifier)
     }
 }

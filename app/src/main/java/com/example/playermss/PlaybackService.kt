@@ -30,20 +30,20 @@ class PlaybackService : MediaSessionService() {
          mediaSession = MediaSession.Builder(this, player!!).build()
          Log.d("OC","Playback service created")
 
-        val mainHandler = Handler(mainLooper)
-        mainHandler.post { // Do your stuff here related to UI, e.g. show toast
-            Toast.makeText(applicationContext, "Playback service created", Toast.LENGTH_LONG).show()
-        }
+//        val mainHandler = Handler(mainLooper)
+//        mainHandler.post { // Do your stuff here related to UI, e.g. show toast
+//            Toast.makeText(applicationContext, "Playback service created", Toast.LENGTH_LONG).show()
+//        }
     }
 
     // The user dismissed the app from the recent tasks
     override fun onTaskRemoved(rootIntent: Intent?) {
 
-        val mainHandler: Handler = Handler(mainLooper)
-
-        mainHandler.post(Runnable { // Do your stuff here related to UI, e.g. show toast
-            Toast.makeText(applicationContext, "I'm a toast!, removed", Toast.LENGTH_LONG).show()
-        })
+//        val mainHandler: Handler = Handler(mainLooper)
+//
+//        mainHandler.post(Runnable { // Do your stuff here related to UI, e.g. show toast
+//            Toast.makeText(applicationContext, "I'm a toast!, removed", Toast.LENGTH_LONG).show()
+//        })
 
         val player = mediaSession?.player!!
         if (!player.playWhenReady

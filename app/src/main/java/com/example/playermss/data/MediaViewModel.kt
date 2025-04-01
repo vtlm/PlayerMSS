@@ -52,6 +52,7 @@ val PLAYER_REPEAT_MODE = intPreferencesKey("player_repeat_mode")
 val USER_TRACK_LIST_SCROLL_POS = intPreferencesKey("user_track_list_scroll_pos")
 val PLAYING_ITEM_ID = intPreferencesKey("playing_item_id")
 val IS_UI_SEARCH_VISIBLE = booleanPreferencesKey("is_ui_search_visible")
+val IS_VISUALIZER_VISIBLE = booleanPreferencesKey("is_visualizer_visible")
 
 @HiltViewModel
 class MediaViewModel @Inject constructor(
@@ -61,9 +62,6 @@ class MediaViewModel @Inject constructor(
 
     private lateinit var controllerFuture: ListenableFuture<MediaController>
     lateinit var mediaController: MediaController
-
-//    private val _mediaControllerLoaded = MutableStateFlow(false)
-//    val mediaControllerLoaded: StateFlow<Boolean> = _mediaControllerLoaded.asStateFlow()
 
     private val _isPlaying = MutableStateFlow(false)
     val isPlaying: StateFlow<Boolean> = _isPlaying.asStateFlow()
@@ -79,9 +77,6 @@ class MediaViewModel @Inject constructor(
 
     val tracksList: StateFlow<List<MediaTrackData>> = userDataRepository.asStateFlow(viewModelScope)
 
-//    private val _searchResults = MutableStateFlow<Map<String, Map<String, List<MediaTrackData>>>>(mapOf())
-//    val searchResults: StateFlow<Map<String, Map<String, List<MediaTrackData>>>> = _searchResults.asStateFlow()
-
     private val _querySortedResults = MutableStateFlow(sortByArtistAlbumAsPairs(tracksList.value))
     val querySortedResults: StateFlow<List<Pair<String, List<Pair<String, List<MediaTrackData>>>>>> = _querySortedResults.asStateFlow()
 
@@ -91,13 +86,6 @@ class MediaViewModel @Inject constructor(
     val expandedArtists = StringSetDataStorePreferences("expandedArtists", userPreferencesRepository, viewModelScope)
     val expandedAlbums = StringSetDataStorePreferences("expandedAlbums", userPreferencesRepository, viewModelScope)
 
-//    private val _lazyListVisibleItemsCount = MutableStateFlow(0)
-//    val lazyListVisibleItemsCount: StateFlow<Int> = _lazyListVisibleItemsCount.asStateFlow()
-//
-//    private val _lazyListTotalItemsCount = MutableStateFlow(0)
-//    val lazyListTotalItemsCount: StateFlow<Int> = _lazyListTotalItemsCount.asStateFlow()
-
-//    lateinit var visibleItemsInfo: List<LazyListItemInfo>
     lateinit var lazyListState: LazyListState
 
     val userScrollPos = userPreferencesRepository.getOrDefault(USER_TRACK_LIST_SCROLL_POS, 0)
@@ -112,16 +100,6 @@ class MediaViewModel @Inject constructor(
 //            r = t.first()
 //        }
 //        return r
-//    }
-
-//    fun setLazyListVisibleItemsCount(count: Int){
-//        Log.d("DBGL","ll vis cnt $count")
-//        _lazyListVisibleItemsCount.value = count
-//    }
-//
-//    fun setLazyListTotalItemsCount(count: Int){
-//        Log.d("DBGL","ll tot cnt $count")
-//        _lazyListTotalItemsCount.value = count
 //    }
 
     fun getCurrentTrackLazyListIndex(): Int?{
@@ -156,31 +134,11 @@ class MediaViewModel @Inject constructor(
     private var nextMediaTrackData: MediaTrackData? = null
 
 
-
-
-//    val trackListScrollPos: StateFlow<Int> =
-//        userPreferencesRepository.getIntOrDefault(TRACK_LIST_SCROLL_POS, 0)
-//            .stateIn(scope = viewModelScope,
-//                started = SharingStarted.WhileSubscribed(),
-//                initialValue = runBlocking {
-//                    userPreferencesRepository.getIntOrDefault(TRACK_LIST_SCROLL_POS, 0).first()
-//                }
-//            )
-
     fun setTrackListScrollPos(trackListScrollPos: Int) {
         Log.d("DBGL","VM: traCkListScrollPos: $trackListScrollPos")
         _scrollPos.value = trackListScrollPos
-//        setUserScrollPos(trackListScrollPos)
-//        viewModelScope.launch {
-//            userPreferencesRepository.setInt(TRACK_LIST_SCROLL_POS,trackListScrollPos)
-//        }
     }
 
-//    fun incTrackListScrollPos(){
-//        var currentPos = trackListScrollPos.value
-//        currentPos += 1
-//        setTrackListScrollPos(currentPos)
-//    }
     val isRemainTime: StateFlow<Boolean> = userPreferencesRepository.getOrDefaultAsStateFlow(IS_REMAIN_TIME, viewModelScope, false)
     fun setRemainTime(isRemainTime: Boolean) = userPreferencesRepository.set(IS_REMAIN_TIME, viewModelScope ,isRemainTime)
 
@@ -200,6 +158,9 @@ class MediaViewModel @Inject constructor(
 
     val isSearchVisible = userPreferencesRepository.getOrDefaultAsStateFlow(IS_UI_SEARCH_VISIBLE, viewModelScope,true)
     fun setSearchVisible(state: Boolean) = userPreferencesRepository.set(IS_UI_SEARCH_VISIBLE, viewModelScope, state)
+
+    val isVisualizerVisible = userPreferencesRepository.getOrDefaultAsStateFlow(IS_VISUALIZER_VISIBLE, viewModelScope,false)
+    fun setVisualizerVisible(state: Boolean) = userPreferencesRepository.set(IS_VISUALIZER_VISIBLE, viewModelScope, state)
 
     override fun onCreate(owner: LifecycleOwner) {//override lifecycle events
         super.onCreate(owner)
@@ -286,53 +247,55 @@ class MediaViewModel @Inject constructor(
                 updateMediaData(mediaController)
             }
 
-            val token = mediaController.connectedToken
-            if(token != null && token.uid != 0) {
-                visualizer = Visualizer(0)
-
-                visualizer.setDataCaptureListener(
-                    object : Visualizer.OnDataCaptureListener{
-                        override fun onFftDataCapture(p0: Visualizer?, fft: ByteArray?, p2: Int) {
-                            val n: Int? = fft?.size
-                            if(n != null && n != 0) {
-                                val magnitudes = FloatArray(n / 2 + 1)
-                                val phases = FloatArray(n / 2 + 1)
-                                magnitudes[0] = Math.abs(fft.get(0).toFloat()) // DC
-                                magnitudes[n / 2] = Math.abs(fft.get(1).toFloat()) // Nyquist
-                                phases[0] =
-                                    0.also { phases[n / 2] = it.toFloat() }.toFloat()
-                                for (k in 1..<n / 2) {
-                                    val i = k * 2
-                                    magnitudes[k] = hypot(fft.get(i).toDouble(), fft.get(i + 1).toDouble()).toFloat()
-                                    phases[k] = atan2(fft.get(i + 1).toDouble(), fft.get(i).toDouble()).toFloat()
-                                }
-                                _magnitudes.value = magnitudes
-//                                Log.d("VIS",arrayToString<Float>(magnitudes.toTypedArray()))
-                            }
-
-                        }
-
-                        override fun onWaveFormDataCapture(
-                            p0: Visualizer?,
-                            p1: ByteArray?,
-                            p2: Int
-                        ) {
-//                            TODO("Not yet implemented")
-                        }
-                    },10000,false,true
-                )
-
-                val cCaptureSize = visualizer.captureSize
-                Log.d("VIS","$cCaptureSize")
-            }
-
-            visualizer.setCaptureSize(128)
-            if(mediaController.isPlaying) {
-                visualizer.setEnabled(true)
-            }
-            bassBoost = BassBoost(0,0)//sessionToken.uid)
-            equalizer = Equalizer(0, 0)
+//            val token = mediaController.connectedToken
+//            if(token != null && token.uid != 0) {
 //
+//                visualizer = Visualizer(0)
+//
+//                visualizer.setDataCaptureListener(
+//                    object : Visualizer.OnDataCaptureListener{
+//                        override fun onFftDataCapture(p0: Visualizer?, fft: ByteArray?, p2: Int) {
+//                            val n: Int? = fft?.size
+//                            if(n != null && n != 0) {
+//                                val magnitudes = FloatArray(n / 2 + 1)
+//                                val phases = FloatArray(n / 2 + 1)
+//                                magnitudes[0] = Math.abs(fft.get(0).toFloat()) // DC
+//                                magnitudes[n / 2] = Math.abs(fft.get(1).toFloat()) // Nyquist
+//                                phases[0] =
+//                                    0.also { phases[n / 2] = it.toFloat() }.toFloat()
+//                                for (k in 1..<n / 2) {
+//                                    val i = k * 2
+//                                    magnitudes[k] = hypot(fft.get(i).toDouble(), fft.get(i + 1).toDouble()).toFloat()
+//                                    phases[k] = atan2(fft.get(i + 1).toDouble(), fft.get(i).toDouble()).toFloat()
+//                                }
+//                                _magnitudes.value = magnitudes
+////                                Log.d("VIS",arrayToString<Float>(magnitudes.toTypedArray()))
+//                            }
+//
+//                        }
+//
+//                        override fun onWaveFormDataCapture(
+//                            p0: Visualizer?,
+//                            p1: ByteArray?,
+//                            p2: Int
+//                        ) {
+////                            TODO("Not yet implemented")
+//                        }
+//                    },10000,false,true
+//                )
+//
+//                val cCaptureSize = visualizer.captureSize
+//                Log.d("VIS","$cCaptureSize")
+//                visualizer.setCaptureSize(128)
+//                if(mediaController.isPlaying) {
+//                    visualizer.setEnabled(true)
+//                }
+//                bassBoost = BassBoost(0,0)//sessionToken.uid)
+//                equalizer = Equalizer(0, 0)
+////
+//            }
+//
+
             mediaController.addListener(
                 object : Player.Listener {
 
