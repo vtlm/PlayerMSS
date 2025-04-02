@@ -477,6 +477,18 @@ class MainActivity : ComponentActivity() {
     }
 
 
+    @Composable
+    fun ShowScanResults(results: List<String>){
+        LazyColumn {
+            for(result in results){
+                item(key = result){
+                    Text(modifier = Modifier.padding(horizontal = 2.dp, vertical = 4.dp),
+                        text = result)
+                }
+
+            }
+        }
+    }
 
     @Composable
     fun ViewScanResults(onNav: () -> Unit){
@@ -484,6 +496,7 @@ class MainActivity : ComponentActivity() {
 
 //        ShowProgressOrContent(mediaViewModel.progressTitle.collectAsState().value) {
             Text("scanRes")
+            ShowScanResults(mediaViewModel.scanResults.collectAsState().value)
 //        }
         }
     }

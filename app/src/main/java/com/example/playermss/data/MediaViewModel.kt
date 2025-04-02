@@ -73,6 +73,9 @@ class MediaViewModel @Inject constructor(
     private val _mediaStoreGenerations = MutableStateFlow(listOf<Long>())
     val mediaStoreGenerations: StateFlow<List<Long>> = _mediaStoreGenerations.asStateFlow()
 
+    private val _scanResults = MutableStateFlow(mutableListOf<String>())
+    val scanResults: StateFlow<MutableList<String>> = _scanResults.asStateFlow()
+
     private val _currentTrackMediaMetadata = MutableStateFlow<MediaMetadata?>(null)
     val currentTrackMediaMetadata: StateFlow<MediaMetadata?> = _currentTrackMediaMetadata.asStateFlow()
 
@@ -813,12 +816,16 @@ class MediaViewModel @Inject constructor(
 
     val supportedAudioTypes = arrayOf("audio/mpeg")
 
+    val localScanResults = mutableListOf<String>()
 
     @RequiresApi(Build.VERSION_CODES.Q)
     fun runScanFilesInDir(directoryUri: Uri, application: Application){
         viewModelScope.launch(Dispatchers.Default) {
             _progressTitle.value = "Scanning FileSystem"
+            localScanResults.clear()
+            _scanResults.value.clear()
             scanFilesInDir(directoryUri, application)
+            _scanResults.value += localScanResults.sorted()
             _progressTitle.value = ""
         }
     }
@@ -827,7 +834,7 @@ class MediaViewModel @Inject constructor(
     private fun scanFilesInDir(directoryUri: Uri, application: Application){
         val documentsTree = DocumentFile.fromTreeUri(application, directoryUri)
         val paths = documentsTree?.listFiles()
-        val filesToScan: MutableList<String> = mutableListOf()
+//        val filesToScan: MutableList<String> = mutableListOf()
         if (paths != null) {
             for(path in paths){
                 if(path.isDirectory){
@@ -839,7 +846,7 @@ class MediaViewModel @Inject constructor(
                     if(supportedAudioTypes.contains(type)){
                         DocumentFileCompat.fromUri(context,path.uri)
                             ?.getAbsolutePath(context)?.let {
-                                filesToScan += it
+                                localScanResults += it
                             }
                     }
                 }
