@@ -1,6 +1,6 @@
 package com.example.playermss.data
 
-import android.app.RecoverableSecurityException
+import android.app.Application
 import android.content.ComponentName
 import android.content.Context
 import android.database.Cursor
@@ -18,6 +18,7 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ViewModel
@@ -30,6 +31,8 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.HttpDataSource
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
+import com.anggrayudi.storage.file.DocumentFileCompat
+import com.anggrayudi.storage.file.getAbsolutePath
 import com.example.playermss.PlaybackService
 import com.example.playermss.imageBitmapFromBytes
 import com.google.common.util.concurrent.ListenableFuture
@@ -42,8 +45,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-import kotlin.math.atan2
-import kotlin.math.hypot
 import kotlin.math.min
 
 val TRACK_LIST_SCROLL_POS = intPreferencesKey("track_list_scroll_pos")
@@ -116,7 +117,7 @@ class MediaViewModel @Inject constructor(
         QueryTextField("Title", userPreferencesRepository, viewModelScope),
         QueryTextField("FromYear", userPreferencesRepository, viewModelScope),
         QueryTextField("ToYear", userPreferencesRepository, viewModelScope),
-        QueryTextField("Path", userPreferencesRepository, viewModelScope),
+        QueryTextField("FileSystem Path", userPreferencesRepository, viewModelScope),
     )
 
     lateinit var context: Context
@@ -202,7 +203,7 @@ class MediaViewModel @Inject constructor(
 
     fun expandArtistAlbumFor(mediaTrackData: MediaTrackData?){
         expandedArtists.add(mediaTrackData?.artist)
-        expandedAlbums.add(mediaTrackData?.album)
+        expandedAlbums.add(mediaTrackData?.relativePath)
     }
 
     fun <T>arrayToString(t: Array<T>):String{
@@ -468,21 +469,11 @@ class MediaViewModel @Inject constructor(
                 }
             )
 
-//            _mediaControllerLoaded.value = true
-//            playTracksManager = PlayTracksManager(mediaController)
-//            playTracksManager.searchHelper = searchHelper
             mediaController.repeatMode = playerRepeatMode.value
             _progressTitle.value = ""
 
         }, MoreExecutors.directExecutor())
 
-//        viewModelScope.launch {
-//            // Coroutine that will be canceled when the ViewModel is cleared.
-//            while (true) {
-//                reCheckMediaStoreGeneration()
-//                delay(10000)
-//            }
-//        }
 
         viewModelScope.launch {
             _scrollPos.value = userScrollPos.first()
@@ -552,6 +543,10 @@ class MediaViewModel @Inject constructor(
             querySortedResults.collect{
                 searchHelper = SearchHelper(it)
                 searchHelper.setRepeatMode(playerRepeatMode.value)
+
+                if(it.size == 1){
+                    expandedArtists.add(it[0].first)
+                }
             }
         }
     }
@@ -693,18 +688,6 @@ class MediaViewModel @Inject constructor(
         val listByArtistAlbumTrack = listByArtistAlbum.map { Pair(it.first,it.second.map { it2 -> Pair(it2.first, it2.second.sortedBy{ mtd -> mtd.track})}) }
         return listByArtistAlbumTrack
     }
-    //    private fun sortByArtistAlbumAsPairs(list: List<MediaTrackData>):  List<Pair<String, List<Pair<String, List<MediaTrackData>>>>>{
-
-    private fun sortByArtistAlbumAsPairsW(list: List<MediaTrackData>):  List<Pair<String, List<Pair<Pair<String, String>, List<MediaTrackData>>>>>{
-
-
-        val setByArtist = list.groupBy { it.artist }.toList().toSortedSet(compareBy { it.first })
-        val listByArtistAlbum = setByArtist.map { Pair(it.first,it.second.groupBy { it1 -> Pair(it1.album, it1.relativePath) }.toList().toSortedSet(
-            compareBy { it2 -> it2.second[0].year.toString() + it2.first }
-        )) }
-        val listByArtistAlbumTrack = listByArtistAlbum.map { Pair(it.first,it.second.map { it2 -> Pair(it2.first, it2.second.sortedBy{ mtd -> mtd.track})}) }
-        return listByArtistAlbumTrack
-    }
 
     @RequiresApi(Build.VERSION_CODES.Q)
     private fun updateQueryStatistic(list: List<MediaTrackData>){
@@ -713,21 +696,9 @@ class MediaViewModel @Inject constructor(
             userDataRepository.saveTrackList(list)
         }
 
-//        val l2 = sortByArtistAlbumAsPairsW(list)
-
         val sortedList = sortByArtistAlbumAsPairs(list)
         _querySortedResults.value = sortedList
         setUserScrollPos(0)
-//        searchHelper = SearchHelper(sortedList)
-
-//        val mapByArtist = list.groupBy { it.artist }.toList().sortedBy { it.first }.toMap()
-////        val mapByArtistEmpty = mapByArtist.entries.associate { it.key to mapOf(Pair("",listOf<MediaTrackData>())) }
-//        val mapByArtistAlbumSortedByYear = mapByArtist.entries.associate{ it.key to it.value.groupBy { it1 -> it1.album }.toList().sortedBy { (key,value) -> value[0].year.toString() + key }.toMap() }
-//        val mapByArtistAlbumSortedByYearTrack=mapByArtistAlbumSortedByYear.entries.associate { it.key to it.value.entries.associate {it1 -> it1.key to it1.value.sortedBy { mtd -> mtd.track } } }
-//        _searchResults.value = mapByArtistAlbumSortedByYearTrack
-////        _searchResults.value = mapByArtistEmpty
-
-//        tracksAsList = mapByArtistAlbumSortedByYearTrack.flatMap { it.value.flatMap { it1 -> it1.value } }
     }
 
     @RequiresApi(Build.VERSION_CODES.Q)
@@ -833,11 +804,64 @@ class MediaViewModel @Inject constructor(
 
         nextMediaItem?.let { mediaController.addMediaItem(it) }
 
-        val count = mediaController?.mediaItemCount
-        if (count != null) {
-            mediaController?.seekTo(offset,0)
+        val count = mediaController.mediaItemCount
+        if (count > 0) {
+            mediaController.seekTo(offset,0)
             play()
         }
     }
+
+    val supportedAudioTypes = arrayOf("audio/mpeg")
+
+
+    @RequiresApi(Build.VERSION_CODES.Q)
+    fun runScanFilesInDir(directoryUri: Uri, application: Application){
+        viewModelScope.launch(Dispatchers.Default) {
+            _progressTitle.value = "Scanning FileSystem"
+            scanFilesInDir(directoryUri, application)
+            _progressTitle.value = ""
+        }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.Q)
+    private fun scanFilesInDir(directoryUri: Uri, application: Application){
+        val documentsTree = DocumentFile.fromTreeUri(application, directoryUri)
+        val paths = documentsTree?.listFiles()
+        val filesToScan: MutableList<String> = mutableListOf()
+        if (paths != null) {
+            for(path in paths){
+                if(path.isDirectory){
+                    scanFilesInDir(path.uri, application)
+                }else{
+                    val type = application.contentResolver.getType(path.uri)
+                    Log.d("SFD","type: $type ${path.uri}")
+//                    val typeInfo = contentResolver.getTypeInfo(path.uri)
+                    if(supportedAudioTypes.contains(type)){
+                        DocumentFileCompat.fromUri(context,path.uri)
+                            ?.getAbsolutePath(context)?.let {
+                                filesToScan += it
+                            }
+                    }
+                }
+            }
+
+//            MediaScannerConnection.scanFile(applicationContext, filesToScan.toTypedArray(),
+//                arrayOf("audio/mpeg","audio/mp3","*/*"),
+//                object: MediaScannerConnectionClient {
+//                    override fun onScanCompleted(path: String?, uri: Uri?) {
+////                            TODO("Not yet implemented")
+//                        Log.d("DMS","Scan completed: uri: $uri, path $path")
+//
+//                    }
+//
+//                    override fun onMediaScannerConnected() {
+////                            TODO("Not yet implemented")
+//                        Log.d("DMS","Scanner connected")
+//                    }
+//                })
+
+        }
+    }
+
 
 }
