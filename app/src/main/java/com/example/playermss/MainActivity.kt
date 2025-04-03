@@ -32,8 +32,10 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.BottomAppBarDefaults
+import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
@@ -41,6 +43,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -59,6 +63,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.compose.AppTheme
+import com.example.playermss.data.MediaScannerResults
 import com.example.playermss.data.MediaTrackData
 import com.example.playermss.data.MediaViewModel
 import dagger.hilt.android.AndroidEntryPoint
@@ -76,6 +81,8 @@ object NavSearch
 object NavTrackList
 @Serializable
 object NavScannedResults
+@Serializable
+object NavMediaScannerResults
 
 @UnstableApi
 @AndroidEntryPoint
@@ -472,7 +479,10 @@ class MainActivity : ComponentActivity() {
         NavHost(navController, startDestination = NavSearch) {
             composable<NavSearch> { SearchScreen(onNav={navController.navigate(route = NavScannedResults)}) }
             composable<NavTrackList> { TracksScreen(onNav={navController.navigate(route = NavSearch)}) }
-            composable<NavScannedResults> { ViewScanResults(onNav={navController.navigate(route = NavSearch)}) }
+            composable<NavScannedResults> { ViewFileSystemScanResults(onNav = {navController.navigate(route = NavMediaScannerResults){
+                popUpTo(NavSearch)
+            } }) }
+            composable<NavMediaScannerResults> { ViewMediaScannerResults(onNav = {}) }
         }
     }
 
@@ -490,14 +500,83 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    @OptIn(ExperimentalMaterial3Api::class)
     @Composable
-    fun ViewScanResults(onNav: () -> Unit){
+    fun ViewFileSystemScanResults(onNav: () -> Unit){
         ShowProgressOrContent(mediaViewModel.progressTitle.collectAsState().value) {
+            Scaffold(
+                topBar = {
+                    TopAppBar(
+                        colors = TopAppBarDefaults.topAppBarColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                            titleContentColor = MaterialTheme.colorScheme.primary,
+                        ),
+                        title = {
+                            Text("Small Top App Bar")
+                        }
+                    )
+                },
+                bottomBar = {
+                    BottomAppBar(
+                        actions = {
+                            Box(modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center) {
+                                Button(onClick = { mediaViewModel.runMediaScanner()
+                                        onNav() }) {
+                                    Text("Send to MediaScanner")
+                                }
+                            }
+                        },
+                    )
+                },
+            ) { innerPadding ->
+                Box(modifier = Modifier.padding(innerPadding)) {
+                    ShowScanResults(mediaViewModel.scanResults.collectAsState().value)
+                }
+            }
+        }
+    }
 
-//        ShowProgressOrContent(mediaViewModel.progressTitle.collectAsState().value) {
-            Text("scanRes")
-            ShowScanResults(mediaViewModel.scanResults.collectAsState().value)
-//        }
+    @OptIn(ExperimentalMaterial3Api::class)
+    @Composable fun ShowMediaScannerResults(mediaScannerResults: MediaScannerResults){
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        titleContentColor = MaterialTheme.colorScheme.primary,
+                    ),
+                    title = {
+                        Text("Added: ${mediaScannerResults.added} Errors: ${mediaScannerResults.errors}")
+                    }
+                )
+            },
+        ) { innerPadding ->
+            Box(modifier = Modifier.padding(innerPadding)) {
+                LazyColumn {
+                    mediaScannerResults.entriesDescr.forEachIndexed{index, entry ->
+
+                        item {
+                            Row {
+                                Column { Text("$index") }
+                                Column(Modifier.padding(vertical = 4.dp)) {
+                                    entry.filePath?.let { Text(it) }
+                                    Text(entry.comtentUri.toString())
+                                }
+                            }
+                        }
+
+                    }
+                }
+            }
+        }
+
+    }
+
+    @Composable
+    fun ViewMediaScannerResults(onNav: () -> Unit){
+        ShowProgressOrContent(mediaViewModel.progressTitle.collectAsState().value) {
+            ShowMediaScannerResults(mediaViewModel.mediaScanResults.collectAsState().value)
         }
     }
 
