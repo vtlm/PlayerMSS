@@ -4,6 +4,7 @@ import android.app.Application
 import android.content.ComponentName
 import android.content.Context
 import android.database.Cursor
+import android.media.MediaScannerConnection
 import android.media.audiofx.BassBoost
 import android.media.audiofx.Equalizer
 import android.media.audiofx.Visualizer
@@ -55,6 +56,23 @@ val PLAYING_ITEM_ID = intPreferencesKey("playing_item_id")
 val IS_UI_SEARCH_VISIBLE = booleanPreferencesKey("is_ui_search_visible")
 val IS_VISUALIZER_VISIBLE = booleanPreferencesKey("is_visualizer_visible")
 
+data class MediaScannerErrorEntry(
+    var filePath: String?
+)
+
+data class MediaScannerEntry(
+    var filePath: String?,
+    var comtentUri :Uri?
+)
+
+data class MediaScannerResults(
+    var added: Int = 0,
+    var errors: Int = 0,
+    var errorsDescr: MutableList<MediaScannerErrorEntry> = mutableListOf(),
+    var entriesDescr: MutableList<MediaScannerEntry> = mutableListOf()
+)
+
+
 @HiltViewModel
 class MediaViewModel @Inject constructor(
     private val userPreferencesRepository: UserPreferencesRepository,
@@ -75,6 +93,9 @@ class MediaViewModel @Inject constructor(
 
     private val _scanResults = MutableStateFlow(mutableListOf<String>())
     val scanResults: StateFlow<MutableList<String>> = _scanResults.asStateFlow()
+
+    private val _mediaScanResults = MutableStateFlow(MediaScannerResults())
+    val mediaScanResults: StateFlow<MediaScannerResults> = _mediaScanResults.asStateFlow()
 
     private val _currentTrackMediaMetadata = MutableStateFlow<MediaMetadata?>(null)
     val currentTrackMediaMetadata: StateFlow<MediaMetadata?> = _currentTrackMediaMetadata.asStateFlow()
@@ -851,21 +872,37 @@ class MediaViewModel @Inject constructor(
                     }
                 }
             }
+        }
+    }
 
-//            MediaScannerConnection.scanFile(applicationContext, filesToScan.toTypedArray(),
-//                arrayOf("audio/mpeg","audio/mp3","*/*"),
-//                object: MediaScannerConnectionClient {
-//                    override fun onScanCompleted(path: String?, uri: Uri?) {
-////                            TODO("Not yet implemented")
-//                        Log.d("DMS","Scan completed: uri: $uri, path $path")
-//
-//                    }
-//
-//                    override fun onMediaScannerConnected() {
-////                            TODO("Not yet implemented")
-//                        Log.d("DMS","Scanner connected")
-//                    }
-//                })
+    fun runMediaScanner(){
+        _progressTitle.value = "MediaScanner running"
+        viewModelScope.launch (Dispatchers.Default){
+            val mediaScannerResults = MediaScannerResults()
+            val entriesCnt = _scanResults.value.size
+            MediaScannerConnection.scanFile(context, _scanResults.value.toTypedArray(),
+                arrayOf("audio/mpeg","audio/mp3","*/*"),
+                object: MediaScannerConnection.MediaScannerConnectionClient {
+                    override fun onScanCompleted(path: String?, uri: Uri?) {
+                        Log.d("DMS","Scan completed: uri: $uri, path $path")
+                        if(uri != null){
+                            mediaScannerResults.added += 1
+                            mediaScannerResults.entriesDescr += MediaScannerEntry(path, uri)
+                        }else{
+                            mediaScannerResults.errors += 1
+                            mediaScannerResults.errorsDescr += MediaScannerErrorEntry(path)
+                        }
+                        if(mediaScannerResults.errors + mediaScannerResults.added == entriesCnt) {
+                            _mediaScanResults.value = mediaScannerResults
+                            _progressTitle.value = ""
+                        }
+                    }
+                    override fun onMediaScannerConnected() {
+                        Log.d("DMS","Scanner connected")
+                    }
+                })
+
+//            _mediaScanResults.value = mediaScannerResults
 
         }
     }
