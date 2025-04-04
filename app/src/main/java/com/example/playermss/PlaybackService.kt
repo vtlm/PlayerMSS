@@ -3,23 +3,20 @@ package com.example.playermss
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.os.Handler
 import android.util.Log
-import android.widget.Toast
 import androidx.annotation.OptIn
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.session.DefaultMediaNotificationProvider
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
 
 
 class PlaybackService : MediaSessionService() {
-    var player: Player? = null
-    private var mediaSession: MediaSession? = null
+    private lateinit var player: Player
+    private lateinit var mediaSession: MediaSession
 
     // Create your player and media session in the onCreate lifecycle event
     override fun onCreate() {
@@ -30,9 +27,9 @@ class PlaybackService : MediaSessionService() {
             .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE)
             .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
             .build()
-        player?.setAudioAttributes(audioAttributes,true)
+        player.setAudioAttributes(audioAttributes,true)
 
-         mediaSession = MediaSession.Builder(this, player!!)
+         mediaSession = MediaSession.Builder(this, player)
              .setSessionActivity(getSessionActivityIntent())
              .build()
          Log.d("OC","Playback service created")
@@ -53,7 +50,7 @@ class PlaybackService : MediaSessionService() {
 //            Toast.makeText(applicationContext, "I'm a toast!, removed", Toast.LENGTH_LONG).show()
 //        })
 
-        val player = mediaSession?.player!!
+        val player = mediaSession.player
         if (!player.playWhenReady
             || player.mediaItemCount == 0
             || player.playbackState == Player.STATE_ENDED
@@ -69,15 +66,14 @@ class PlaybackService : MediaSessionService() {
         Log.d("MSS","task removed")
     }
 
-    override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? =
+    override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession =
         mediaSession
 
     // Remember to release the player and media session in onDestroy
     override fun onDestroy() {
-        mediaSession?.run {
+        mediaSession.run {
             player.release()
             release()
-            mediaSession = null
         }
         super.onDestroy()
         Log.d("MSS","destroyed")
