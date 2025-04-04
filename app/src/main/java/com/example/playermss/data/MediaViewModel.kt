@@ -376,6 +376,8 @@ class MediaViewModel @Inject constructor(
                     override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
                         super.onMediaItemTransition(mediaItem, reason)
 
+                        Log.d("DLM","hello from listener $this")
+
                         if(reason == 1){ //transition to next
                             prevMediaTrackData = currentMediaTrackData
                             currentMediaTrackData = nextMediaTrackData
