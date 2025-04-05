@@ -1,20 +1,15 @@
 package com.example.playermss
 
 import android.app.Application
+import android.content.ComponentName
 import android.content.Context
-import androidx.datastore.core.CorruptionException
-import androidx.datastore.core.DataStore
-import androidx.datastore.core.Serializer
-import androidx.datastore.dataStore
-import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.preferencesDataStore
-import com.example.playermss.Messages.MediaTrackDataList
-import com.example.playermss.data.UserDataRepository
-import com.example.playermss.data.serializer.MediaTrackDataListSerializer
-import com.google.protobuf.InvalidProtocolBufferException
+import android.util.Log
+import androidx.media3.common.Player
+import androidx.media3.session.MediaController
+import androidx.media3.session.SessionToken
+import com.example.playermss.data.MediaViewModel
+import com.google.common.util.concurrent.MoreExecutors
 import dagger.hilt.android.HiltAndroidApp
-import java.io.InputStream
-import java.io.OutputStream
 
 
 /*
@@ -30,6 +25,24 @@ import java.io.OutputStream
 //    serializer = MediaTrackDataListSerializer
 //)
 
+object listener : Player.Listener{
+
+    lateinit var mediaViewModel: MediaViewModel
+
+    override fun onIsPlayingChanged(isPlaying: Boolean) {
+        super.onIsPlayingChanged(isPlaying)
+
+        Log.d("LPL","LPL $isPlaying $this")
+//        _isPlaying.value = isPlaying
+//
+//        if(::visualizer.isInitialized) {
+//            visualizer.setEnabled(isPlaying)
+//        }
+    }
+
+}
+
+
 @HiltAndroidApp
 class PlayerMSSReleaseApplication: Application() {
 //    lateinit var userPreferencesRepository: com.example.playermss.data.UserPreferencesRepository
@@ -40,4 +53,30 @@ class PlayerMSSReleaseApplication: Application() {
 //        userPreferencesRepository = com.example.playermss.data.UserPreferencesRepository(dataStore)
 //        userDataRepository = com.example.playermss.data.UserDataRepository(appDataStore)
 //    }
+    override fun onCreate() {
+    super.onCreate()
+
+    val sessionToken =
+        SessionToken(
+            applicationContext,
+            ComponentName(applicationContext, PlaybackService::class.java)
+        )
+
+    val controllerFuture = MediaController.Builder(applicationContext, sessionToken).buildAsync()
+
+    controllerFuture.addListener({
+        // MediaController is available here with controllerFuture.get()
+        mediaController = controllerFuture.get()
+
+        mediaController.removeListener(listener)
+        mediaController.addListener(listener)
+
+
+    }, MoreExecutors.directExecutor())
+}
+    companion object {
+        lateinit var appContext: Context
+        lateinit var mediaController: MediaController
+    }
+
 }
