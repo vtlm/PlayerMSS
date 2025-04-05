@@ -1,7 +1,6 @@
 package com.example.playermss.data
 
 import android.app.Application
-import android.content.ComponentName
 import android.content.Context
 import android.database.Cursor
 import android.media.MediaScannerConnection
@@ -31,13 +30,11 @@ import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.HttpDataSource
 import androidx.media3.session.MediaController
-import androidx.media3.session.SessionToken
 import com.anggrayudi.storage.file.DocumentFileCompat
 import com.anggrayudi.storage.file.getAbsolutePath
-import com.example.playermss.PlaybackService
+import com.example.playermss.PlayerMSSReleaseApplication
 import com.example.playermss.imageBitmapFromBytes
 import com.google.common.util.concurrent.ListenableFuture
-import com.google.common.util.concurrent.MoreExecutors
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -71,7 +68,6 @@ data class MediaScannerResults(
     var errorsDescr: MutableList<MediaScannerErrorEntry> = mutableListOf(),
     var entriesDescr: MutableList<MediaScannerEntry> = mutableListOf()
 )
-
 
 @HiltViewModel
 class MediaViewModel @Inject constructor(
@@ -250,22 +246,39 @@ class MediaViewModel @Inject constructor(
     @RequiresExtension(extension = Build.VERSION_CODES.R, version = 1)
     fun init(){
 
+
+        val c = com.example.playermss.PlayerMSSReleaseApplication
+
+//        viewModelScope.launch {
+//
+//            while(!this@PlayerMSSReleaseApplication.mediaController.isInitialized){
+//                delay(100)
+//            }
+//
+//        }
+
+        if(!::mediaController.isInitialized){
+            return
+        }
+
+        mediaController = PlayerMSSReleaseApplication.mediaController
+
         if(::mediaController.isInitialized){
             return
         }
 
-        _progressTitle.value = "Loading MediaSession"
+//        _progressTitle.value = "Loading MediaSession"
 
-        val sessionToken =
-            SessionToken(
-                context,
-                ComponentName(context, PlaybackService::class.java)
-            )
-
-        controllerFuture = MediaController.Builder(context, sessionToken).buildAsync()
-        controllerFuture.addListener({
-            // MediaController is available here with controllerFuture.get()
-            mediaController = controllerFuture.get()
+//        val sessionToken =
+//            SessionToken(
+//                context,
+//                ComponentName(context, PlaybackService::class.java)
+//            )
+//
+//        controllerFuture = MediaController.Builder(context, sessionToken).buildAsync()
+//        controllerFuture.addListener({
+//            // MediaController is available here with controllerFuture.get()
+//            mediaController = controllerFuture.get()
 
             _isPlaying.value = mediaController.isPlaying
             if(mediaController.isPlaying){
@@ -498,7 +511,7 @@ class MediaViewModel @Inject constructor(
             mediaController.repeatMode = playerRepeatMode.value
             _progressTitle.value = ""
 
-        }, MoreExecutors.directExecutor())
+//        }, MoreExecutors.directExecutor())
 
 
         viewModelScope.launch {
