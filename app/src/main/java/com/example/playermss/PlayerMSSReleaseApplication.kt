@@ -8,6 +8,8 @@ import androidx.datastore.core.Serializer
 import androidx.datastore.dataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStore
+import androidx.media3.common.Player
+import androidx.media3.session.MediaController
 import com.example.playermss.Messages.MediaTrackDataList
 import com.example.playermss.data.UserDataRepository
 import com.example.playermss.data.serializer.MediaTrackDataListSerializer
@@ -32,6 +34,11 @@ import java.io.OutputStream
 
 @HiltAndroidApp
 class PlayerMSSReleaseApplication: Application() {
+    companion object {
+
+        var lastListener: Player.Listener? = null
+        var lastMediaController: MediaController? = null
+    }
 //    lateinit var userPreferencesRepository: com.example.playermss.data.UserPreferencesRepository
 //    lateinit var userDataRepository: com.example.playermss.data.UserDataRepository
 //
