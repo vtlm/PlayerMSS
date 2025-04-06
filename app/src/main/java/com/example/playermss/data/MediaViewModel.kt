@@ -35,6 +35,8 @@ import androidx.media3.session.SessionToken
 import com.anggrayudi.storage.file.DocumentFileCompat
 import com.anggrayudi.storage.file.getAbsolutePath
 import com.example.playermss.PlaybackService
+import com.example.playermss.PlayerMSSReleaseApplication
+import com.example.playermss.PlayerMSSReleaseApplication.Companion.lastMediaController
 import com.example.playermss.imageBitmapFromBytes
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
@@ -248,9 +250,183 @@ class MediaViewModel @Inject constructor(
         }
     }
 
-//    @OptIn(UnstableApi::class)
+val playerListener = object: Player.Listener {
+
+        override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
+            super.onPlayWhenReadyChanged(playWhenReady, reason)
+//                        val token2 = mediaController?.connectedToken
+//                        if(token2 != null && token2.uid != 0) {
+//                            visualizer = Visualizer(0)
+//                            val eq = Equalizer(0,token2.uid)
+//                        }
+
+        }
+        //                    override fun onAudioSessionIdChanged(audioSessionId: Int) {
+//                        super.onAudioSessionIdChanged(audioSessionId)
+//
+//                        val eq = Equalizer(0,audioSessionId)
+//
+//                    }
+        override fun onPlayerError(error: PlaybackException) {
+            val cause = error.cause
+            if (cause is HttpDataSource.HttpDataSourceException) {
+                // An HTTP error occurred.
+                val httpError = cause
+                // It's possible to find out more about the error both by casting and by querying
+                // the cause.
+                if (httpError is HttpDataSource.InvalidResponseCodeException) {
+                    // Cast to InvalidResponseCodeException and retrieve the response code, message
+                    // and headers.
+                } else {
+                    // Try calling httpError.getCause() to retrieve the underlying cause, although
+                    // note that it may be null.
+                }
+            }
+            mediaController.seekToNext()
+            mediaController.prepare()
+            mediaController.play()
+        }
+
+        override fun onMediaMetadataChanged(mediaMetadata: MediaMetadata) {
+//                        _currentTrackMediaMetadata.value = mediaMetadata
+            Log.d("DMG", "mediaData changed")
+        }
+
+        override fun onIsPlayingChanged(isPlaying: Boolean) {
+            super.onIsPlayingChanged(isPlaying)
+            _isPlaying.value = isPlaying
+
+            if(::visualizer.isInitialized) {
+                visualizer.setEnabled(isPlaying)
+            }
+        }
+
+        override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+            super.onMediaItemTransition(mediaItem, reason)
+
+            Log.d("DLM","hello from listener $this")
+
+            if(reason == 1){ //transition to next
+                prevMediaTrackData = currentMediaTrackData
+                currentMediaTrackData = nextMediaTrackData
+
+                checkTrackListScrollDown()
+                expandArtistAlbumFor(currentMediaTrackData)
+                setPlayingItemId(currentMediaTrackData?.getHash())
+
+                nextMediaTrackData = searchHelper.getNext(nextMediaTrackData)
+                val nextMediaItem = nextMediaTrackData?.uri?.let { MediaItem.fromUri(it) }
+                if (nextMediaItem != null) {
+                    mediaController.removeMediaItem(0)
+                    mediaController.addMediaItem(nextMediaItem)
+                }
+            }
+
+            if(reason == 2){ //seek to prev, next buttons
+
+                if(mediaController.mediaItemCount > 0) {
+                    val firstMediaItem = mediaController.getMediaItemAt(0)
+//prev
+                    if (mediaItem == firstMediaItem) {
+                        nextMediaTrackData = currentMediaTrackData
+                        currentMediaTrackData = prevMediaTrackData
+
+                        checkTrackListScrollUp()
+                        expandArtistAlbumFor(currentMediaTrackData)
+                        setPlayingItemId(currentMediaTrackData?.getHash())
+
+                        prevMediaTrackData = searchHelper.getPrev(prevMediaTrackData)
+                        val prevMediaItem = prevMediaTrackData?.uri?.let { MediaItem.fromUri(it) }
+
+                        if (prevMediaItem != null) {
+                            mediaController.addMediaItem(0, prevMediaItem)
+
+                            val cn = mediaController.mediaItemCount
+                            if (cn == 4) {
+                                mediaController.removeMediaItem(3)
+                            }
+                        }else{
+                            val cn = mediaController.mediaItemCount
+                            if(cn != 0) {
+                                mediaController.removeMediaItem(cn - 1)
+                            }
+                        }
+
+                    }else{
+//next?
+                        val lastIemIndex = mediaController.mediaItemCount - if (mediaController.mediaItemCount > 0) 1 else 0
+                        val lastMediaItem = mediaController.getMediaItemAt(lastIemIndex)
+
+                        if (mediaItem == lastMediaItem) {
+//next
+                            if (nextMediaTrackData != null) {
+
+                                prevMediaTrackData = currentMediaTrackData
+                                currentMediaTrackData = nextMediaTrackData
+
+                                checkTrackListScrollDown()
+                                expandArtistAlbumFor(currentMediaTrackData)
+                                setPlayingItemId(currentMediaTrackData?.getHash())
+
+                                nextMediaTrackData = searchHelper.getNext(nextMediaTrackData)
+
+                                if (nextMediaTrackData != null) {
+                                    val nextMediaItem = nextMediaTrackData?.uri?.let { MediaItem.fromUri(it) }
+
+                                    if (nextMediaItem != null) {
+                                        mediaController.addMediaItem(nextMediaItem)
+
+                                        val cn = mediaController.mediaItemCount
+                                        if (cn == 4) {
+                                            mediaController.removeMediaItem(0)
+                                        }
+                                    }
+                                }else{
+                                    mediaController.removeMediaItem(0)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            Log.d("TRD","${searchHelper.overrunTop}, ${searchHelper.overrunBottom}")
+        }
+
+//                    override fun onPlaybackStateChanged(playbackState: Int) {
+//                        super.onPlaybackStateChanged(playbackState)
+//                        if(playbackState == Player.STATE_READY){
+//                            val md = mediaController.mediaMetadata()
+//                        }
+//                    }
+
+        override fun onEvents(player: Player, events: Player.Events) {
+            super.onEvents(player, events)
+
+//                        if(events.contains(Player.EVENT_AUDIO_SESSION_ID)){
+//                            val eq = Equalizer(0,0)//player.audioSessionId)
+//
+//                        }
+
+            if(events.contains(Player.EVENT_PLAYBACK_STATE_CHANGED)){
+                if(player.playbackState == Player.STATE_READY){
+                    updateMediaData(player)
+                }
+            }
+
+            if (events.contains(Player.EVENT_MEDIA_ITEM_TRANSITION)) {
+                if (player.playbackState == Player.STATE_READY) {
+                    updateMediaData(player)
+                }
+            }
+        }
+
+    }
+
+
+
+    //    @OptIn(UnstableApi::class)
 //    @RequiresExtension(extension = Build.VERSION_CODES.R, version = 1)
-    init{
+    init {
 
 //        if(::mediaController.isInitialized){
 //            return
@@ -269,10 +445,10 @@ class MediaViewModel @Inject constructor(
 //            // MediaController is available here with controllerFuture.get()
 //            mediaController = controllerFuture.get()
 
-            _isPlaying.value = mediaController.isPlaying
-            if(mediaController.isPlaying){
-                updateMediaData(mediaController)
-            }
+        _isPlaying.value = mediaController.isPlaying
+        if (mediaController.isPlaying) {
+            updateMediaData(mediaController)
+        }
 
 //            val token = mediaController.connectedToken
 //            if(token != null && token.uid != 0) {
@@ -322,18 +498,19 @@ class MediaViewModel @Inject constructor(
 ////
 //            }
 //
-            Log.d("DLM","Mediaacontroller: $mediaController")
-            mediaController.addListener(playerListener)
-            PlayerMSSReleaseApplication.lastListener?.let {
-                lastMediaController?.removeListener(it)
-            }
-            PlayerMSSReleaseApplication.lastListener = playerListener
-            lastMediaController = mediaController
+        Log.d("DLM", "Mediaacontroller: $mediaController")
+        mediaController.addListener(playerListener)
 
-            mediaController.repeatMode = playerRepeatMode.value
-            _progressTitle.value = ""
+        PlayerMSSReleaseApplication.lastListener?.let {
+            lastMediaController?.removeListener(it)
+        }
+        PlayerMSSReleaseApplication.lastListener = playerListener
+        lastMediaController = mediaController
 
-        }, MoreExecutors.directExecutor())
+        mediaController.repeatMode = playerRepeatMode.value
+        _progressTitle.value = ""
+
+//        }, MoreExecutors.directExecutor())
 
 
         viewModelScope.launch {
@@ -341,267 +518,81 @@ class MediaViewModel @Inject constructor(
         }
 
 
-        viewModelScope.launch {
-            playerRepeatMode.collect { newRepeatMode ->
-                if(::mediaController.isInitialized) {
-                    mediaController.repeatMode = newRepeatMode
-                }
 
-            mediaController.addListener(
-                object : Player.Listener {
 
-                    override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
-                        super.onPlayWhenReadyChanged(playWhenReady, reason)
-//                        val token2 = mediaController?.connectedToken
-//                        if(token2 != null && token2.uid != 0) {
-//                            visualizer = Visualizer(0)
-//                            val eq = Equalizer(0,token2.uid)
-//                        }
 
-                    }
-//                    override fun onAudioSessionIdChanged(audioSessionId: Int) {
-//                        super.onAudioSessionIdChanged(audioSessionId)
-//
-//                        val eq = Equalizer(0,audioSessionId)
-//
-//                    }
-                    override fun onPlayerError(error: PlaybackException) {
-                        val cause = error.cause
-                        if (cause is HttpDataSource.HttpDataSourceException) {
-                            // An HTTP error occurred.
-                            val httpError = cause
-                            // It's possible to find out more about the error both by casting and by querying
-                            // the cause.
-                            if (httpError is HttpDataSource.InvalidResponseCodeException) {
-                                // Cast to InvalidResponseCodeException and retrieve the response code, message
-                                // and headers.
-                            } else {
-                                // Try calling httpError.getCause() to retrieve the underlying cause, although
-                                // note that it may be null.
-                            }
-                        }
-                        mediaController.seekToNext()
-                        mediaController.prepare()
-                        mediaController.play()
-                    }
-
-                    override fun onMediaMetadataChanged(mediaMetadata: MediaMetadata) {
-//                        _currentTrackMediaMetadata.value = mediaMetadata
-                        Log.d("DMG", "mediaData changed")
-                    }
-
-                    override fun onIsPlayingChanged(isPlaying: Boolean) {
-                        super.onIsPlayingChanged(isPlaying)
-                        _isPlaying.value = isPlaying
-
-                        if(::visualizer.isInitialized) {
-                            visualizer.setEnabled(isPlaying)
-                        }
-                    }
-
-                    override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
-                        super.onMediaItemTransition(mediaItem, reason)
-
-                        Log.d("DLM","hello from listener $this")
-
-                        if(reason == 1){ //transition to next
-                            prevMediaTrackData = currentMediaTrackData
-                            currentMediaTrackData = nextMediaTrackData
-
-                            checkTrackListScrollDown()
-                            expandArtistAlbumFor(currentMediaTrackData)
-                            setPlayingItemId(currentMediaTrackData?.getHash())
-
-                            nextMediaTrackData = searchHelper.getNext(nextMediaTrackData)
-                            val nextMediaItem = nextMediaTrackData?.uri?.let { MediaItem.fromUri(it) }
-                            if (nextMediaItem != null) {
-                                mediaController.removeMediaItem(0)
-                                mediaController.addMediaItem(nextMediaItem)
-                            }
+                viewModelScope.launch {
+                    playerRepeatMode.collect { newRepeatMode ->
+                        if (::mediaController.isInitialized) {
+                            mediaController.repeatMode = newRepeatMode
                         }
 
-                        if(reason == 2){ //seek to prev, next buttons
+                        if (this@MediaViewModel::searchHelper.isInitialized) {
+                            searchHelper.setRepeatMode(newRepeatMode)
 
-                            if(mediaController.mediaItemCount > 0) {
-                                val firstMediaItem = mediaController.getMediaItemAt(0)
-//prev
-                                if (mediaItem == firstMediaItem) {
-                                    nextMediaTrackData = currentMediaTrackData
-                                    currentMediaTrackData = prevMediaTrackData
+                            if (currentMediaTrackData != null) {
 
-                                    checkTrackListScrollUp()
-                                    expandArtistAlbumFor(currentMediaTrackData)
-                                    setPlayingItemId(currentMediaTrackData?.getHash())
+                                if (newRepeatMode == Player.REPEAT_MODE_ALL && nextMediaTrackData == null) {  //current is last
+                                    nextMediaTrackData = searchHelper.getNext(currentMediaTrackData)
 
-                                    prevMediaTrackData = searchHelper.getPrev(prevMediaTrackData)
-                                    val prevMediaItem = prevMediaTrackData?.uri?.let { MediaItem.fromUri(it) }
-
-                                    if (prevMediaItem != null) {
-                                        mediaController.addMediaItem(0, prevMediaItem)
-
-                                        val cn = mediaController.mediaItemCount
-                                        if (cn == 4) {
-                                            mediaController.removeMediaItem(3)
-                                        }
-                                    }else{
-                                        val cn = mediaController.mediaItemCount
-                                        if(cn != 0) {
-                                            mediaController.removeMediaItem(cn - 1)
-                                        }
-                                    }
-
-                                }else{
-//next?
-                                    val lastIemIndex = mediaController.mediaItemCount - if (mediaController.mediaItemCount > 0) 1 else 0
-                                    val lastMediaItem = mediaController.getMediaItemAt(lastIemIndex)
-
-                                    if (mediaItem == lastMediaItem) {
-//next
-                                        if (nextMediaTrackData != null) {
-
-                                            prevMediaTrackData = currentMediaTrackData
-                                            currentMediaTrackData = nextMediaTrackData
-
-                                            checkTrackListScrollDown()
-                                            expandArtistAlbumFor(currentMediaTrackData)
-                                            setPlayingItemId(currentMediaTrackData?.getHash())
-
-                                            nextMediaTrackData = searchHelper.getNext(nextMediaTrackData)
-
-                                            if (nextMediaTrackData != null) {
-                                                val nextMediaItem = nextMediaTrackData?.uri?.let { MediaItem.fromUri(it) }
-
-                                                if (nextMediaItem != null) {
-                                                    mediaController.addMediaItem(nextMediaItem)
-
-                                                    val cn = mediaController.mediaItemCount
-                                                    if (cn == 4) {
-                                                        mediaController.removeMediaItem(0)
-                                                    }
-                                                }
-                                            }else{
-                                                mediaController.removeMediaItem(0)
+                                    nextMediaTrackData?.let {
+                                        it.uri?.let { uri ->
+                                            MediaItem.fromUri(uri).let { mediaItem ->
+                                                mediaController.addMediaItem(mediaItem)
                                             }
                                         }
                                     }
                                 }
-                            }
-                        }
-                        Log.d("TRD","${searchHelper.overrunTop}, ${searchHelper.overrunBottom}")
-                    }
 
-//                    override fun onPlaybackStateChanged(playbackState: Int) {
-//                        super.onPlaybackStateChanged(playbackState)
-//                        if(playbackState == Player.STATE_READY){
-//                            val md = mediaController.mediaMetadata()
-//                        }
-//                    }
+                                if (newRepeatMode == Player.REPEAT_MODE_ALL && prevMediaTrackData == null) {  //current is first
+                                    prevMediaTrackData = searchHelper.getPrev(currentMediaTrackData)
 
-                    override fun onEvents(player: Player, events: Player.Events) {
-                        super.onEvents(player, events)
-
-//                        if(events.contains(Player.EVENT_AUDIO_SESSION_ID)){
-//                            val eq = Equalizer(0,0)//player.audioSessionId)
-//
-//                        }
-
-                        if(events.contains(Player.EVENT_PLAYBACK_STATE_CHANGED)){
-                            if(player.playbackState == Player.STATE_READY){
-                                updateMediaData(player)
-                            }
-                        }
-
-                        if (events.contains(Player.EVENT_MEDIA_ITEM_TRANSITION)) {
-                            if (player.playbackState == Player.STATE_READY) {
-                                updateMediaData(player)
-                            }
-                        }
-                    }
-
-                }
-            )
-
-            mediaController.repeatMode = playerRepeatMode.value
-            _progressTitle.value = ""
-
-        }, MoreExecutors.directExecutor())
-
-
-        viewModelScope.launch {
-            _scrollPos.value = userScrollPos.first()
-        }
-
-
-        viewModelScope.launch {
-            playerRepeatMode.collect { newRepeatMode ->
-                if(::mediaController.isInitialized) {
-                    mediaController.repeatMode = newRepeatMode
-                }
-
-                if(this@MediaViewModel::searchHelper.isInitialized) {
-                    searchHelper.setRepeatMode(newRepeatMode)
-
-                    if(currentMediaTrackData != null) {
-
-                        if (newRepeatMode == Player.REPEAT_MODE_ALL && nextMediaTrackData == null) {  //current is last
-                            nextMediaTrackData = searchHelper.getNext(currentMediaTrackData)
-
-                            nextMediaTrackData?.let{
-                                it.uri?.let{
-                                    uri -> MediaItem.fromUri(uri).let{
-                                        mediaItem -> mediaController.addMediaItem(mediaItem)
+                                    prevMediaTrackData?.let {
+                                        it.uri?.let { uri ->
+                                            MediaItem.fromUri(uri).let { mediaItem ->
+                                                mediaController.addMediaItem(0, mediaItem)
+                                            }
+                                        }
                                     }
                                 }
-                            }
-                        }
 
-                        if (newRepeatMode == Player.REPEAT_MODE_ALL && prevMediaTrackData == null) {  //current is first
-                            prevMediaTrackData = searchHelper.getPrev(currentMediaTrackData)
+                                if (newRepeatMode == Player.REPEAT_MODE_OFF) {
 
-                            prevMediaTrackData?.let{
-                                it.uri?.let{
-                                    uri -> MediaItem.fromUri(uri).let{
-                                        mediaItem -> mediaController.addMediaItem(0, mediaItem)
+                                    if (searchHelper.overrunTop) {
+                                        searchHelper.overrunTop = false
+                                        mediaController.removeMediaItem(0)
+                                        prevMediaTrackData = null
                                     }
-                                }
-                            }
-                        }
 
-                        if(newRepeatMode == Player.REPEAT_MODE_OFF){
+                                    if (searchHelper.overrunBottom) {
+                                        searchHelper.overrunBottom = false
+                                        val cnt = mediaController.mediaItemCount
+                                        if (cnt != 0) {
+                                            mediaController.removeMediaItem(cnt - 1)
+                                            nextMediaTrackData = null
+                                        }
+                                    }
 
-                            if(searchHelper.overrunTop){
-                                searchHelper.overrunTop = false
-                                mediaController.removeMediaItem(0)
-                                prevMediaTrackData = null
-                            }
-
-                            if(searchHelper.overrunBottom){
-                                searchHelper.overrunBottom = false
-                                val cnt = mediaController.mediaItemCount
-                                if(cnt != 0) {
-                                    mediaController.removeMediaItem(cnt - 1)
-                                    nextMediaTrackData = null
                                 }
                             }
 
                         }
                     }
-
                 }
-            }
-        }
 
-        viewModelScope.launch {
-            querySortedResults.collect{
-                searchHelper = SearchHelper(it)
-                searchHelper.setRepeatMode(playerRepeatMode.value)
+                viewModelScope.launch {
+                    querySortedResults.collect {
+                        searchHelper = SearchHelper(it)
+                        searchHelper.setRepeatMode(playerRepeatMode.value)
 
-                if(it.size == 1){
-                    expandedArtists.add(it[0].first)
+                        if (it.size == 1) {
+                            expandedArtists.add(it[0].first)
+                        }
+                    }
                 }
-            }
-        }
-    }
+
+
+    }//init
 
     fun checkTrackListScrollUp() {
         if (searchHelper.checkOverrunsFromTopToBottom()) {

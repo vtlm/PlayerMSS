@@ -29,11 +29,6 @@ import java.io.OutputStream
 
 @HiltAndroidApp
 class PlayerMSSReleaseApplication: Application() {
-    companion object {
-
-        var lastListener: Player.Listener? = null
-        var lastMediaController: MediaController? = null
-    }
 //    lateinit var userPreferencesRepository: com.example.playermss.data.UserPreferencesRepository
 //    lateinit var userDataRepository: com.example.playermss.data.UserDataRepository
 //
@@ -57,8 +52,8 @@ class PlayerMSSReleaseApplication: Application() {
         // MediaController is available here with controllerFuture.get()
         mediaController = controllerFuture.get()
 
-        mediaController.removeListener(listener)
-        mediaController.addListener(listener)
+//        mediaController.removeListener(listener)
+//        mediaController.addListener(listener)
 
 
     }, MoreExecutors.directExecutor())
@@ -66,6 +61,8 @@ class PlayerMSSReleaseApplication: Application() {
     companion object {
         lateinit var appContext: Context
         lateinit var mediaController: MediaController
+        var lastListener: Player.Listener? = null
+        var lastMediaController: MediaController? = null
     }
 
 }
