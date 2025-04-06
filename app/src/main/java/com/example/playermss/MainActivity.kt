@@ -98,6 +98,8 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        mediaViewModel.setUserScrollPos(0)
+
 // Register the permissions callback, which handles the user's response to the
 // system permissions dialog. Save the return value, an instance of
 // ActivityResultLauncher. You can use either a val, as shown in this snippet,
@@ -118,8 +120,7 @@ class MainActivity : ComponentActivity() {
                 }
 
                 if(_permissionsGranted.value){
-                    this.applicationContext.also { mediaViewModel.context = it }
-                    mediaViewModel.init()
+                    mediaViewModel.setUserScrollPos(0)
                     lifecycle.addObserver(mediaViewModel)
                 }
             }
@@ -140,6 +141,7 @@ class MainActivity : ComponentActivity() {
 //        enableEdgeToEdge()
         setContent {
             AppTheme {
+//                Text("hey")
                 MainU(permissionsGranted.collectAsState().value)
             }
         }

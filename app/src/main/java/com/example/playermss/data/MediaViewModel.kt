@@ -39,6 +39,7 @@ import com.example.playermss.imageBitmapFromBytes
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -76,7 +77,8 @@ data class MediaScannerResults(
 @HiltViewModel
 class MediaViewModel @Inject constructor(
     private val userPreferencesRepository: UserPreferencesRepository,
-    private val userDataRepository: UserDataRepository
+    private val userDataRepository: UserDataRepository,
+    @ApplicationContext val context: Context
 ): ViewModel(), DefaultLifecycleObserver {
 
     private lateinit var controllerFuture: ListenableFuture<MediaController>
@@ -144,7 +146,7 @@ class MediaViewModel @Inject constructor(
         QueryTextField("FileSystem Path", userPreferencesRepository, viewModelScope),
     )
 
-    lateinit var context: Context
+//    lateinit var context: Context
 
     private var _sleevePicture = MutableStateFlow<ImageBitmap?>(null)
     val sleevePicture: StateFlow<ImageBitmap?> = _sleevePicture.asStateFlow()
@@ -246,13 +248,13 @@ class MediaViewModel @Inject constructor(
         }
     }
 
-    @OptIn(UnstableApi::class)
-    @RequiresExtension(extension = Build.VERSION_CODES.R, version = 1)
-    fun init(){
+//    @OptIn(UnstableApi::class)
+//    @RequiresExtension(extension = Build.VERSION_CODES.R, version = 1)
+    init{
 
-        if(::mediaController.isInitialized){
-            return
-        }
+//        if(::mediaController.isInitialized){
+//            return
+//        }
 
         _progressTitle.value = "Loading MediaSession"
 
