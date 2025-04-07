@@ -86,7 +86,9 @@ private fun Context.getSessionActivityIntent(): PendingIntent {
     return PendingIntent.getActivity(
         this,
         0,
-        Intent(this, MainActivity::class.java),
-        PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        Intent(this, MainActivity::class.java)
+            .setAction(Intent.ACTION_MAIN)
+            .addCategory(Intent.CATEGORY_LAUNCHER),
+        PendingIntent.FLAG_CANCEL_CURRENT and PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
     )
 }

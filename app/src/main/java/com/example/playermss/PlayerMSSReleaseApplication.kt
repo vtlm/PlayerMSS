@@ -5,6 +5,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.util.Log
 import androidx.media3.common.Player
+import androidx.media3.common.Player.Listener
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import com.example.playermss.data.MediaViewModel
@@ -37,6 +38,8 @@ class PlayerMSSReleaseApplication: Application() {
 //        userPreferencesRepository = com.example.playermss.data.UserPreferencesRepository(dataStore)
 //        userDataRepository = com.example.playermss.data.UserDataRepository(appDataStore)
 //    }
+
+
     override fun onCreate() {
     super.onCreate()
 
@@ -58,11 +61,28 @@ class PlayerMSSReleaseApplication: Application() {
 
     }, MoreExecutors.directExecutor())
 }
+
+
     companion object {
+        var prevListener: Player.Listener? = null
+
         lateinit var appContext: Context
         lateinit var mediaController: MediaController
-        var lastListener: Player.Listener? = null
-        var lastMediaController: MediaController? = null
+//        var lastListener: Player.Listener
+//        var lastMediaController: MediaController? = null
+
+        fun isMediaControllerInitialized(): Boolean{
+            return ::mediaController.isInitialized
+        }
+
+        fun setPlayerListener(listener: Player.Listener){
+            prevListener?.let{
+                mediaController.removeListener(prevListener!!)
+            }
+            mediaController.addListener(listener)
+            prevListener = listener
+        }
+
     }
 
 }
