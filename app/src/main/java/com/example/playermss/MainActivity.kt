@@ -187,7 +187,6 @@ class MainActivity : ComponentActivity() {
         super.onDestroy()
     }
 
-
     //todo: to coroutine
     @RequiresApi(Build.VERSION_CODES.Q)
     private val addTracks =
@@ -198,34 +197,7 @@ class MainActivity : ComponentActivity() {
                     // Perform operations on the document using its URI.
                     Log.d("DBG", directoryUri.toString())
                     mediaViewModel.runScanFilesInDir(directoryUri, application)
-
-//                    val documentsTree = DocumentFile.fromTreeUri(application, directoryUri)
-//                    val paths = documentsTree?.listFiles()
-//                        //todo: add media extension
-//                        ?.filter { it.uri.toString().endsWith("mp3") }
-//                        ?.map{DocumentFileCompat.fromUri(applicationContext,it.uri)}
-//                        ?.map{it?.getAbsolutePath(applicationContext)}
-//                        ?.toTypedArray()
-
-//                    MediaScannerConnection.scanFile(applicationContext,paths,
-//                        arrayOf("audio/mp3","*/*"),
-//                        object: MediaScannerConnectionClient {
-//                            override fun onScanCompleted(path: String?, uri: Uri?) {
-////                            TODO("Not yet implemented")
-//                                Log.d("DMS","Scan completed: uri: $uri, path $path")
-//                                Log.d("MVMR","after scan")
-////                                mediaViewModel.query()
-//
-//                            }
-//
-//                            override fun onMediaScannerConnected() {
-////                            TODO("Not yet implemented")
-//                                Log.d("DMS","Scanner connected")
-//                            }
-//                        })
                 }
-                Log.d("MVMR","after scan")
-//                mediaViewModel.query()
             }
         }
 
@@ -247,15 +219,15 @@ class MainActivity : ComponentActivity() {
                 onDismissRequest = { expanded = false },
 
                 ) {
-                DropdownMenuItem(
-                    text = { Text("Clear") },
-                    onClick = {
-//                        trackList?.clear()
-                        mediaViewModel.mediaController.clearMediaItems()
-//                        mediaViewModel.removeQuery(searchFields)
-                        expanded = false
-                    }
-                )
+//                DropdownMenuItem(
+//                    text = { Text("Clear") },
+//                    onClick = {
+////                        trackList?.clear()
+//                        mediaViewModel.mediaController.clearMediaItems()
+////                        mediaViewModel.removeQuery(searchFields)
+//                        expanded = false
+//                    }
+//                )
                 DropdownMenuItem(
                     text = { Text("Add dir") },
                     onClick = {
@@ -339,10 +311,10 @@ class MainActivity : ComponentActivity() {
     fun SearchScreen(onNav: () -> Unit){
         ShowProgressOrContent(mediaViewModel.progressTitle.collectAsState().value) {
 
-
             val currentTrackMediaMetadata = mediaViewModel.currentTrackMediaMetadata.collectAsState().value
             val isSearchOpen = mediaViewModel.isSearchVisible.collectAsState().value
             val isVisualizerVisible = mediaViewModel.isVisualizerVisible.collectAsState().value
+            val sleevePicture = mediaViewModel.sleevePicture.collectAsState().value
 
             Scaffold(
 //            bottomBar = {
@@ -392,7 +364,18 @@ class MainActivity : ComponentActivity() {
                         Row(Modifier.weight(7f)) {
                             Column(Modifier.fillMaxSize()) {
                                 Row(Modifier.weight(1f)) {
-                                    SleevePicture(mediaViewModel.sleevePicture.collectAsState().value)
+                                    if(sleevePicture != null) {
+                                        SleevePicture(mediaViewModel.sleevePicture.collectAsState().value)
+                                    }else{
+                                        Box(
+                                            contentAlignment = Alignment.Center,
+                                            modifier = Modifier.fillMaxSize()
+                                                .background(color = MaterialTheme.colorScheme.background)
+                                        ) {
+
+                                            TrackInfo(currentTrackMediaMetadata)
+                                        }
+                                    }
                                 }
                                 Row(Modifier.weight(1f)) {
                                     ShowQueryResults(

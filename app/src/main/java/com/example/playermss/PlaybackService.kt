@@ -34,21 +34,10 @@ class PlaybackService : MediaSessionService() {
              .build()
          Log.d("OC","Playback service created")
 
-
-//        val mainHandler = Handler(mainLooper)
-//        mainHandler.post { // Do your stuff here related to UI, e.g. show toast
-//            Toast.makeText(applicationContext, "Playback service created", Toast.LENGTH_LONG).show()
-//        }
     }
 
     // The user dismissed the app from the recent tasks
     override fun onTaskRemoved(rootIntent: Intent?) {
-
-//        val mainHandler: Handler = Handler(mainLooper)
-//
-//        mainHandler.post(Runnable { // Do your stuff here related to UI, e.g. show toast
-//            Toast.makeText(applicationContext, "I'm a toast!, removed", Toast.LENGTH_LONG).show()
-//        })
 
         val player = mediaSession.player
         if (!player.playWhenReady
@@ -77,7 +66,6 @@ class PlaybackService : MediaSessionService() {
         }
         super.onDestroy()
         Log.d("MSS","destroyed")
-
     }
 }
 
@@ -89,6 +77,6 @@ private fun Context.getSessionActivityIntent(): PendingIntent {
         Intent(this, MainActivity::class.java)
             .setAction(Intent.ACTION_MAIN)
             .addCategory(Intent.CATEGORY_LAUNCHER),
-        PendingIntent.FLAG_CANCEL_CURRENT and PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
     )
 }

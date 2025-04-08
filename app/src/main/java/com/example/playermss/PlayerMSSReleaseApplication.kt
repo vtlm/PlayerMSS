@@ -3,16 +3,11 @@ package com.example.playermss
 import android.app.Application
 import android.content.ComponentName
 import android.content.Context
-import android.util.Log
 import androidx.media3.common.Player
-import androidx.media3.common.Player.Listener
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
-import com.example.playermss.data.MediaViewModel
 import com.google.common.util.concurrent.MoreExecutors
 import dagger.hilt.android.HiltAndroidApp
-import java.io.InputStream
-import java.io.OutputStream
 
 
 /*
@@ -39,37 +34,30 @@ class PlayerMSSReleaseApplication: Application() {
 //        userDataRepository = com.example.playermss.data.UserDataRepository(appDataStore)
 //    }
 
-
     override fun onCreate() {
-    super.onCreate()
+        super.onCreate()
 
-    val sessionToken =
-        SessionToken(
-            applicationContext,
-            ComponentName(applicationContext, PlaybackService::class.java)
-        )
+        val sessionToken =
+            SessionToken(
+                applicationContext,
+                ComponentName(applicationContext, PlaybackService::class.java)
+            )
 
-    val controllerFuture = MediaController.Builder(applicationContext, sessionToken).buildAsync()
+        val controllerFuture = MediaController.Builder(applicationContext, sessionToken).buildAsync()
 
-    controllerFuture.addListener({
-        // MediaController is available here with controllerFuture.get()
-        mediaController = controllerFuture.get()
+        controllerFuture.addListener({
+            // MediaController is available here with controllerFuture.get()
+            mediaController = controllerFuture.get()
 
-//        mediaController.removeListener(listener)
-//        mediaController.addListener(listener)
-
-
-    }, MoreExecutors.directExecutor())
-}
+        }, MoreExecutors.directExecutor())
+    }
 
 
     companion object {
-        var prevListener: Player.Listener? = null
+        private var prevListener: Player.Listener? = null
 
         lateinit var appContext: Context
         lateinit var mediaController: MediaController
-//        var lastListener: Player.Listener
-//        var lastMediaController: MediaController? = null
 
         fun isMediaControllerInitialized(): Boolean{
             return ::mediaController.isInitialized
@@ -82,7 +70,6 @@ class PlayerMSSReleaseApplication: Application() {
             mediaController.addListener(listener)
             prevListener = listener
         }
-
     }
 
 }
