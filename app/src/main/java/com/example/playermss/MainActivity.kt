@@ -3,9 +3,11 @@ package com.example.playermss
 //import androidx.compose.material.icons.
 import android.app.Activity
 import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.DocumentsContract
+import android.provider.Settings
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -56,6 +58,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.media3.common.util.UnstableApi
@@ -70,6 +73,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.serialization.Serializable
+import kotlin.system.exitProcess
 
 //todo
 //rotation (face state, remember)
@@ -92,14 +96,36 @@ class MainActivity : ComponentActivity() {
 
     var _permissionsGranted = MutableStateFlow(false)
     val permissionsGranted = _permissionsGranted.asStateFlow()
+    var isReCheckPermissions = false
 
     @RequiresExtension(extension = Build.VERSION_CODES.R, version = 1)
     @RequiresApi(Build.VERSION_CODES.Q)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        mediaViewModel.setUserScrollPos(0)
+//        mediaViewModel.setUserScrollPos(0)
+        checkPermissions()
 
+
+//        enableEdgeToEdge()
+        setContent {
+            AppTheme {
+//                Text("hey")
+                MainU(permissionsGranted.collectAsState().value)
+            }
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        Log.d("DPR","onResume")
+        if(isReCheckPermissions){
+            isReCheckPermissions = false
+            checkPermissions()
+        }
+    }
+
+    fun checkPermissions(){
 // Register the permissions callback, which handles the user's response to the
 // system permissions dialog. Save the return value, an instance of
 // ActivityResultLauncher. You can use either a val, as shown in this snippet,
@@ -125,26 +151,18 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-            val requiredPermissions: MutableList<String> = mutableListOf()
+        val requiredPermissions: MutableList<String> = mutableListOf()
 
-            checkIsPermissionGranted(android.Manifest.permission.RECORD_AUDIO, requiredPermissions)
-            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
-                checkIsPermissionGranted(android.Manifest.permission.READ_EXTERNAL_STORAGE, requiredPermissions)
-            }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                checkIsPermissionGranted(android.Manifest.permission.READ_MEDIA_AUDIO, requiredPermissions)
-            }
-
-            requestPermissionLauncher.launch(requiredPermissions.toTypedArray())
-
-
-//        enableEdgeToEdge()
-        setContent {
-            AppTheme {
-//                Text("hey")
-                MainU(permissionsGranted.collectAsState().value)
-            }
+        checkIsPermissionGranted(android.Manifest.permission.RECORD_AUDIO, requiredPermissions)
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            checkIsPermissionGranted(android.Manifest.permission.READ_EXTERNAL_STORAGE, requiredPermissions)
         }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            checkIsPermissionGranted(android.Manifest.permission.READ_MEDIA_AUDIO, requiredPermissions)
+        }
+
+        requestPermissionLauncher.launch(requiredPermissions.toTypedArray())
+
     }
 
     fun checkIsPermissionGranted(permission: String, collector: MutableList<String>){
@@ -169,12 +187,63 @@ class MainActivity : ComponentActivity() {
     fun MainU(permissionsGranted: Boolean){
         when(permissionsGranted) {
          false -> {
-             Box(
-                 contentAlignment = Alignment.Center,
-                 modifier = Modifier.fillMaxSize()
-                     .background(color = MaterialTheme.colorScheme.background)
-             ) {
-                 Text("wait for permissions")
+             Column {
+                Row(Modifier.weight(1f)) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(color = MaterialTheme.colorScheme.background)
+                    ) {
+
+                        Text(
+                            color = MaterialTheme.colorScheme.onBackground,
+                            fontSize = MaterialTheme.typography.headlineSmall.fontSize,
+                            text = resources.getString(R.string.wait_for_permissions)
+                        )
+                    }
+                }
+                 Row(Modifier.weight(1f)){
+                     Box(
+                         contentAlignment = Alignment.Center,
+                         modifier = Modifier
+                             .fillMaxSize()
+                             .background(color = MaterialTheme.colorScheme.background)
+                     ) {
+
+                         Text(
+                             color = MaterialTheme.colorScheme.onBackground,
+                             fontSize = MaterialTheme.typography.headlineSmall.fontSize,
+                             text = resources.getString(R.string.wait_for_permissions)
+                         )
+                     }
+
+                 }
+                 Row(Modifier.weight(1f)){
+                     Box(
+                         contentAlignment = Alignment.Center,
+                         modifier = Modifier
+                             .fillMaxSize()
+                             .background(color = MaterialTheme.colorScheme.background)
+                     ) {
+
+                        Column{
+                            Button(onClick = {
+                                isReCheckPermissions = true
+//                                reCheckPermissions.launch(Intent().apply {
+//                                    action = Settings.ACTION_APPLICATION_DETAILS_SETTINGS
+//                                    data = Uri.fromParts("package", packageName, null)
+//                                })
+                            }) { Text(text = "Enable")}
+                            Button(onClick = {
+//                                finishAffinity();
+                                finishAndRemoveTask()
+                                exitProcess(0);
+                            }) { Text(text = "Leave")}
+                        }
+                     }
+
+                 }
              }
          }
          true -> {
@@ -183,11 +252,44 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+@Preview
+@Composable
+fun PermScreen(){
+//    Box(
+//        contentAlignment = Alignment.Center,
+//        modifier = Modifier.fillMaxSize()
+//            .background(color = MaterialTheme.colorScheme.background)
+//    ) {
+//
+//        Text(color = MaterialTheme.colorScheme.onBackground,
+//            fontSize = MaterialTheme.typography.headlineSmall.fontSize,
+//            text = resources.getString(R.string.wait_for_permissions))
+//    }
+        Text(color = MaterialTheme.colorScheme.onBackground,
+            fontSize = MaterialTheme.typography.headlineSmall.fontSize,
+            text = resources.getString(R.string.wait_for_permissions))
+
+}
+
     override fun onDestroy() {
         super.onDestroy()
     }
 
     //todo: to coroutine
+    @RequiresApi(Build.VERSION_CODES.Q)
+    private val reCheckPermissions =
+        registerForActivityResult(
+            ActivityResultContracts.StartActivityForResult()) { result ->
+            Log.d("DPR","in afterPermissions $result")
+//            checkPermissions()
+//            triggerRestart(this)
+            if(result.resultCode == RESULT_OK){
+                result.data?.data?.also {
+                    Log.d("DPR","afterPermissions")
+                }
+            }
+        }
+
     @RequiresApi(Build.VERSION_CODES.Q)
     private val addTracks =
         registerForActivityResult(
@@ -369,7 +471,8 @@ class MainActivity : ComponentActivity() {
                                     }else{
                                         Box(
                                             contentAlignment = Alignment.Center,
-                                            modifier = Modifier.fillMaxSize()
+                                            modifier = Modifier
+                                                .fillMaxSize()
                                                 .background(color = MaterialTheme.colorScheme.background)
                                         ) {
 

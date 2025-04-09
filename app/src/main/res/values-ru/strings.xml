@@ -1,5 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">PlayerMSS</string>
-    <string name="wait_for_permissions">wait for permissions</string>
+    <string name="wait_for_permissions">Предоставьте разрешения</string>
     <string name="LoadingMediaSession">Loading MediaSession</string>
 </resources>
