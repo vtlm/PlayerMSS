@@ -2,5 +2,8 @@
 <resources>
     <string name="app_name">PlayerMSS</string>
     <string name="wait_for_permissions">Предоставьте разрешения</string>
-    <string name="LoadingMediaSession">Loading MediaSession</string>
+    <string name="checking_permissions">Проверка разрешений</string>
+    <string name="Loading_MediaSession">Загружается МедиаСессия</string>
+    <string name="Go_To_Settings">Перейти к настройкам</string>
+    <string name="Exit">Выйти</string>
 </resources>

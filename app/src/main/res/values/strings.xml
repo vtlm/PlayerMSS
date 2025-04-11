@@ -1,5 +1,8 @@
 <resources>
     <string name="app_name">PlayerMSS</string>
     <string name="wait_for_permissions">wait for permissions</string>
-    <string name="LoadingMediaSession">Loading MediaSession</string>
+    <string name="checking_permissions">Checking permissions</string>
+    <string name="Loading_MediaSession">Loading MediaSession</string>
+    <string name="Go_To_Settings">Go_To_Settings</string>
+    <string name="Exit">Exit</string>
 </resources>

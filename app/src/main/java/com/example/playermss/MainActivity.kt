@@ -3,6 +3,7 @@ package com.example.playermss
 //import androidx.compose.material.icons.
 import android.app.Activity
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -94,9 +95,18 @@ class MainActivity : ComponentActivity() {
 
     val mediaViewModel:MediaViewModel by viewModels()
 
-    var _permissionsGranted = MutableStateFlow(false)
-    val permissionsGranted = _permissionsGranted.asStateFlow()
-    var isReCheckPermissions = false
+    private var _permissionsChecking = MutableStateFlow(true)
+    private val permissionsChecking = _permissionsChecking.asStateFlow()
+
+    private var _statusString = MutableStateFlow("")
+    private val statusString = _statusString.asStateFlow()
+
+    private var _permissionsGranted = MutableStateFlow(false)
+    private val permissionsGranted = _permissionsGranted.asStateFlow()
+
+    private var isReCheckPermissions = false
+
+    private val neededPermissions:  MutableList<String> = mutableListOf("")
 
     @RequiresExtension(extension = Build.VERSION_CODES.R, version = 1)
     @RequiresApi(Build.VERSION_CODES.Q)
@@ -105,7 +115,6 @@ class MainActivity : ComponentActivity() {
 
 //        mediaViewModel.setUserScrollPos(0)
         checkPermissions()
-
 
 //        enableEdgeToEdge()
         setContent {
@@ -125,31 +134,39 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    fun checkPermissions(){
-// Register the permissions callback, which handles the user's response to the
+    // Register the permissions callback, which handles the user's response to the
 // system permissions dialog. Save the return value, an instance of
 // ActivityResultLauncher. You can use either a val, as shown in this snippet,
 // or a lateinit var in your onAttach() or onCreate() method.
-        val requestPermissionLauncher =
-            registerForActivityResult(
-                ActivityResultContracts.RequestMultiplePermissions()
-            ) { permissions ->
-                _permissionsGranted.value = true
-                permissions.entries.forEach {
-                    Log.i("DEBUG", "${it.key} = ${it.value}")
-                    if (it.value) {
-                        println("Successful......")
+    private val requestPermissionLauncher =
+        registerForActivityResult(
+            ActivityResultContracts.RequestMultiplePermissions()
+        ) { permissions ->
+            neededPermissions.clear()
+            _permissionsGranted.value = true
+            permissions.entries.forEach {
+                Log.i("DEBUG", "${it.key} = ${it.value}")
+                if (it.value) {
+                    println("Successful......")
 
-                    }else{
-                        _permissionsGranted.value = false
-                    }
-                }
-
-                if(_permissionsGranted.value){
-                    mediaViewModel.setUserScrollPos(0)
-                    lifecycle.addObserver(mediaViewModel)
+                }else{
+                    neededPermissions += it.key
+                    _permissionsGranted.value = false
                 }
             }
+
+            if(_permissionsGranted.value){
+                mediaViewModel.setUserScrollPos(0)
+                lifecycle.addObserver(mediaViewModel)
+            }
+
+            _statusString.value = ""
+        }
+
+
+    private fun checkPermissions(){
+
+        _statusString.value = resources.getString(R.string.checking_permissions)
 
         val requiredPermissions: MutableList<String> = mutableListOf()
 
@@ -165,7 +182,7 @@ class MainActivity : ComponentActivity() {
 
     }
 
-    fun checkIsPermissionGranted(permission: String, collector: MutableList<String>){
+    private fun checkIsPermissionGranted(permission: String, collector: MutableList<String>){
         if(ContextCompat.checkSelfPermission(applicationContext, permission) == -1){
             collector += permission
         }
@@ -185,69 +202,14 @@ class MainActivity : ComponentActivity() {
     @RequiresApi(Build.VERSION_CODES.Q)
     @Composable
     fun MainU(permissionsGranted: Boolean){
-        when(permissionsGranted) {
-         false -> {
-             Column {
-                Row(Modifier.weight(1f)) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(color = MaterialTheme.colorScheme.background)
-                    ) {
-
-                        Text(
-                            color = MaterialTheme.colorScheme.onBackground,
-                            fontSize = MaterialTheme.typography.headlineSmall.fontSize,
-                            text = resources.getString(R.string.wait_for_permissions)
-                        )
-                    }
-                }
-                 Row(Modifier.weight(1f)){
-                     Box(
-                         contentAlignment = Alignment.Center,
-                         modifier = Modifier
-                             .fillMaxSize()
-                             .background(color = MaterialTheme.colorScheme.background)
-                     ) {
-
-                         Text(
-                             color = MaterialTheme.colorScheme.onBackground,
-                             fontSize = MaterialTheme.typography.headlineSmall.fontSize,
-                             text = resources.getString(R.string.wait_for_permissions)
-                         )
-                     }
-
-                 }
-                 Row(Modifier.weight(1f)){
-                     Box(
-                         contentAlignment = Alignment.Center,
-                         modifier = Modifier
-                             .fillMaxSize()
-                             .background(color = MaterialTheme.colorScheme.background)
-                     ) {
-
-                        Column{
-                            Button(onClick = {
-                                isReCheckPermissions = true
-//                                reCheckPermissions.launch(Intent().apply {
-//                                    action = Settings.ACTION_APPLICATION_DETAILS_SETTINGS
-//                                    data = Uri.fromParts("package", packageName, null)
-//                                })
-                            }) { Text(text = "Enable")}
-                            Button(onClick = {
-//                                finishAffinity();
-                                finishAndRemoveTask()
-                                exitProcess(0);
-                            }) { Text(text = "Leave")}
-                        }
-                     }
-
-                 }
+        ShowProgressOrContent(statusString.collectAsState().value) {
+            when(permissionsGranted) {
+             false -> {
+                 RequestPermissionsScreen()
              }
-         }
-         true -> {
-                  Nav()
+             true -> {
+                      Nav()
+                }
             }
         }
     }
@@ -268,6 +230,83 @@ fun PermScreen(){
         Text(color = MaterialTheme.colorScheme.onBackground,
             fontSize = MaterialTheme.typography.headlineSmall.fontSize,
             text = resources.getString(R.string.wait_for_permissions))
+
+}
+
+@RequiresApi(Build.VERSION_CODES.Q)
+@Composable
+fun RequestPermissionsScreen(){
+    Column {
+        Row(Modifier.weight(1f)) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(color = MaterialTheme.colorScheme.background)
+            ) {
+
+                Text(
+                    color = MaterialTheme.colorScheme.onBackground,
+                    fontSize = MaterialTheme.typography.headlineSmall.fontSize,
+                    text = resources.getString(R.string.wait_for_permissions)
+                )
+            }
+        }
+        Row(Modifier.weight(1f)){
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(color = MaterialTheme.colorScheme.background)
+            ) {
+                Column {
+                    neededPermissions.forEachIndexed{ ind, str ->
+                        val permissionInfo = applicationContext.packageManager.getPermissionInfo(str,PackageManager.GET_META_DATA)
+                        val description = permissionInfo.loadDescription(applicationContext.packageManager)
+                        Text(text = "${ind + 1}. ${description.toString()}",
+                            color = MaterialTheme.colorScheme.onBackground,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+                            )
+                    }
+                }
+            }
+
+        }
+        Row(Modifier.weight(1f)){
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(color = MaterialTheme.colorScheme.background)
+            ) {
+
+                Column(Modifier.fillMaxWidth(),
+//                    Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally){
+                    Button(onClick = {
+                        isReCheckPermissions = true
+//                                checkPermissions()
+                        reCheckPermissions.launch(Intent().apply {
+                            action = Settings.ACTION_APPLICATION_DETAILS_SETTINGS
+                            data = Uri.fromParts("package", packageName, null)
+                        })
+                    },
+                        Modifier.fillMaxWidth(0.9f)
+                            .padding(vertical = 4.dp)) {
+                        Text(text = resources.getString(R.string.Go_To_Settings))
+                    }
+                    Button(onClick = {
+//                                finishAffinity();
+                        finishAndRemoveTask()
+                        exitProcess(0);
+                    },
+                    modifier = Modifier.padding(vertical = 4.dp))
+                    { Text(text = resources.getString(R.string.Exit))}
+                }
+            }
+
+        }
+    }
 
 }
 
@@ -333,10 +372,10 @@ fun PermScreen(){
                 DropdownMenuItem(
                     text = { Text("Add dir") },
                     onClick = {
-                        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).apply {
-                            putExtra(DocumentsContract.EXTRA_INITIAL_URI, "")
-                        }
-                        addTracks.launch(intent)
+                        addTracks.launch(Intent(
+                            Intent.ACTION_OPEN_DOCUMENT_TREE)
+                            .apply { putExtra(DocumentsContract.EXTRA_INITIAL_URI, "")}
+                        )
 
                         expanded = false
 
