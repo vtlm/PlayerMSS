@@ -7,15 +7,8 @@ import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
-import androidx.media3.common.Player
-import androidx.media3.session.MediaController
 import com.example.playermss.data.MediaViewModel
 
 @Composable
@@ -34,6 +27,12 @@ fun PlayControls(
         R.drawable.baseline_repeat_on_24,
     )
     Row {//(modifier = Modifier.weight(1f))
+        IconButton(onClick = { mediaViewModel.incPlayerRepeatMode() }) {
+            Icon(
+                painter = painterResource(id = repeatModeId[playerRepeatMode]),
+                contentDescription = "Repeat Mode"
+            )
+        }
         IconButton(onClick = { mediaViewModel.seekToPrevious() }) {
             Icon(
                 painter = painterResource(id = R.drawable.baseline_skip_previous_24),
@@ -60,12 +59,6 @@ fun PlayControls(
             Icon(
                 painter = painterResource(id = R.drawable.baseline_skip_next_24),
                 contentDescription = "Skip to Next"
-            )
-        }
-        IconButton(onClick = { mediaViewModel.incPlayerRepeatMode() }) {
-            Icon(
-                painter = painterResource(id = repeatModeId[playerRepeatMode]),
-                contentDescription = "Repeat Mode"
             )
         }
     }

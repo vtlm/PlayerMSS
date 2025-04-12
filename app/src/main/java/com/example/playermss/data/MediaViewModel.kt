@@ -1,7 +1,6 @@
 package com.example.playermss.data
 
 import android.app.Application
-import android.content.ComponentName
 import android.content.Context
 import android.database.Cursor
 import android.media.MediaScannerConnection
@@ -12,7 +11,6 @@ import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
 import android.util.Log
-import androidx.annotation.OptIn
 import androidx.annotation.RequiresApi
 import androidx.annotation.RequiresExtension
 import androidx.compose.foundation.lazy.LazyListState
@@ -28,17 +26,14 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
-import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.HttpDataSource
 import androidx.media3.session.MediaController
-import androidx.media3.session.SessionToken
 import com.anggrayudi.storage.file.DocumentFileCompat
 import com.anggrayudi.storage.file.getAbsolutePath
-import com.example.playermss.PlaybackService
 import com.example.playermss.PlayerMSSReleaseApplication
+import com.example.playermss.R
 import com.example.playermss.imageBitmapFromBytes
 import com.google.common.util.concurrent.ListenableFuture
-import com.google.common.util.concurrent.MoreExecutors
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -46,7 +41,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -575,7 +569,7 @@ val playerListener = object: Player.Listener {
     //    @OptIn(UnstableApi::class)
 //    @RequiresExtension(extension = Build.VERSION_CODES.R, version = 1)
     init {
-        _progressTitle.value = "Loading MediaSession"
+        _progressTitle.value = context.resources.getString(R.string.Loading_MediaSession)
         viewModelScope.launch {
             while(!PlayerMSSReleaseApplication.isMediaControllerInitialized()){
                 delay(200)
@@ -756,6 +750,8 @@ val playerListener = object: Player.Listener {
 
         mediaController.stop()
         _sleevePicture.value = null
+//        setSearchVisible(false)
+
 
         viewModelScope.launch(Dispatchers.Default) {
 
@@ -802,6 +798,8 @@ val playerListener = object: Player.Listener {
                 }
             }
             updateQueryStatistic(trackList)
+//            setUserScrollPos(0)
+            _scrollPos.value = 0
             _progressTitle.value = ""
         }
     }

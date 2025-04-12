@@ -65,6 +65,7 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     implementation("com.google.dagger:hilt-android:2.55")
+    implementation(libs.androidx.constraintlayout.compose)
     kapt("com.google.dagger:hilt-android-compiler:2.55")
 
     implementation(libs.androidx.material.icons.core.android)
