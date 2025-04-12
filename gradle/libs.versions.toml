@@ -1,5 +1,6 @@
 [versions]
 agp = "8.9.1"
+constraintlayoutCompose = "1.1.1"
 datastorePreferences = "1.1.3"
 kotlin = "2.1.10"
 coreKtx = "1.15.0"
@@ -19,9 +20,11 @@ material3Android = "1.3.1"
 navigationCompose = "2.8.7"
 protobufJavalite = "4.29.2"
 storage = "2.0.0"
+constraintlayout = "1.1.1"
 
 
 [libraries]
+androidx-constraintlayout-compose = { module = "androidx.constraintlayout:constraintlayout-compose", version.ref = "constraintlayoutCompose" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-datastore = { module = "androidx.datastore:datastore", version.ref = "datastorePreferences" }
 androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastorePreferences" }
@@ -50,6 +53,7 @@ kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serializa
 material3 = { module = "androidx.compose.material3:material3", version.ref = "material3" }
 protobuf-javalite = { module = "com.google.protobuf:protobuf-javalite", version.ref = "protobufJavalite" }
 storage = { module = "com.anggrayudi:storage", version.ref = "storage" }
+androidx-constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

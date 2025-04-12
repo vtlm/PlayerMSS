@@ -18,6 +18,7 @@ import androidx.annotation.RequiresApi
 import androidx.annotation.RequiresExtension
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -156,7 +157,7 @@ class MainActivity : ComponentActivity() {
             }
 
             if(_permissionsGranted.value){
-                mediaViewModel.setUserScrollPos(0)
+//                mediaViewModel.setUserScrollPos(0)
                 lifecycle.addObserver(mediaViewModel)
             }
 
@@ -543,7 +544,7 @@ fun RequestPermissionsScreen(){
                                         Modifier
                                             .padding(start = 14.dp, top = 4.dp)
                                             .width(intrinsicSize = IntrinsicSize.Max)
-//                                        .basicMarquee(iterations = Int.MAX_VALUE)
+                                            .basicMarquee(iterations = Int.MAX_VALUE)
                                             .weight(4f)
                                     )
                                     Text("", Modifier.weight(1.2f))

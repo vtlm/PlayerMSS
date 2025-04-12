@@ -750,6 +750,8 @@ val playerListener = object: Player.Listener {
 
         mediaController.stop()
         _sleevePicture.value = null
+//        setSearchVisible(false)
+
 
         viewModelScope.launch(Dispatchers.Default) {
 
@@ -796,6 +798,8 @@ val playerListener = object: Player.Listener {
                 }
             }
             updateQueryStatistic(trackList)
+//            setUserScrollPos(0)
+            _scrollPos.value = 0
             _progressTitle.value = ""
         }
     }

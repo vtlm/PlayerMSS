@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -22,8 +21,6 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -39,11 +36,71 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.constraintlayout.compose.ConstraintLayout
 import com.example.playermss.data.MediaTrackData
 import com.example.playermss.data.MediaViewModel
 import kotlinx.coroutines.flow.distinctUntilChanged
 
+
+@Preview
+@Composable
+fun TestConstraint(){
+    ConstraintLayout(modifier = Modifier.fillMaxWidth()) {
+        val (c1, c2) = createRefs()
+        Box(modifier = Modifier.constrainAs(c1){
+            end.linkTo(parent.end)
+        }
+            .padding(start = 4.dp, end = 2.dp)
+//            .wrapContentSize()
+            .background(color = Color.Cyan)
+        ){
+            Text(color = Color.Black, text = "3333333")
+        }
+        Box(modifier = Modifier.constrainAs(c2){
+            start.linkTo(parent.start)
+            end.linkTo(c1.start)
+        }
+//            .fillMaxWidth()
+            .background(color = Color.Magenta)
+//            .padding(start = 4.dp, end = 4.dp)
+//            .wrapContentSize()
+//, contentAlignment = Alignment.TopStart
+
+        )
+
+        {
+            Text( color = Color.Blue,
+                modifier = Modifier.align(Alignment.TopStart),
+//                    overflow = TextOverflow.Ellipsis,
+                text = "titleddddddd")
+        }
+
+    }
+
+}
+
+@Preview
+@Composable
+fun TestShowTrackTitle(){
+    ShowTrackTitle(1,"Title Title Title Title Title Title Title Title Title Title Title Title Title Title Title Title Title ",400000,Color.White)
+}
+
+@Composable
+fun ShowTrackTitle(track: Int?, title: String, duration: Int?, color: Color){
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(start = 4.dp, end = 2.dp),
+//        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Column(modifier = Modifier.fillMaxWidth().weight(5f)) {
+            Text(modifier = Modifier.align(Alignment.Start), color = color, text = "$track - $title")
+        }
+        Column(Modifier.fillMaxWidth().weight(1f)) {
+            Text(modifier = Modifier.align(Alignment.End), color = color, text = duration(duration))
+        }
+    }
+}
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -51,14 +108,95 @@ fun ShowTrack(trackItem: MediaTrackData, key: Int, selectedKey: Int) {
     Log.d("SII","selected: $selectedKey, current: $key name: ${trackItem.title}")
     val color = if (key == selectedKey) Color.Yellow else MaterialTheme.colorScheme.onSecondaryContainer
 
-    FlowRow(
-        modifier = Modifier.fillMaxWidth().padding(start = 12.dp, end = 2.dp),
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Text(color = color, text = "${trackItem.track} - ${trackItem.title}")
-        Text(color = color, text = duration(trackItem.duration))
-    }
-    Log.d("RCT","ReCompose track")
+    ShowTrackTitle(trackItem.track, trackItem.title, trackItem.duration, color)
+//Column (modifier = Modifier.fillMaxWidth()) {
+//    Row {
+//    ConstraintLayout(modifier = Modifier.fillMaxWidth()) {
+//        val (c1, c2) = createRefs()
+//        Box(modifier = Modifier.constrainAs(c1){
+//            end.linkTo(parent.end)
+//        }
+//            .padding(start = 4.dp, end = 2.dp)
+//            .wrapContentSize()
+//            .background(color = Color.Cyan)
+//        ){
+//            Text(color = color, text = duration(trackItem.duration))
+//        }
+//        Box(modifier = Modifier.constrainAs(c2){
+//            start.linkTo(parent.start)
+//            end.linkTo(c1.start)
+//        }
+//            .fillMaxWidth()
+//            .background(color = Color.Magenta)
+//            .padding(start = 4.dp, end = 4.dp)
+////            .wrapContentSize()
+////, contentAlignment = Alignment.TopStart
+//
+//            )
+//
+//            {
+//                Text( color = color,
+//                        modifier = Modifier.align(Alignment.TopStart),
+////                    overflow = TextOverflow.Ellipsis,
+//                    text = "${trackItem.track} - ${trackItem.title}")
+//        }
+//
+//    }
+
+
+//        ConstraintLayout(Modifier.fillMaxWidth()) {
+////        // Create references for the composables to constrain
+//        val (button, text) = createRefs()
+//
+//
+//            Text(
+//                text = "Text1",
+//                // Assign reference "button" to the Button composable
+//                // and constrain it to the top of the ConstraintLayout
+//                modifier = Modifier.constrainAs(button) {
+//                    start.linkTo(parent.start)
+//                    end.linkTo(text.start, margin = 8.dp)
+//                }.wrapContentSize()
+//                ,
+//                textAlign = TextAlign.Left
+//            )
+//            Text(
+//                text = "Text1",
+//                // Assign reference "button" to the Button composable
+//                // and constrain it to the top of the ConstraintLayout
+//                modifier = Modifier.constrainAs(button) {
+//                    start.linkTo(parent.start)
+//                    end.linkTo(text.start, margin = 8.dp)
+//                }.wrapContentSize()
+//                ,
+//                textAlign = TextAlign.Left
+//            )
+//
+//        // Assign reference "text" to the Text composable
+//        // and constrain it to the bottom of the Button composable
+//        Text(
+//            "Text2",
+//            Modifier.constrainAs(text) {
+//                end.linkTo(parent.end, margin = 4.dp)
+//            }
+//        )
+//        }
+
+//    }
+
+//    Row(
+//        modifier = Modifier.fillMaxWidth().padding(start = 12.dp, end = 2.dp),
+////        horizontalArrangement = Arrangement.SpaceBetween
+//    ) {
+//        Column(Modifier.wrapContentSize()) {
+//            Text(color = color, text = "${trackItem.track} - ${trackItem.title}")
+//        }
+//        Column(Modifier.wrapContentSize()) {
+//            Text(color = color, text = duration(trackItem.duration))
+//        }
+//    }
+    Log.d("RCT", "ReCompose track")
+//}
 }
 
 private fun LazyListScope.showTracks(tracks: List<MediaTrackData>, mediaViewModel: MediaViewModel){
