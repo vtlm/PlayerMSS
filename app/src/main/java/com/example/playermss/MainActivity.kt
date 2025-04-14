@@ -60,7 +60,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.media3.common.util.UnstableApi
@@ -96,8 +95,8 @@ class MainActivity : ComponentActivity() {
 
     val mediaViewModel:MediaViewModel by viewModels()
 
-    private var _permissionsChecking = MutableStateFlow(true)
-    private val permissionsChecking = _permissionsChecking.asStateFlow()
+//    private var _permissionsChecking = MutableStateFlow(true)
+//    private val permissionsChecking = _permissionsChecking.asStateFlow()
 
     private var _statusString = MutableStateFlow("")
     private val statusString = _statusString.asStateFlow()
@@ -214,25 +213,6 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-
-@Preview
-@Composable
-fun PermScreen(){
-//    Box(
-//        contentAlignment = Alignment.Center,
-//        modifier = Modifier.fillMaxSize()
-//            .background(color = MaterialTheme.colorScheme.background)
-//    ) {
-//
-//        Text(color = MaterialTheme.colorScheme.onBackground,
-//            fontSize = MaterialTheme.typography.headlineSmall.fontSize,
-//            text = resources.getString(R.string.wait_for_permissions))
-//    }
-        Text(color = MaterialTheme.colorScheme.onBackground,
-            fontSize = MaterialTheme.typography.headlineSmall.fontSize,
-            text = resources.getString(R.string.wait_for_permissions))
-
-}
 
 @RequiresApi(Build.VERSION_CODES.Q)
 @Composable
@@ -456,7 +436,6 @@ fun RequestPermissionsScreen(){
             val currentTrackMediaMetadata = mediaViewModel.currentTrackMediaMetadata.collectAsState().value
             val isSearchOpen = mediaViewModel.isSearchVisible.collectAsState().value
             val isVisualizerVisible = mediaViewModel.isVisualizerVisible.collectAsState().value
-            val sleevePicture = mediaViewModel.sleevePicture.collectAsState().value
 
             Scaffold(
 //            bottomBar = {
@@ -506,19 +485,7 @@ fun RequestPermissionsScreen(){
                         Row(Modifier.weight(7f)) {
                             Column(Modifier.fillMaxSize()) {
                                 Row(Modifier.weight(1f)) {
-                                    if(sleevePicture != null) {
-                                        SleevePicture(mediaViewModel.sleevePicture.collectAsState().value)
-                                    }else{
-                                        Box(
-                                            contentAlignment = Alignment.Center,
-                                            modifier = Modifier
-                                                .fillMaxSize()
-                                                .background(color = MaterialTheme.colorScheme.background)
-                                        ) {
-
-                                            TrackInfo(currentTrackMediaMetadata)
-                                        }
-                                    }
+                                    SleevePicture(mediaViewModel.currentTrackMediaMetadata.collectAsState().value)
                                 }
                                 Row(Modifier.weight(1f)) {
                                     ShowQueryResults(
@@ -536,7 +503,9 @@ fun RequestPermissionsScreen(){
                         Row(Modifier.padding(top = 4.dp)) {
                             Box {//for overlap
                                 Row {
-                                    TrackTime(mediaViewModel)
+                                    TrackTime(mediaViewModel.mediaController,
+                                        mediaViewModel.isRemainTime.collectAsState().value,
+                                        mediaViewModel::setRemainTime)
                                 }
                                 Row {
                                     TrackInfo(
@@ -632,6 +601,7 @@ fun RequestPermissionsScreen(){
     @Composable
     fun ViewFileSystemScanResults(onNav: () -> Unit){
         ShowProgressOrContent(mediaViewModel.progressTitle.collectAsState().value) {
+            val fileSystemScanResults = mediaViewModel.scanResults.collectAsState().value
             Scaffold(
                 topBar = {
                     TopAppBar(
@@ -640,7 +610,8 @@ fun RequestPermissionsScreen(){
                             titleContentColor = MaterialTheme.colorScheme.primary,
                         ),
                         title = {
-                            Text("Small Top App Bar")
+                            Text( text = "Found files: ${fileSystemScanResults.size}",
+                                color = MaterialTheme.colorScheme.onPrimary)
                         }
                     )
                 },
@@ -659,7 +630,7 @@ fun RequestPermissionsScreen(){
                 },
             ) { innerPadding ->
                 Box(modifier = Modifier.padding(innerPadding)) {
-                    ShowScanResults(mediaViewModel.scanResults.collectAsState().value)
+                    ShowScanResults(fileSystemScanResults)
                 }
             }
         }
@@ -675,7 +646,8 @@ fun RequestPermissionsScreen(){
                         titleContentColor = MaterialTheme.colorScheme.primary,
                     ),
                     title = {
-                        Text("Added: ${mediaScannerResults.added} Errors: ${mediaScannerResults.errors}")
+                        Text( text = "Added: ${mediaScannerResults.added} Errors: ${mediaScannerResults.errors}",
+                            color = MaterialTheme.colorScheme.onPrimary )
                     }
                 )
             },
@@ -686,10 +658,11 @@ fun RequestPermissionsScreen(){
 
                         item {
                             Row {
-                                Column { Text("$index") }
+                                Column(Modifier.padding(horizontal =  2.dp, vertical = 4.dp)) {
+                                    Text("$index") }
                                 Column(Modifier.padding(vertical = 4.dp)) {
                                     entry.filePath?.let { Text(it) }
-                                    Text(entry.comtentUri.toString())
+                                    Text(entry.contentUri.toString())
                                 }
                             }
                         }

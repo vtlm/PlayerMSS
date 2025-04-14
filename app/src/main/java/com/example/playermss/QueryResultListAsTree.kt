@@ -229,7 +229,7 @@ private fun LazyListScope.showTracks(tracks: List<MediaTrackData>, mediaViewMode
                         )
                     },
                 color = MaterialTheme.colorScheme.secondaryContainer,
-                shape = RoundedCornerShape(10),
+//                shape = RoundedCornerShape(10),
             ) {
                 val selected = mediaViewModel.playingItemId.collectAsState().value
                 ShowTrack(trackItem, itemKey, selected)
@@ -314,7 +314,7 @@ private fun LazyListScope.showAlbums(albums: List<Pair<String, List<MediaTrackDa
                         Text(
                             modifier = Modifier.padding(start = 6.dp),
                             color = MaterialTheme.colorScheme.onPrimaryContainer,
-                            text = "$albumName"
+                            text = albumName
                         )
                         if(!namesMatch) {
                             Text(

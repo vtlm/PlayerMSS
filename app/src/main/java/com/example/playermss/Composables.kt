@@ -2,6 +2,7 @@ package com.example.playermss
 
 import android.graphics.BitmapFactory
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -32,7 +33,6 @@ fun duration(durationMs:Int?):String{
 }
 
 fun imageBitmapFromBytes(encodedImageData: ByteArray): ImageBitmap? {
-
     return BitmapFactory.decodeByteArray(encodedImageData, 0, encodedImageData.size)
         ?.asImageBitmap()
 }
@@ -77,6 +77,22 @@ fun ButtonAction(caption: String, onClick: () -> Unit) {
     }else {
         content()
     }
+}
+
+@Composable
+fun SparseLines(lines: List<String>){
+    Column(modifier = Modifier.fillMaxWidth(),
+           Arrangement.Center,
+           Alignment.CenterHorizontally){
+        lines.forEachIndexed(){ ind, it ->
+            val fontSize = if(ind == 0) MaterialTheme.typography.headlineMedium.fontSize else MaterialTheme.typography.bodyLarge.fontSize
+            Text(text = it,
+                color = MaterialTheme.colorScheme.onBackground,
+                fontSize = fontSize,
+                textAlign = TextAlign.Center)
+        }
+    }
+
 }
 
 @OptIn(UnstableApi::class)
