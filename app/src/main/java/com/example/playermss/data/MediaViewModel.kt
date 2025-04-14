@@ -14,7 +14,6 @@ import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.annotation.RequiresExtension
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.ui.graphics.ImageBitmap
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.documentfile.provider.DocumentFile
@@ -32,8 +31,6 @@ import com.anggrayudi.storage.file.DocumentFileCompat
 import com.anggrayudi.storage.file.getAbsolutePath
 import com.example.playermss.PlayerMSSReleaseApplication
 import com.example.playermss.R
-import com.example.playermss.imageBitmapFromBytes
-import com.google.common.util.concurrent.ListenableFuture
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -60,7 +57,7 @@ data class MediaScannerErrorEntry(
 
 data class MediaScannerEntry(
     var filePath: String?,
-    var comtentUri :Uri?
+    var contentUri :Uri?
 )
 
 data class MediaScannerResults(
@@ -78,7 +75,7 @@ class MediaViewModel @Inject constructor(
     @ApplicationContext val context: Context
 ): ViewModel(), DefaultLifecycleObserver {
 
-    private lateinit var controllerFuture: ListenableFuture<MediaController>
+//    private lateinit var controllerFuture: ListenableFuture<MediaController>
     lateinit var mediaController: MediaController
 
     private val _isPlaying = MutableStateFlow(false)
@@ -143,10 +140,8 @@ class MediaViewModel @Inject constructor(
         QueryTextField("FileSystem Path", userPreferencesRepository, viewModelScope),
     )
 
-//    lateinit var context: Context
-
-    private var _sleevePicture = MutableStateFlow<ImageBitmap?>(null)
-    val sleevePicture: StateFlow<ImageBitmap?> = _sleevePicture.asStateFlow()
+//    private var _sleevePicture = MutableStateFlow<ImageBitmap?>(null)
+//    val sleevePicture: StateFlow<ImageBitmap?> = _sleevePicture.asStateFlow()
 
     private lateinit var bassBoost: BassBoost
     private lateinit var equalizer: Equalizer
@@ -180,8 +175,14 @@ class MediaViewModel @Inject constructor(
         setPlayerRepeatMode(nextPlayerRepeatMode)
     }
 
-    val isSearchVisible = userPreferencesRepository.getOrDefaultAsStateFlow(IS_UI_SEARCH_VISIBLE, viewModelScope,true)
-    fun setSearchVisible(state: Boolean) = userPreferencesRepository.set(IS_UI_SEARCH_VISIBLE, viewModelScope, state)
+//    val isSearchVisible = userPreferencesRepository.getOrDefaultAsStateFlow(IS_UI_SEARCH_VISIBLE, viewModelScope,true)
+//    fun setSearchVisible(state: Boolean) = userPreferencesRepository.set(IS_UI_SEARCH_VISIBLE, viewModelScope, state)
+
+    private val _isSearchVisible = MutableStateFlow(false)
+    val isSearchVisible: StateFlow<Boolean> = _isSearchVisible.asStateFlow()
+    fun setSearchVisible(value: Boolean){
+        _isSearchVisible.value = value
+    }
 
     val isVisualizerVisible = userPreferencesRepository.getOrDefaultAsStateFlow(IS_VISUALIZER_VISIBLE, viewModelScope,false)
     fun setVisualizerVisible(state: Boolean) = userPreferencesRepository.set(IS_VISUALIZER_VISIBLE, viewModelScope, state)
@@ -240,9 +241,9 @@ class MediaViewModel @Inject constructor(
 
     fun updateMediaData(player: Player){
         _currentTrackMediaMetadata.value = player.mediaMetadata
-        _sleevePicture.value = player.mediaMetadata.artworkData?.let {
-            imageBitmapFromBytes(it)
-        }
+//        _sleevePicture.value = player.mediaMetadata.artworkData?.let {
+//            imageBitmapFromBytes(it)
+//        }
     }
 
 val playerListener = object: Player.Listener {
@@ -749,8 +750,9 @@ val playerListener = object: Player.Listener {
     fun query(){
 
         mediaController.stop()
-        _sleevePicture.value = null
-//        setSearchVisible(false)
+//        _sleevePicture.value = null
+        _currentTrackMediaMetadata.value = null
+        setSearchVisible(false)
 
 
         viewModelScope.launch(Dispatchers.Default) {
