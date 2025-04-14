@@ -35,6 +35,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -353,7 +354,7 @@ private fun LazyListScope.showArtist(artistAsPair: Pair<String, List<Pair<String
             shape = RoundedCornerShape(10),
 //                colors = if(mediaData.listIndex == playingIndex) CardDefaults.elevatedCardColors() else CardDefaults.cardColors()
         ) {
-            Text("Artist: ${artistName}. albums: ${artistAlbums.count()}")
+            Text("${stringResource(R.string.Artist)}: ${artistName}. ${stringResource(R.string.Albums)}: ${artistAlbums.count()}")
         }
     }
 
@@ -451,31 +452,9 @@ fun ShowQueryResults(
         }
     }
 
-
-    if(results.isNotEmpty()) {
-        LazyColumn(state = listState) {
-            results.forEach {
-                showArtist(it, mediaViewModel, artistExpanded, albumExpanded)
-            }
-        }
-    }else{
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier.fillMaxSize()
-        ){
-            Column( horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
-                modifier = Modifier.fillMaxSize()) {
-                Icon(
-                    Icons.Default.Search,
-                    contentDescription = "Search in Library",
-                    modifier = Modifier.scale(2f).padding(24.dp)
-                )
-                Text(
-                    text = "Use query to search in Library",
-                    textAlign = TextAlign.Center
-                )
-            }
+    LazyColumn(state = listState) {
+        results.forEach {
+            showArtist(it, mediaViewModel, artistExpanded, albumExpanded)
         }
     }
 }

@@ -4,5 +4,15 @@
     <string name="checking_permissions">Checking permissions</string>
     <string name="Loading_MediaSession">Loading MediaSession</string>
     <string name="Go_To_Settings">Go_To_Settings</string>
+    <string name="Artist">Artist</string>
+    <string name="Album">Album</string>
+    <string name="Albums">Albums</string>
+    <string name="Title">Title</string>
+    <string name="From_Year">From Year</string>
+    <string name="To_Year">To Year</string>
+    <string name="File_System_Path">File System Path</string>
+    <string name="Add_Dir">Add Dir</string>
+    <string name="Querying_MediaStore">Querying MediaStore</string>
+    <string name="Select_a_track_to_play">Select a track to play</string>
     <string name="Exit">Exit</string>
 </resources>

@@ -14,6 +14,7 @@ import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.annotation.RequiresExtension
 import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.ui.res.stringResource
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.documentfile.provider.DocumentFile
@@ -132,12 +133,12 @@ class MediaViewModel @Inject constructor(
     }
 
     val queryFields = arrayOf(
-        QueryTextField("Artist", userPreferencesRepository, viewModelScope),
-        QueryTextField("Album", userPreferencesRepository, viewModelScope),
-        QueryTextField("Title", userPreferencesRepository, viewModelScope),
-        QueryTextField("FromYear", userPreferencesRepository, viewModelScope),
-        QueryTextField("ToYear", userPreferencesRepository, viewModelScope),
-        QueryTextField("FileSystem Path", userPreferencesRepository, viewModelScope),
+        QueryTextField(context.resources.getString(R.string.Artist), userPreferencesRepository, viewModelScope),
+        QueryTextField(context.resources.getString(R.string.Album), userPreferencesRepository, viewModelScope),
+        QueryTextField(context.resources.getString(R.string.Title), userPreferencesRepository, viewModelScope),
+        QueryTextField(context.resources.getString(R.string.From_Year), userPreferencesRepository, viewModelScope),
+        QueryTextField(context.resources.getString(R.string.To_Year), userPreferencesRepository, viewModelScope),
+        QueryTextField(context.resources.getString(R.string.File_System_Path), userPreferencesRepository, viewModelScope),
     )
 
 //    private var _sleevePicture = MutableStateFlow<ImageBitmap?>(null)
@@ -757,7 +758,7 @@ val playerListener = object: Player.Listener {
 
         viewModelScope.launch(Dispatchers.Default) {
 
-            _progressTitle.value = "Querying MediaStore"
+            _progressTitle.value = context.resources.getString(R.string.Querying_MediaStore)
             queryFields.forEach { it.saveText() }
 
             val queryParams = QueryParams()

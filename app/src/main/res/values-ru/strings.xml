@@ -5,5 +5,15 @@
     <string name="checking_permissions">Проверка разрешений</string>
     <string name="Loading_MediaSession">Загружается МедиаСессия</string>
     <string name="Go_To_Settings">Перейти к настройкам</string>
+    <string name="Artist">Aртист</string>
+    <string name="Album">Aльбом</string>
+    <string name="Albums">Aльбомы</string>
+    <string name="Title">Tрек</string>
+    <string name="From_Year">От Года</string>
+    <string name="To_Year">До Года</string>
+    <string name="File_System_Path">Путь к файлу</string>
+    <string name="Add_Dir">Добавить папку</string>
+    <string name="Querying_MediaStore">Поиск в МедиаХранилище</string>
+    <string name="Select_a_track_to_play">Выберите трек для воспроизведения</string>
     <string name="Exit">Выйти</string>
 </resources>

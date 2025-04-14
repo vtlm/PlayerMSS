@@ -19,6 +19,7 @@ import androidx.annotation.RequiresExtension
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -26,9 +27,11 @@ import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Edit
@@ -46,6 +49,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -57,9 +61,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.media3.common.util.UnstableApi
@@ -351,7 +357,7 @@ fun RequestPermissionsScreen(){
 //                    }
 //                )
                 DropdownMenuItem(
-                    text = { Text("Add dir") },
+                    text = { Text(resources.getString(R.string.Add_Dir)) },
                     onClick = {
                         addTracks.launch(Intent(
                             Intent.ACTION_OPEN_DOCUMENT_TREE)
@@ -433,6 +439,7 @@ fun RequestPermissionsScreen(){
     fun SearchScreen(onNav: () -> Unit){
         ShowProgressOrContent(mediaViewModel.progressTitle.collectAsState().value) {
 
+            val querySortedResults = mediaViewModel.querySortedResults.collectAsState().value
             val currentTrackMediaMetadata = mediaViewModel.currentTrackMediaMetadata.collectAsState().value
             val isSearchOpen = mediaViewModel.isSearchVisible.collectAsState().value
             val isVisualizerVisible = mediaViewModel.isVisualizerVisible.collectAsState().value
@@ -488,14 +495,62 @@ fun RequestPermissionsScreen(){
                                     SleevePicture(mediaViewModel.currentTrackMediaMetadata.collectAsState().value)
                                 }
                                 Row(Modifier.weight(1f)) {
-                                    ShowQueryResults(
-                                        mediaViewModel.querySortedResults.collectAsState().value,
-                                        mediaViewModel.expandedArtists.externalStringSet.collectAsState().value,
-                                        mediaViewModel.expandedAlbums.externalStringSet.collectAsState().value,
+
+                                    if(querySortedResults.isNotEmpty()) {
+                                        ShowQueryResults(
+                                            querySortedResults,
+                                            mediaViewModel.expandedArtists.externalStringSet.collectAsState().value,
+                                            mediaViewModel.expandedAlbums.externalStringSet.collectAsState().value,
 //                                    mediaViewModel.trackListScrollPos.collectAsState().value,
-                                        mediaViewModel.scrollPos.collectAsState().value,
-                                        mediaViewModel
-                                    )
+                                            mediaViewModel.scrollPos.collectAsState().value,
+                                            mediaViewModel
+                                        )
+                                    }else{
+                                        if(!isSearchOpen) {
+                                            Box(
+                                                contentAlignment = Alignment.Center,
+                                                modifier = Modifier.fillMaxSize()
+                                            ) {
+                                                Surface(
+                                                    modifier = Modifier
+                                                        .height(IntrinsicSize.Min)
+                                                        .fillMaxSize(0.9f)
+//        .border(width = Dp.Hairline, color = Color.Gray, shape = RectangleShape)//border(width = Dp.Hairline , brush = Brush.,shape=null )
+                                                        .padding(2.dp)
+                                                        .clickable(
+                                                            onClick = {
+                                                                isSearchOpen.let {
+                                                                    mediaViewModel.setSearchVisible(
+                                                                        !it
+                                                                    )
+                                                                }
+                                                            }),
+                                                    shape = RoundedCornerShape(10),
+                                                    color = MaterialTheme.colorScheme.primaryContainer,
+//                colors = if(mediaData.listIndex == playingIndex) CardDefaults.elevatedCardColors() else CardDefaults.cardColors()
+                                                ) {
+
+                                                    Column(
+                                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                                        verticalArrangement = Arrangement.Center,
+                                                        modifier = Modifier.fillMaxSize()
+                                                    ) {
+                                                        Icon(
+                                                            Icons.Default.Search,
+                                                            contentDescription = "Search in Library",
+                                                            modifier = Modifier.scale(2f)
+                                                                .padding(24.dp)
+                                                        )
+                                                        Text(
+                                                            text = "Use query to search in MediaStore",
+                                                            textAlign = TextAlign.Center
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+
                                 }
                             }
                         }

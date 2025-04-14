@@ -10,7 +10,7 @@
 # class:
 #-keepclassmembers class fqcn.of.javascript.interface.for.webview {
 #   public *;
-#}
+#}/media/nvme0n1p7/v/wrk/android/prj/PlayerMSS/app/build/outputs/apk/debug/app-debug.apk
 
 # Uncomment this to preserve the line number information for
 # debugging stack traces.

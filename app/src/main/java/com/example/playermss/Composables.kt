@@ -18,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.MediaMetadata
@@ -95,12 +96,12 @@ fun SparseLines(lines: List<String>){
 
 }
 
-@OptIn(UnstableApi::class)
+@androidx.annotation.OptIn(UnstableApi::class)
 @Composable
 fun TrackInfo(mediaMetadata: MediaMetadata?, modifier: Modifier =Modifier) {
 
     if (mediaMetadata == null) {
-        Text("Select a track to play",modifier)
+        Text(stringResource(R.string.Select_a_track_to_play), modifier)
     } else {
         var songInfo = "";
         mediaMetadata.title?.let {
