@@ -19,7 +19,6 @@ import androidx.annotation.RequiresExtension
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,11 +26,9 @@ import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Edit
@@ -49,7 +46,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -61,10 +57,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
@@ -113,6 +109,8 @@ class MainActivity : ComponentActivity() {
     private var isReCheckPermissions = false
 
     private val neededPermissions:  MutableList<String> = mutableListOf("")
+
+    var pendingFunCall: () -> Unit = {}
 
     @RequiresExtension(extension = Build.VERSION_CODES.R, version = 1)
     @RequiresApi(Build.VERSION_CODES.Q)
@@ -320,11 +318,13 @@ fun RequestPermissionsScreen(){
     private val addTracks =
         registerForActivityResult(
             ActivityResultContracts.StartActivityForResult()) { result ->
+            mediaViewModel.scanResults.value.clear()
             if(result.resultCode == RESULT_OK){
                 result.data?.data?.also { directoryUri ->
                     // Perform operations on the document using its URI.
                     Log.d("DBG", directoryUri.toString())
                     mediaViewModel.runScanFilesInDir(directoryUri, application)
+                    pendingFunCall()
                 }
             }
         }
@@ -363,10 +363,8 @@ fun RequestPermissionsScreen(){
                             Intent.ACTION_OPEN_DOCUMENT_TREE)
                             .apply { putExtra(DocumentsContract.EXTRA_INITIAL_URI, "")}
                         )
-
                         expanded = false
-
-                        onNav()
+                        pendingFunCall = onNav
                     }
                 )
             }
@@ -441,126 +439,78 @@ fun RequestPermissionsScreen(){
 
             val querySortedResults = mediaViewModel.querySortedResults.collectAsState().value
             val currentTrackMediaMetadata = mediaViewModel.currentTrackMediaMetadata.collectAsState().value
-            val isSearchOpen = mediaViewModel.isSearchVisible.collectAsState().value
+            val isSearchOpen = if (querySortedResults.isEmpty()) true
+                                else
+                                    mediaViewModel.isSearchVisible.collectAsState().value
             val isVisualizerVisible = mediaViewModel.isVisualizerVisible.collectAsState().value
 
-            Scaffold(
-//            bottomBar = {
-//                BottomAppBar(
-//                    actions = {
-//                        IconButton(onClick = onNav) {
-//                            Icon(Icons.Filled.Check, contentDescription = "Localized description")
-//                        }
-//                        IconButton(onClick = { /* do something */ }) {
-//                            Icon(
-//                                Icons.Filled.Edit,
-//                                contentDescription = "Localized description",
-//                            )
-//                        }
-//                    },
-//                    floatingActionButton = {
-//                        FloatingActionButton(
-//                            onClick = { /* do something */ },
-//                            containerColor = BottomAppBarDefaults.bottomAppBarFabColor,
-//                            elevation = FloatingActionButtonDefaults.bottomAppBarFabElevation()
-//                        ) {
-////                            Icon(Icons.Filled.Add, "Localized description")
-//                            MinimalDropdownMenu()
-//                        }
-//                    }
-//                )
-//            },
-            ) { innerPadding ->
+            Scaffold()
+             { innerPadding ->
                 Box(modifier = Modifier.padding(innerPadding)) {
                     Column {
-//                    Row {
-//                        StatusLine()
-//                    }
                         Row {
                             if (isSearchOpen) {
                                 SearchFields(mediaViewModel.queryFields, mediaViewModel::query)
                             }
                         }
-//                    Row(Modifier.weight(1f)){
-//                        ShowUnsortedTracks(mediaViewModel.tracksList.collectAsState().value)
-//                    }
                         if (isVisualizerVisible) {
                             Row(Modifier.weight(1f)) {
                                 ShowMagnitude(mediaViewModel.magnitudes.collectAsState().value)
                             }
                         }
                         Row(Modifier.weight(7f)) {
-                            Column(Modifier.fillMaxSize()) {
-                                Row(Modifier.weight(1f)) {
-                                    SleevePicture(mediaViewModel.currentTrackMediaMetadata.collectAsState().value)
-                                }
-                                Row(Modifier.weight(1f)) {
+                                if(querySortedResults.isNotEmpty()) {
+                                    Column(Modifier.fillMaxSize()) {
+                                        Row(Modifier.weight(1f)) {
+                                            SleevePicture(mediaViewModel.currentTrackMediaMetadata.collectAsState().value)
+                                        }
+                                        Row(Modifier.weight(1f)) {
 
-                                    if(querySortedResults.isNotEmpty()) {
-                                        ShowQueryResults(
-                                            querySortedResults,
-                                            mediaViewModel.expandedArtists.externalStringSet.collectAsState().value,
-                                            mediaViewModel.expandedAlbums.externalStringSet.collectAsState().value,
+                                            ShowQueryResults(
+                                                querySortedResults,
+                                                mediaViewModel.expandedArtists.externalStringSet.collectAsState().value,
+                                                mediaViewModel.expandedAlbums.externalStringSet.collectAsState().value,
 //                                    mediaViewModel.trackListScrollPos.collectAsState().value,
-                                            mediaViewModel.scrollPos.collectAsState().value,
-                                            mediaViewModel
-                                        )
-                                    }else{
-                                        if(!isSearchOpen) {
-                                            Box(
-                                                contentAlignment = Alignment.Center,
-                                                modifier = Modifier.fillMaxSize()
-                                            ) {
-                                                Surface(
-                                                    modifier = Modifier
-                                                        .height(IntrinsicSize.Min)
-                                                        .fillMaxSize(0.9f)
-//        .border(width = Dp.Hairline, color = Color.Gray, shape = RectangleShape)//border(width = Dp.Hairline , brush = Brush.,shape=null )
-                                                        .padding(2.dp)
-                                                        .clickable(
-                                                            onClick = {
-                                                                isSearchOpen.let {
-                                                                    mediaViewModel.setSearchVisible(
-                                                                        !it
-                                                                    )
-                                                                }
-                                                            }),
-                                                    shape = RoundedCornerShape(10),
-                                                    color = MaterialTheme.colorScheme.primaryContainer,
-//                colors = if(mediaData.listIndex == playingIndex) CardDefaults.elevatedCardColors() else CardDefaults.cardColors()
-                                                ) {
-
-                                                    Column(
-                                                        horizontalAlignment = Alignment.CenterHorizontally,
-                                                        verticalArrangement = Arrangement.Center,
-                                                        modifier = Modifier.fillMaxSize()
-                                                    ) {
-                                                        Icon(
-                                                            Icons.Default.Search,
-                                                            contentDescription = "Search in Library",
-                                                            modifier = Modifier.scale(2f)
-                                                                .padding(24.dp)
-                                                        )
-                                                        Text(
-                                                            text = "Use query to search in MediaStore",
-                                                            textAlign = TextAlign.Center
-                                                        )
-                                                    }
-                                                }
-                                            }
+                                                mediaViewModel.scrollPos.collectAsState().value,
+                                                mediaViewModel
+                                            )
                                         }
                                     }
+                                }else{
+//                                            Box(
+//                                                contentAlignment = Alignment.Center,
+//                                                modifier = Modifier.fillMaxSize()
+//                                            ) {
 
+                                                Column(Modifier.fillMaxSize()) {
+                                                    if(mediaViewModel.isSearchFieldsEmpty()){
+                                                        Row(Modifier.fillMaxWidth(0.9f).weight(2f),
+                                                            horizontalArrangement = Arrangement.Center,
+                                                            verticalAlignment = Alignment.CenterVertically){
+                                                            Text(text = stringResource(R.string.Use_empty_search_fields_to_find_all_in_MediaStore_can_take_a_time),
+                                                                textAlign = TextAlign.Center)
+                                                        }
+                                                    }
+                                                    Row(modifier = Modifier.fillMaxSize().weight(1f),
+                                                        horizontalArrangement = Arrangement.Center,
+                                                        verticalAlignment = Alignment.CenterVertically) {
+                                                        Button(onClick = { mediaViewModel.query() }) {
+                                                            Text(stringResource(R.string.Find))
+                                                        }
+                                                    }
+                                                }
                                 }
-                            }
                         }
+
 
                         Row(Modifier.padding(top = 4.dp)) {
                             Box {//for overlap
                                 Row {
-                                    TrackTime(mediaViewModel.mediaController,
+                                    TrackTime(
+                                        mediaViewModel.mediaController,
                                         mediaViewModel.isRemainTime.collectAsState().value,
-                                        mediaViewModel::setRemainTime)
+                                        mediaViewModel::setRemainTime
+                                    )
                                 }
                                 Row {
                                     TrackInfo(
@@ -606,7 +556,7 @@ fun RequestPermissionsScreen(){
                                     }) {
                                         Icon(
                                             Icons.Default.Search,
-                                            contentDescription = "Search in Library"
+                                            contentDescription = "Search in MediaStore"
                                         )
                                     }
 
@@ -615,10 +565,11 @@ fun RequestPermissionsScreen(){
                             }
                         }
                     }
+                    }
                 }
 
             }
-        }
+
 
     }
 
@@ -631,9 +582,9 @@ fun RequestPermissionsScreen(){
         NavHost(navController, startDestination = NavSearch) {
             composable<NavSearch> { SearchScreen(onNav={navController.navigate(route = NavScannedResults)}) }
             composable<NavTrackList> { TracksScreen(onNav={navController.navigate(route = NavSearch)}) }
-            composable<NavScannedResults> { ViewFileSystemScanResults(onNav = {navController.navigate(route = NavMediaScannerResults){
+            composable<NavScannedResults> { ViewFileSystemScanResults(onNavOK = {navController.navigate(route = NavMediaScannerResults){
                 popUpTo(NavSearch)
-            } }) }
+            }} , onNavCancel = {navController.navigate(route = NavSearch) })}
             composable<NavMediaScannerResults> { ViewMediaScannerResults(onNav = {}) }
         }
     }
@@ -654,9 +605,13 @@ fun RequestPermissionsScreen(){
 
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
-    fun ViewFileSystemScanResults(onNav: () -> Unit){
+    fun ViewFileSystemScanResults(onNavOK: () -> Unit, onNavCancel: () -> Unit){
         ShowProgressOrContent(mediaViewModel.progressTitle.collectAsState().value) {
             val fileSystemScanResults = mediaViewModel.scanResults.collectAsState().value
+//            if(fileSystemScanResults.size == 0){
+//                onNavCancel()
+//                return@ShowProgressOrContent
+//            }
             Scaffold(
                 topBar = {
                     TopAppBar(
@@ -676,7 +631,7 @@ fun RequestPermissionsScreen(){
                             Box(modifier = Modifier.fillMaxSize(),
                                 contentAlignment = Alignment.Center) {
                                 Button(onClick = { mediaViewModel.runMediaScanner()
-                                        onNav() }) {
+                                        onNavOK() }) {
                                     Text("Send to MediaScanner")
                                 }
                             }

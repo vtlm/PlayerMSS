@@ -14,5 +14,7 @@
     <string name="Add_Dir">Add Dir</string>
     <string name="Querying_MediaStore">Querying MediaStore</string>
     <string name="Select_a_track_to_play">Select a track to play</string>
+    <string name="Use_empty_search_fields_to_find_all_in_MediaStore_can_take_a_time">Use empty search fields to find all in MediaStore (can take a time)</string>
+    <string name="Find">Find</string>
     <string name="Exit">Exit</string>
 </resources>
