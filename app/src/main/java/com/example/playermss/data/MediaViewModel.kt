@@ -14,7 +14,6 @@ import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.annotation.RequiresExtension
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.ui.res.stringResource
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.documentfile.provider.DocumentFile
@@ -84,6 +83,7 @@ class MediaViewModel @Inject constructor(
 
     private val _progressTitle = MutableStateFlow("")
     val progressTitle: StateFlow<String> = _progressTitle.asStateFlow()
+    fun setProgressTitle(title: String){_progressTitle.value = title}
 
     private val _mediaStoreGenerations = MutableStateFlow(listOf<Long>())
     val mediaStoreGenerations: StateFlow<List<Long>> = _mediaStoreGenerations.asStateFlow()
@@ -97,7 +97,7 @@ class MediaViewModel @Inject constructor(
     private val _currentTrackMediaMetadata = MutableStateFlow<MediaMetadata?>(null)
     val currentTrackMediaMetadata: StateFlow<MediaMetadata?> = _currentTrackMediaMetadata.asStateFlow()
 
-    val tracksList: StateFlow<List<MediaTrackData>> = userDataRepository.asStateFlow(viewModelScope)
+    private val tracksList: StateFlow<List<MediaTrackData>> = userDataRepository.asStateFlow(viewModelScope)
 
     private val _querySortedResults = MutableStateFlow(sortByArtistAlbumAsPairs(tracksList.value))
     val querySortedResults: StateFlow<List<Pair<String, List<Pair<String, List<MediaTrackData>>>>>> = _querySortedResults.asStateFlow()
@@ -238,6 +238,10 @@ class MediaViewModel @Inject constructor(
             rss+= " "
         }
         return rss
+    }
+
+    fun isSearchFieldsEmpty(): Boolean{
+        return queryFields.find { it.text.value != "" } == null
     }
 
     fun updateMediaData(player: Player){

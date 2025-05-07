@@ -43,7 +43,7 @@ fun SearchField(textValue: QueryTextField, onDone:  () -> Unit? = {}){
                 }) {
                     Icon(
                         Icons.Default.Clear,
-                        contentDescription = "Search in Library"
+                        contentDescription = "Clear"
                     )
                 }
             }
