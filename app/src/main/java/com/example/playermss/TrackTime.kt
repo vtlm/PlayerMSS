@@ -1,6 +1,5 @@
 package com.example.playermss
 
-import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
@@ -54,7 +53,7 @@ fun TrackTime(mediaController: MediaController?, remaining: Boolean, setRemainTi
     LaunchedEffect(mediaController) {
 
         while (true) {
-//            Log.d("CRT", "Hello World from LE coroutine listener: $playerListener time $currentTime, userInteraction $userInteraction")
+//            //Log.d("CRT", "Hello World from LE coroutine listener: $playerListener time $currentTime, userInteraction $userInteraction")
             if ((userInteraction == 0) && mediaController?.isPlaying == true) {
                 mediaController.contentDuration.let { fullTime = it }
                 mediaController.currentPosition.let { currentTime = it }
@@ -68,9 +67,20 @@ fun TrackTime(mediaController: MediaController?, remaining: Boolean, setRemainTi
     val calcTime = if (remaining) fullTime - currentTime else currentTime
     val time = "%1\$tM:%1\$tS".format(calcTime)
     val showTime = if (remaining) "-$time" else time
-    Log.d("TIME", "$currentTime")
+    //Log.d("TIME", "$currentTime")
 
     Column {
+//        Row(modifier = Modifier.align(alignment = Alignment.End)) {
+////                    TrackInfo(cMediaMetadata.value)
+//            Text(
+//                showTime,
+//                Modifier.padding(horizontal = 8.dp)
+//                    .clickable(onClick = { setRemainTime(!remaining) }),
+//                style = MaterialTheme.typography.headlineSmall,
+//                textAlign = TextAlign.End,
+//                fontSize = 24.sp
+//            )
+//        }
         Card(
             modifier = Modifier
                 .height(IntrinsicSize.Min)
@@ -92,12 +102,53 @@ fun TrackTime(mediaController: MediaController?, remaining: Boolean, setRemainTi
                 )
             }
         }
+
+
         Slider(
             value = currentTime / 1000F,
-            onValueChange = { currentTime = (it * 1000).toLong()
-                userInteraction = 1},
-            onValueChangeFinished = { mediaController?.seekTo(currentTime)
-                userInteraction = 0 },
+            onValueChange = {
+                currentTime = (it * 1000).toLong()
+                userInteraction = 1
+            },
+            onValueChangeFinished = {
+                mediaController?.seekTo(currentTime)
+                userInteraction = 0
+            },
+            valueRange = 0f..fullTime / 1000F
+        )
+    }
+}
+
+@Composable
+fun TrackTime(showTime: String, currentTime: Long, fullTime: Long,
+              onSliderValueChange: (value: Float)->Unit,
+              onSliderValueChangeFinished: ()->Unit,
+              toggleRemainTime: ()->Unit) {
+//    Timber.d("Recomp Track Time")
+
+
+    Column {
+        Row(modifier = Modifier.align(alignment = Alignment.End)) {
+//                    TrackInfo(cMediaMetadata.value)
+            Text(
+                showTime,
+                Modifier.padding(horizontal = 8.dp)
+                    .clickable(onClick = {
+                        toggleRemainTime() }),
+                style = MaterialTheme.typography.headlineSmall,
+                textAlign = TextAlign.End,
+                fontSize = 24.sp
+            )
+        }
+
+        Slider(
+            value = currentTime / 1000F,
+            onValueChange = {
+                onSliderValueChange(it)
+            },
+            onValueChangeFinished = {
+                onSliderValueChangeFinished()
+            },
             valueRange = 0f..fullTime / 1000F
         )
     }

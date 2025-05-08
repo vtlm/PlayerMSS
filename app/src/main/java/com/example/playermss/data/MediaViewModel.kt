@@ -10,7 +10,6 @@ import android.media.audiofx.Visualizer
 import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
-import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.annotation.RequiresExtension
 import androidx.compose.foundation.lazy.LazyListState
@@ -116,6 +115,29 @@ class MediaViewModel @Inject constructor(
     private val _scrollPos = MutableStateFlow(0)
     val scrollPos: StateFlow<Int?> = _scrollPos.asStateFlow()
 
+    private val _currentTime = MutableStateFlow(0L)
+    val currentTime: StateFlow<Long> = _currentTime.asStateFlow()
+
+    private val _fullTime = MutableStateFlow(0L)
+    val fullTime: StateFlow<Long> = _fullTime.asStateFlow()
+
+    private val _showTime = MutableStateFlow("")
+    val showTime: StateFlow<String> = _showTime.asStateFlow()
+
+    var _userInteraction = false
+    fun setUserInteraction(userInteraction: Boolean){
+        _userInteraction = userInteraction
+    }
+    fun onSliderChange(value: Float){
+        setUserInteraction(true)
+        _currentTime.value = (value * 1000).toLong()
+    }
+    fun onSliderChangeFinished(){
+        setUserInteraction(false)
+        mediaController.seekTo(_currentTime.value)
+    }
+
+
 //    private fun <T>getFirstFromFlow(t: Flow<T>):T?{
 //        var r: T? = null
 //        viewModelScope.launch {
@@ -155,12 +177,16 @@ class MediaViewModel @Inject constructor(
 
 
     fun setTrackListScrollPos(trackListScrollPos: Int) {
-        Log.d("DBGL","VM: traCkListScrollPos: $trackListScrollPos")
+        //Log.d("DBGL","VM: traCkListScrollPos: $trackListScrollPos")
         _scrollPos.value = trackListScrollPos
     }
 
+    var _isRemainTime = false
     val isRemainTime: StateFlow<Boolean> = userPreferencesRepository.getOrDefaultAsStateFlow(IS_REMAIN_TIME, viewModelScope, false)
     fun setRemainTime(isRemainTime: Boolean) = userPreferencesRepository.set(IS_REMAIN_TIME, viewModelScope ,isRemainTime)
+    fun toggleRemainTime(){
+        setRemainTime( !_isRemainTime )
+    }
 
     val playingItemId: StateFlow<Int> = userPreferencesRepository.getOrDefaultAsStateFlow(PLAYING_ITEM_ID, viewModelScope, 0)
     fun setPlayingItemId(itemId: Int?) = userPreferencesRepository.set(PLAYING_ITEM_ID,viewModelScope, itemId)
@@ -190,16 +216,16 @@ class MediaViewModel @Inject constructor(
 
     override fun onCreate(owner: LifecycleOwner) {//override lifecycle events
         super.onCreate(owner)
-        Log.d("VMO","create")
+        //Log.d("VMO","create")
     }
     override fun onStart(owner: LifecycleOwner) {
         super.onStart(owner)
-        Log.d("VMO","start")
+        //Log.d("VMO","start")
     }
 
     override fun onResume(owner: LifecycleOwner) {
         super.onResume(owner)
-        Log.d("VMO","resume")
+        //Log.d("VMO","resume")
 
         if(::visualizer.isInitialized && ::mediaController.isInitialized){
             if(mediaController.isPlaying) {
@@ -209,7 +235,7 @@ class MediaViewModel @Inject constructor(
     }
 
     override fun onPause(owner: LifecycleOwner) {
-        Log.d("VMO","pause")
+        //Log.d("VMO","pause")
         super.onPause(owner)
         if(::visualizer.isInitialized) {
             visualizer.setEnabled(false)
@@ -217,12 +243,12 @@ class MediaViewModel @Inject constructor(
     }
 
     override fun onStop(owner: LifecycleOwner) {
-        Log.d("VMO","stop")
+        //Log.d("VMO","stop")
         super.onStop(owner)
     }
 
     override fun onDestroy(owner: LifecycleOwner) {
-        Log.d("VMO","destroy")
+        //Log.d("VMO","destroy")
         super.onDestroy(owner)
     }
 
@@ -251,17 +277,18 @@ class MediaViewModel @Inject constructor(
 //        }
     }
 
-val playerListener = object: Player.Listener {
+private val playerListener = object: Player.Listener {
 
-        override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
-            super.onPlayWhenReadyChanged(playWhenReady, reason)
-//                        val token2 = mediaController?.connectedToken
-//                        if(token2 != null && token2.uid != 0) {
-//                            visualizer = Visualizer(0)
-//                            val eq = Equalizer(0,token2.uid)
-//                        }
+//        override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
+//            super.onPlayWhenReadyChanged(playWhenReady, reason)
+////                        val token2 = mediaController?.connectedToken
+////                        if(token2 != null && token2.uid != 0) {
+////                            visualizer = Visualizer(0)
+////                            val eq = Equalizer(0,token2.uid)
+////                        }
+//
+//        }
 
-        }
         //                    override fun onAudioSessionIdChanged(audioSessionId: Int) {
 //                        super.onAudioSessionIdChanged(audioSessionId)
 //
@@ -283,14 +310,14 @@ val playerListener = object: Player.Listener {
                     // note that it may be null.
                 }
             }
-            mediaController.seekToNext()
-            mediaController.prepare()
-            mediaController.play()
+//            mediaController.seekToNext()
+//            mediaController.prepare()
+//            mediaController.play()
         }
 
         override fun onMediaMetadataChanged(mediaMetadata: MediaMetadata) {
 //                        _currentTrackMediaMetadata.value = mediaMetadata
-            Log.d("DMG", "mediaData changed")
+            //Log.d("DMG", "mediaData changed")
         }
 
         override fun onIsPlayingChanged(isPlaying: Boolean) {
@@ -305,7 +332,7 @@ val playerListener = object: Player.Listener {
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
             super.onMediaItemTransition(mediaItem, reason)
 
-            Log.d("DLM","hello from listener $this r: $reason")
+            //Log.d("DLM","hello from listener $this r: $reason")
 
             if(reason == 1){ //transition to next
                 prevMediaTrackData = currentMediaTrackData
@@ -390,7 +417,7 @@ val playerListener = object: Player.Listener {
                     }
                 }
             }
-            Log.d("TRD","${searchHelper.overrunTop}, ${searchHelper.overrunBottom}")
+            //Log.d("TRD","${searchHelper.overrunTop}, ${searchHelper.overrunBottom}")
         }
 
 //                    override fun onPlaybackStateChanged(playbackState: Int) {
@@ -451,7 +478,7 @@ val playerListener = object: Player.Listener {
 //                                    phases[k] = atan2(fft.get(i + 1).toDouble(), fft.get(i).toDouble()).toFloat()
 //                                }
 //                                _magnitudes.value = magnitudes
-////                                Log.d("VIS",arrayToString<Float>(magnitudes.toTypedArray()))
+////                                //Log.d("VIS",arrayToString<Float>(magnitudes.toTypedArray()))
 //                            }
 //
 //                        }
@@ -467,7 +494,7 @@ val playerListener = object: Player.Listener {
 //                )
 //
 //                val cCaptureSize = visualizer.captureSize
-//                Log.d("VIS","$cCaptureSize")
+//                //Log.d("VIS","$cCaptureSize")
 //                visualizer.setCaptureSize(128)
 //                if(mediaController.isPlaying) {
 //                    visualizer.setEnabled(true)
@@ -477,7 +504,7 @@ val playerListener = object: Player.Listener {
 ////
 //            }
 //
-        Log.d("DLM", "Mediacontroller: $mediaController")
+        //Log.d("DLM", "Mediacontroller: $mediaController")
         PlayerMSSReleaseApplication.setPlayerListener(playerListener)
 
         mediaController.repeatMode = playerRepeatMode.value
@@ -486,6 +513,16 @@ val playerListener = object: Player.Listener {
         viewModelScope.launch {
             _scrollPos.value = userScrollPos.first()
         }
+
+// experimental for trackTime
+//
+//        viewModelScope.launch(Dispatchers.Default) {
+//            isRemainTime.collect{
+//                _isRemainTime = it
+//                Timber.d("$_isRemainTime")
+//            }
+//        }
+
 
 //        viewModelScope.launch {
 //            playingItemId.collect{ it ->
@@ -554,7 +591,7 @@ val playerListener = object: Player.Listener {
             }
         }
 
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.Default) {
             querySortedResults.collect {
                 searchHelper = SearchHelper(it)
                 searchHelper.setRepeatMode(playerRepeatMode.value)
@@ -568,6 +605,23 @@ val playerListener = object: Player.Listener {
                 }
             }
         }
+
+// experimental for trackTime
+//
+
+//        viewModelScope.launch {
+//            while (true) {
+//                if (!_userInteraction && mediaController.isPlaying) {
+//                    mediaController.contentDuration.let { _fullTime.value = it }
+//                    mediaController.currentPosition.let { _currentTime.value = it }
+//                }
+//                val calcTime = if (isRemainTime.value) _fullTime.value - _currentTime.value else _currentTime.value
+//                val time = "%1\$tM:%1\$tS".format(calcTime)
+//                _showTime.value = if (isRemainTime.value) "-$time" else time
+//
+//                delay(1000)
+//            }
+//        }
 
     }
 
@@ -588,7 +642,7 @@ val playerListener = object: Player.Listener {
 
     fun checkTrackListScrollUp() {
         if (searchHelper.checkOverrunsFromTopToBottom()) {
-            Log.d("DBGL", "Overrun T B")
+            //Log.d("DBGL", "Overrun T B")
             with(lazyListState) {
                 val topFromEndItemIndex = layoutInfo.totalItemsCount - layoutInfo.visibleItemsInfo.size
                 setTrackListScrollPos(topFromEndItemIndex)
@@ -600,7 +654,7 @@ val playerListener = object: Player.Listener {
 
     fun checkTrackListScrollDown(){
         if(searchHelper.checkOverrunsFromBottomToTop()){
-            Log.d("DBGL", "Overrun B T")
+            //Log.d("DBGL", "Overrun B T")
             with(lazyListState){
                 setTrackListScrollPos(0)
             }
@@ -611,7 +665,7 @@ val playerListener = object: Player.Listener {
 
     override fun onCleared() {
         super.onCleared()
-        Log.d("LCD","on Cleared")
+        //Log.d("LCD","on Cleared")
     }
 
     fun scrollDown() {
@@ -626,7 +680,7 @@ val playerListener = object: Player.Listener {
                 if(newFirstVisibleItemIndex > topFromEndItemIndex){
                     newFirstVisibleItemIndex = topFromEndItemIndex
                 }
-                Log.d("DBGL", "ScrollDown to $newFirstVisibleItemIndex")
+                //Log.d("DBGL", "ScrollDown to $newFirstVisibleItemIndex")
 
                 setTrackListScrollPos(newFirstVisibleItemIndex)
             }
@@ -644,7 +698,7 @@ val playerListener = object: Player.Listener {
                 if(newFirstVisibleItemIndex < 0){
                     newFirstVisibleItemIndex = 0
                 }
-                Log.d("DBGL", "Scrollup to $newFirstVisibleItemIndex")
+                //Log.d("DBGL", "Scrollup to $newFirstVisibleItemIndex")
 
                 setTrackListScrollPos(newFirstVisibleItemIndex)
             }
@@ -727,7 +781,7 @@ val playerListener = object: Player.Listener {
     @RequiresApi(Build.VERSION_CODES.Q)
     private fun updateQueryStatistic(list: List<MediaTrackData>){
 
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.Default) {
             userDataRepository.saveTrackList(list)
         }
 
@@ -746,7 +800,7 @@ val playerListener = object: Player.Listener {
                 queryParams?.selectionArgs?.toTypedArray(),
                 queryParams?.sortOrder
             )
-//            Log.d("MVM", "Items: ${cursor?.count}")
+//            //Log.d("MVM", "Items: ${cursor?.count}")
 //        }
         return cursor
     }
@@ -815,12 +869,12 @@ val playerListener = object: Player.Listener {
     fun play(mediaTrackData: MediaTrackData){
 
         val sysId=mediaTrackData.getHash()
-        Log.d("SII","at play: $sysId, title: ${mediaTrackData.title}")
+        //Log.d("SII","at play: $sysId, title: ${mediaTrackData.title}")
         setPlayingItemId(sysId)
 
         searchHelper.clearOverruns()
 
-        Log.d("DTP", mediaTrackData.title)
+        //Log.d("DTP", mediaTrackData.title)
         mediaController.clearMediaItems()
 
         var offset = 0
@@ -878,7 +932,7 @@ val playerListener = object: Player.Listener {
                     scanFilesInDir(path.uri, application)
                 }else{
                     val type = application.contentResolver.getType(path.uri)
-                    Log.d("SFD","type: $type ${path.uri}")
+                    //Log.d("SFD","type: $type ${path.uri}")
 //                    val typeInfo = contentResolver.getTypeInfo(path.uri)
                     if(supportedAudioTypes.contains(type)){
                         DocumentFileCompat.fromUri(context,path.uri)
@@ -900,7 +954,7 @@ val playerListener = object: Player.Listener {
                 arrayOf("audio/mpeg","audio/mp3","*/*"),
                 object: MediaScannerConnection.MediaScannerConnectionClient {
                     override fun onScanCompleted(path: String?, uri: Uri?) {
-                        Log.d("DMS","Scan completed: uri: $uri, path $path")
+                        //Log.d("DMS","Scan completed: uri: $uri, path $path")
                         if(uri != null){
                             mediaScannerResults.added += 1
                             mediaScannerResults.entriesDescr += MediaScannerEntry(path, uri)
@@ -914,7 +968,7 @@ val playerListener = object: Player.Listener {
                         }
                     }
                     override fun onMediaScannerConnected() {
-                        Log.d("DMS","Scanner connected")
+                        //Log.d("DMS","Scanner connected")
                     }
                 })
 

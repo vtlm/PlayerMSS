@@ -76,6 +76,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.serialization.Serializable
+import timber.log.Timber
 import kotlin.system.exitProcess
 
 //todo
@@ -117,6 +118,10 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        if (BuildConfig.DEBUG) {
+            Timber.plant(Timber.DebugTree())
+        }
+
 //        mediaViewModel.setUserScrollPos(0)
         checkPermissions()
 
@@ -131,7 +136,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        Log.d("DPR","onResume")
+        //Log.d("DPR","onResume")
         if(isReCheckPermissions){
             isReCheckPermissions = false
             checkPermissions()
@@ -304,12 +309,12 @@ fun RequestPermissionsScreen(){
     private val reCheckPermissions =
         registerForActivityResult(
             ActivityResultContracts.StartActivityForResult()) { result ->
-            Log.d("DPR","in afterPermissions $result")
+            //Log.d("DPR","in afterPermissions $result")
 //            checkPermissions()
 //            triggerRestart(this)
             if(result.resultCode == RESULT_OK){
                 result.data?.data?.also {
-                    Log.d("DPR","afterPermissions")
+                    //Log.d("DPR","afterPermissions")
                 }
             }
         }
@@ -322,7 +327,7 @@ fun RequestPermissionsScreen(){
             if(result.resultCode == RESULT_OK){
                 result.data?.data?.also { directoryUri ->
                     // Perform operations on the document using its URI.
-                    Log.d("DBG", directoryUri.toString())
+                    //Log.d("DBG", directoryUri.toString())
                     mediaViewModel.runScanFilesInDir(directoryUri, application)
                     pendingFunCall()
                 }
@@ -435,6 +440,7 @@ fun RequestPermissionsScreen(){
     @RequiresApi(Build.VERSION_CODES.Q)
     @Composable
     fun SearchScreen(onNav: () -> Unit){
+        Timber.d("Recomp Search Screen")
         ShowProgressOrContent(mediaViewModel.progressTitle.collectAsState().value) {
 
             val querySortedResults = mediaViewModel.querySortedResults.collectAsState().value
@@ -506,11 +512,26 @@ fun RequestPermissionsScreen(){
                         Row(Modifier.padding(top = 4.dp)) {
                             Box {//for overlap
                                 Row {
-                                    TrackTime(
-                                        mediaViewModel.mediaController,
-                                        mediaViewModel.isRemainTime.collectAsState().value,
-                                        mediaViewModel::setRemainTime
-                                    )
+
+                                    with(mediaViewModel) {
+                                        TrackTime(
+                                            mediaController,
+                                            isRemainTime.collectAsState().value,
+                                            ::setRemainTime
+                                        )
+                                    }
+
+//                                    with(mediaViewModel) {
+//                                        TrackTime(
+//                                            showTime.collectAsState().value,
+//                                            currentTime.collectAsState().value,
+//                                            fullTime.collectAsState().value,
+//                                            ::onSliderChange,
+//                                            ::onSliderChangeFinished,
+//                                            ::toggleRemainTime
+//                                        )
+//                                    }
+
                                 }
                                 Row {
                                     TrackInfo(

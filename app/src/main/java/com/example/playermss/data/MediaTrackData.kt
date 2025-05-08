@@ -122,7 +122,7 @@ fun uriFromCursor(cursor: Cursor, columnMap: Map<String,Int?>, context: Context)
 
         val file = File(data)
         if(!file.exists()){
-            Log.d("MTCF","not exists $data")
+            //Log.d("MTCF","not exists $data")
             return null
         }
 

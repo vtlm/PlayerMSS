@@ -32,7 +32,7 @@ class PlaybackService : MediaSessionService() {
          mediaSession = MediaSession.Builder(this, player)
              .setSessionActivity(getSessionActivityIntent())
              .build()
-         Log.d("OC","Playback service created")
+         //Log.d("OC","Playback service created")
 
     }
 
@@ -52,7 +52,7 @@ class PlaybackService : MediaSessionService() {
             stopSelf()
         }
 
-        Log.d("MSS","task removed")
+        //Log.d("MSS","task removed")
     }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession =
@@ -65,7 +65,7 @@ class PlaybackService : MediaSessionService() {
             release()
         }
         super.onDestroy()
-        Log.d("MSS","destroyed")
+        //Log.d("MSS","destroyed")
     }
 }
 

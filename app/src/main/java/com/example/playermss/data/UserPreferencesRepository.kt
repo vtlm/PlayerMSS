@@ -1,13 +1,10 @@
 
 package com.example.playermss.data
 
-import android.util.Log
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
-import androidx.datastore.preferences.core.intPreferencesKey
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
@@ -18,6 +15,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import timber.log.Timber
 import java.io.IOException
 import javax.inject.Inject
 
@@ -32,7 +30,7 @@ class UserPreferencesRepository @Inject constructor(
         val rv = dataStore.data
             .catch {
                 if (it is IOException) {
-                    Log.e(TAG, "Error reading preferences.", it)
+                    Timber.tag(TAG).e(it, "Error reading preferences.")
                     emit(emptyPreferences())
                 } else {
                     throw it
@@ -57,7 +55,7 @@ class UserPreferencesRepository @Inject constructor(
         val t = dataStore.data
             .catch {
                 if (it is IOException) {
-                    Log.e(TAG, "Error reading preferences.", it)
+                    Timber.tag(TAG).e(it, "Error reading preferences.")
                     emit(emptyPreferences())
                 } else {
                     throw it
@@ -84,7 +82,7 @@ class UserPreferencesRepository @Inject constructor(
         val text = dataStore.data
             .catch {
                 if (it is IOException) {
-                    Log.e(TAG, "Error reading preferences.", it)
+                    Timber.tag(TAG).e(it, "Error reading preferences.")
                     emit(emptyPreferences())
                 } else {
                     throw it
@@ -106,7 +104,7 @@ class UserPreferencesRepository @Inject constructor(
         val stringSet = dataStore.data
             .catch {
                 if (it is IOException) {
-                    Log.e(TAG, "Error reading preferences.", it)
+                    Timber.tag(TAG).e(it, "Error reading preferences.")
                     emit(emptyPreferences())
                 } else {
                     throw it

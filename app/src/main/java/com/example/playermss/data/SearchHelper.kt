@@ -163,7 +163,7 @@ class SearchHelper(private val groupedSortedTracks: List<Pair<String, List<Pair<
     fun getPrev(mediaTrackData: MediaTrackData?): MediaTrackData?{
 //        overrunTop = false
 //        overrunBottom =false
-        Log.d("TRD","prev for ${mediaTrackData?.title}")
+        //Log.d("TRD","prev for ${mediaTrackData?.title}")
         val currentArtist = groupedSortedTracks?.find { it.first == mediaTrackData?.artist }
         val currentArtistIndex = groupedSortedTracks?.indexOf(currentArtist)
         if(groupedSortedTracks != null && currentArtistIndex != null && currentArtistIndex != -1) {
@@ -193,7 +193,7 @@ class SearchHelper(private val groupedSortedTracks: List<Pair<String, List<Pair<
     fun getNext(mediaTrackData: MediaTrackData?): MediaTrackData?{
 //        overrunTop = false
 //        overrunBottom =false
-        Log.d("TRD","next for ${mediaTrackData?.title}")
+        //Log.d("TRD","next for ${mediaTrackData?.title}")
         val currentArtist = groupedSortedTracks?.find { it.first == mediaTrackData?.artist }
         val currentArtistIndex = groupedSortedTracks?.indexOf(currentArtist)
         if(groupedSortedTracks != null && currentArtistIndex != null && currentArtistIndex != -1) {

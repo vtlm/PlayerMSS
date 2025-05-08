@@ -19,7 +19,7 @@ fun PlayControls(
     modifier: Modifier
 ) {
 
-    Log.d("DBG_PC", "play ctls called")
+    //Log.d("DBG_PC", "play ctls called")
 
     val repeatModeId = arrayOf(
         R.drawable.baseline_repeat_24,
