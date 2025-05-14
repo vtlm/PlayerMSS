@@ -10,11 +10,11 @@ import android.provider.MediaStore
 import androidx.annotation.RequiresApi
 import java.io.File
 
-data class SearchStatistic(
-    val artists: Int = 0,
-    val albums: Int = 0,
-    val titles: Int = 0,
-)
+//data class SearchStatistic(
+//    val artists: Int = 0,
+//    val albums: Int = 0,
+//    val titles: Int = 0,
+//)
 
 val audioColumns = arrayOf(
     MediaStore.Audio.AudioColumns._ID,

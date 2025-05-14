@@ -4,14 +4,11 @@ import android.app.Application
 import android.content.Context
 import android.database.Cursor
 import android.media.MediaScannerConnection
-import android.media.audiofx.BassBoost
-import android.media.audiofx.Equalizer
 import android.media.audiofx.Visualizer
 import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
 import androidx.annotation.RequiresApi
-import androidx.annotation.RequiresExtension
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
@@ -41,12 +38,12 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 import kotlin.math.min
 
-val TRACK_LIST_SCROLL_POS = intPreferencesKey("track_list_scroll_pos")
+//val TRACK_LIST_SCROLL_POS = intPreferencesKey("track_list_scroll_pos")
 val IS_REMAIN_TIME = booleanPreferencesKey("is_remain_time")
 val PLAYER_REPEAT_MODE = intPreferencesKey("player_repeat_mode")
 val USER_TRACK_LIST_SCROLL_POS = intPreferencesKey("user_track_list_scroll_pos")
 val PLAYING_ITEM_ID = intPreferencesKey("playing_item_id")
-val IS_UI_SEARCH_VISIBLE = booleanPreferencesKey("is_ui_search_visible")
+//val IS_UI_SEARCH_VISIBLE = booleanPreferencesKey("is_ui_search_visible")
 val IS_VISUALIZER_VISIBLE = booleanPreferencesKey("is_visualizer_visible")
 
 data class MediaScannerErrorEntry(
@@ -81,7 +78,7 @@ class MediaViewModel @Inject constructor(
 
     private val _progressTitle = MutableStateFlow("")
     val progressTitle: StateFlow<String> = _progressTitle.asStateFlow()
-    fun setProgressTitle(title: String){_progressTitle.value = title}
+//    fun setProgressTitle(title: String){_progressTitle.value = title}
 
     private val _mediaStoreGenerations = MutableStateFlow(listOf<Long>())
     val mediaStoreGenerations: StateFlow<List<Long>> = _mediaStoreGenerations.asStateFlow()
@@ -115,26 +112,26 @@ class MediaViewModel @Inject constructor(
     val scrollPos: StateFlow<Int?> = _scrollPos.asStateFlow()
 
     private val _currentTime = MutableStateFlow(0L)
-    val currentTime: StateFlow<Long> = _currentTime.asStateFlow()
+//    val currentTime: StateFlow<Long> = _currentTime.asStateFlow()
 
     private val _fullTime = MutableStateFlow(0L)
-    val fullTime: StateFlow<Long> = _fullTime.asStateFlow()
+//    val fullTime: StateFlow<Long> = _fullTime.asStateFlow()
 
     private val _showTime = MutableStateFlow("")
-    val showTime: StateFlow<String> = _showTime.asStateFlow()
+//    val showTime: StateFlow<String> = _showTime.asStateFlow()
 
     var _userInteraction = false
     fun setUserInteraction(userInteraction: Boolean){
         _userInteraction = userInteraction
     }
-    fun onSliderChange(value: Float){
-        setUserInteraction(true)
-        _currentTime.value = (value * 1000).toLong()
-    }
-    fun onSliderChangeFinished(){
-        setUserInteraction(false)
-        mediaController.seekTo(_currentTime.value)
-    }
+//    fun onSliderChange(value: Float){
+//        setUserInteraction(true)
+//        _currentTime.value = (value * 1000).toLong()
+//    }
+//    fun onSliderChangeFinished(){
+//        setUserInteraction(false)
+//        mediaController.seekTo(_currentTime.value)
+//    }
 
 
 //    private fun <T>getFirstFromFlow(t: Flow<T>):T?{
@@ -165,8 +162,8 @@ class MediaViewModel @Inject constructor(
 //    private var _sleevePicture = MutableStateFlow<ImageBitmap?>(null)
 //    val sleevePicture: StateFlow<ImageBitmap?> = _sleevePicture.asStateFlow()
 
-    private lateinit var bassBoost: BassBoost
-    private lateinit var equalizer: Equalizer
+//    private lateinit var bassBoost: BassBoost
+//    private lateinit var equalizer: Equalizer
     private lateinit var visualizer: Visualizer
 
     lateinit var searchHelper: SearchHelper
@@ -183,9 +180,9 @@ class MediaViewModel @Inject constructor(
     var _isRemainTime = false
     val isRemainTime: StateFlow<Boolean> = userPreferencesRepository.getOrDefaultAsStateFlow(IS_REMAIN_TIME, viewModelScope, false)
     fun setRemainTime(isRemainTime: Boolean) = userPreferencesRepository.set(IS_REMAIN_TIME, viewModelScope ,isRemainTime)
-    fun toggleRemainTime(){
-        setRemainTime( !_isRemainTime )
-    }
+//    fun toggleRemainTime(){
+//        setRemainTime( !_isRemainTime )
+//    }
 
     val playingItemId: StateFlow<Int> = userPreferencesRepository.getOrDefaultAsStateFlow(PLAYING_ITEM_ID, viewModelScope, 0)
     fun setPlayingItemId(itemId: Int?) = userPreferencesRepository.set(PLAYING_ITEM_ID,viewModelScope, itemId)
@@ -211,7 +208,7 @@ class MediaViewModel @Inject constructor(
     }
 
     val isVisualizerVisible = userPreferencesRepository.getOrDefaultAsStateFlow(IS_VISUALIZER_VISIBLE, viewModelScope,false)
-    fun setVisualizerVisible(state: Boolean) = userPreferencesRepository.set(IS_VISUALIZER_VISIBLE, viewModelScope, state)
+//    fun setVisualizerVisible(state: Boolean) = userPreferencesRepository.set(IS_VISUALIZER_VISIBLE, viewModelScope, state)
 
     override fun onCreate(owner: LifecycleOwner) {//override lifecycle events
         super.onCreate(owner)
@@ -256,14 +253,14 @@ class MediaViewModel @Inject constructor(
         expandedAlbums.add(mediaTrackData?.relativePath)
     }
 
-    fun <T>arrayToString(t: Array<T>):String{
-        var rss=""
-        for(i in 0..<t.size){
-            rss+=t[i].toString()
-            rss+= " "
-        }
-        return rss
-    }
+//    fun <T>arrayToString(t: Array<T>):String{
+//        var rss=""
+//        for(i in 0..<t.size){
+//            rss+=t[i].toString()
+//            rss+= " "
+//        }
+//        return rss
+//    }
 
     fun isSearchFieldsEmpty(): Boolean{
         return queryFields.find { it.text.value != "" } == null
@@ -737,17 +734,17 @@ private val playerListener = object: Player.Listener {
         }
     }
 
-    @RequiresExtension(extension = Build.VERSION_CODES.R, version = 1)
-    @RequiresApi(Build.VERSION_CODES.Q)
-    private fun reCheckMediaStoreGeneration(){
-        val externalVolumeNames = MediaStore.getExternalVolumeNames(context)
-        val generations = externalVolumeNames.map{MediaStore.getGeneration(context,it)}
-
-        if(_mediaStoreGenerations.value != generations){
-            _mediaStoreGenerations.value = generations
-        }
-
-    }
+//    @RequiresExtension(extension = Build.VERSION_CODES.R, version = 1)
+//    @RequiresApi(Build.VERSION_CODES.Q)
+//    private fun reCheckMediaStoreGeneration(){
+//        val externalVolumeNames = MediaStore.getExternalVolumeNames(context)
+//        val generations = externalVolumeNames.map{MediaStore.getGeneration(context,it)}
+//
+//        if(_mediaStoreGenerations.value != generations){
+//            _mediaStoreGenerations.value = generations
+//        }
+//
+//    }
 
     @RequiresApi(Build.VERSION_CODES.Q)
     private fun cursorToTrackList(cursor: Cursor): List<MediaTrackData>{

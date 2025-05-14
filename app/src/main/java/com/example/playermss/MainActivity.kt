@@ -1,7 +1,6 @@
 package com.example.playermss
 
 //import androidx.compose.material.icons.
-import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -69,7 +68,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.compose.AppTheme
 import com.example.playermss.data.MediaScannerResults
-import com.example.playermss.data.MediaTrackData
 import com.example.playermss.data.MediaViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -196,13 +194,13 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    fun triggerRestart(context: Activity) {
-        val intent = Intent(context, MainActivity::class.java)
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        context.startActivity(intent)
-        context.finish()
-        Runtime.getRuntime().exit(0)
-    }
+//    fun triggerRestart(context: Activity) {
+//        val intent = Intent(context, MainActivity::class.java)
+//        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+//        context.startActivity(intent)
+//        context.finish()
+//        Runtime.getRuntime().exit(0)
+//    }
 
     @RequiresExtension(extension = Build.VERSION_CODES.R, version = 1)
     @RequiresApi(Build.VERSION_CODES.Q)
@@ -285,7 +283,7 @@ fun RequestPermissionsScreen(){
                     Button(onClick = {
 //                                finishAffinity();
                         finishAndRemoveTask()
-                        exitProcess(0);
+                        exitProcess(0)
                     },
                     modifier = Modifier.padding(vertical = 4.dp))
                     { Text(text = resources.getString(R.string.Exit))}
@@ -373,28 +371,28 @@ fun RequestPermissionsScreen(){
         }
     }
 
-    @Composable
-    fun StatusLine(){
-        val generations = mediaViewModel.mediaStoreGenerations.collectAsState()
-        Row{
-            for(g in generations.value){
-                Row{
-                    Text(" $g")
-                }
-            }
-        }
-    }
+//    @Composable
+//    fun StatusLine(){
+//        val generations = mediaViewModel.mediaStoreGenerations.collectAsState()
+//        Row{
+//            for(g in generations.value){
+//                Row{
+//                    Text(" $g")
+//                }
+//            }
+//        }
+//    }
 
-    @Composable
-    fun ShowUnsortedTracks(tracks: List<MediaTrackData>){
-        LazyColumn {
-            tracks.forEach{
-                item {
-                    Text(it.title)
-                }
-            }
-        }
-    }
+//    @Composable
+//    fun ShowUnsortedTracks(tracks: List<MediaTrackData>){
+//        LazyColumn {
+//            tracks.forEach{
+//                item {
+//                    Text(it.title)
+//                }
+//            }
+//        }
+//    }
 
     @Composable
     fun ShowMagnitude(magnitudes: FloatArray){
@@ -418,7 +416,7 @@ fun RequestPermissionsScreen(){
 
                             drawRect(
                                 Color.Yellow,
-                                topLeft = Offset(x = i * step.toFloat(), y = canvasHeight - barHeight),
+                                topLeft = Offset(x = i * step, y = canvasHeight - barHeight),
                                 size = Size(step - 1f, barHeight)
                             )
 //                            drawLine(
