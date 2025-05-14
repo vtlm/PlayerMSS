@@ -81,7 +81,7 @@ class MediaViewModel @Inject constructor(
 //    fun setProgressTitle(title: String){_progressTitle.value = title}
 
     private val _mediaStoreGenerations = MutableStateFlow(listOf<Long>())
-    val mediaStoreGenerations: StateFlow<List<Long>> = _mediaStoreGenerations.asStateFlow()
+//    val mediaStoreGenerations: StateFlow<List<Long>> = _mediaStoreGenerations.asStateFlow()
 
     private val _scanResults = MutableStateFlow(mutableListOf<String>())
     val scanResults: StateFlow<MutableList<String>> = _scanResults.asStateFlow()
@@ -111,19 +111,19 @@ class MediaViewModel @Inject constructor(
     private val _scrollPos = MutableStateFlow(0)
     val scrollPos: StateFlow<Int?> = _scrollPos.asStateFlow()
 
-    private val _currentTime = MutableStateFlow(0L)
+//    private val _currentTime = MutableStateFlow(0L)
 //    val currentTime: StateFlow<Long> = _currentTime.asStateFlow()
 
-    private val _fullTime = MutableStateFlow(0L)
+//    private val _fullTime = MutableStateFlow(0L)
 //    val fullTime: StateFlow<Long> = _fullTime.asStateFlow()
 
-    private val _showTime = MutableStateFlow("")
+//    private val _showTime = MutableStateFlow("")
 //    val showTime: StateFlow<String> = _showTime.asStateFlow()
 
-    var _userInteraction = false
-    fun setUserInteraction(userInteraction: Boolean){
-        _userInteraction = userInteraction
-    }
+//    var _userInteraction = false
+//    fun setUserInteraction(userInteraction: Boolean){
+//        _userInteraction = userInteraction
+//    }
 //    fun onSliderChange(value: Float){
 //        setUserInteraction(true)
 //        _currentTime.value = (value * 1000).toLong()
@@ -177,7 +177,7 @@ class MediaViewModel @Inject constructor(
         _scrollPos.value = trackListScrollPos
     }
 
-    var _isRemainTime = false
+//    var _isRemainTime = false
     val isRemainTime: StateFlow<Boolean> = userPreferencesRepository.getOrDefaultAsStateFlow(IS_REMAIN_TIME, viewModelScope, false)
     fun setRemainTime(isRemainTime: Boolean) = userPreferencesRepository.set(IS_REMAIN_TIME, viewModelScope ,isRemainTime)
 //    fun toggleRemainTime(){
