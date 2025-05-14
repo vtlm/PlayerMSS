@@ -9,7 +9,6 @@ import android.os.Build
 import android.os.Bundle
 import android.provider.DocumentsContract
 import android.provider.Settings
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -154,7 +153,7 @@ class MainActivity : ComponentActivity() {
             neededPermissions.clear()
             _permissionsGranted.value = true
             permissions.entries.forEach {
-                Log.i("DEBUG", "${it.key} = ${it.value}")
+                Timber.tag("DEBUG").i("${it.key} = ${it.value}")
                 if (it.value) {
                     println("Successful......")
 
@@ -201,9 +200,7 @@ class MainActivity : ComponentActivity() {
         val intent = Intent(context, MainActivity::class.java)
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         context.startActivity(intent)
-        if (context is Activity) {
-            (context as Activity).finish()
-        }
+        context.finish()
         Runtime.getRuntime().exit(0)
     }
 
@@ -314,7 +311,7 @@ fun RequestPermissionsScreen(){
 //            triggerRestart(this)
             if(result.resultCode == RESULT_OK){
                 result.data?.data?.also {
-                    //Log.d("DPR","afterPermissions")
+                    Timber.tag("DPR").d("afterPermissions")
                 }
             }
         }
@@ -605,8 +602,9 @@ fun RequestPermissionsScreen(){
             composable<NavTrackList> { TracksScreen(onNav={navController.navigate(route = NavSearch)}) }
             composable<NavScannedResults> { ViewFileSystemScanResults(onNavOK = {navController.navigate(route = NavMediaScannerResults){
                 popUpTo(NavSearch)
-            }} , onNavCancel = {navController.navigate(route = NavSearch) })}
-            composable<NavMediaScannerResults> { ViewMediaScannerResults(onNav = {}) }
+            }} //, onNavCancel = {navController.navigate(route = NavSearch)}
+            )}
+            composable<NavMediaScannerResults> { ViewMediaScannerResults() }
         }
     }
 
@@ -626,7 +624,7 @@ fun RequestPermissionsScreen(){
 
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
-    fun ViewFileSystemScanResults(onNavOK: () -> Unit, onNavCancel: () -> Unit){
+    fun ViewFileSystemScanResults(onNavOK: () -> Unit){
         ShowProgressOrContent(mediaViewModel.progressTitle.collectAsState().value) {
             val fileSystemScanResults = mediaViewModel.scanResults.collectAsState().value
 //            if(fileSystemScanResults.size == 0){
@@ -706,7 +704,7 @@ fun RequestPermissionsScreen(){
     }
 
     @Composable
-    fun ViewMediaScannerResults(onNav: () -> Unit){
+    fun ViewMediaScannerResults(){
         ShowProgressOrContent(mediaViewModel.progressTitle.collectAsState().value) {
             ShowMediaScannerResults(mediaViewModel.mediaScanResults.collectAsState().value)
         }
@@ -742,7 +740,7 @@ fun RequestPermissionsScreen(){
             )
         },
         ) { innerPadding ->
-
+            Box(modifier = Modifier.padding(innerPadding))
 //            ShowPlayList(mediaViewModel.cursor)
         }
     }

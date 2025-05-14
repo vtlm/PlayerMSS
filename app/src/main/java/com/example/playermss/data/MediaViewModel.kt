@@ -24,7 +24,6 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
-import androidx.media3.datasource.HttpDataSource
 import androidx.media3.session.MediaController
 import com.anggrayudi.storage.file.DocumentFileCompat
 import com.anggrayudi.storage.file.getAbsolutePath
@@ -296,20 +295,20 @@ private val playerListener = object: Player.Listener {
 //
 //                    }
         override fun onPlayerError(error: PlaybackException) {
-            val cause = error.cause
-            if (cause is HttpDataSource.HttpDataSourceException) {
-                // An HTTP error occurred.
-                val httpError = cause
-                // It's possible to find out more about the error both by casting and by querying
-                // the cause.
-                if (httpError is HttpDataSource.InvalidResponseCodeException) {
-                    // Cast to InvalidResponseCodeException and retrieve the response code, message
-                    // and headers.
-                } else {
-                    // Try calling httpError.getCause() to retrieve the underlying cause, although
-                    // note that it may be null.
-                }
-            }
+//            val cause = error.cause
+//            if (cause is HttpDataSource.HttpDataSourceException) {
+//                // An HTTP error occurred.
+//                val httpError = cause
+//                // It's possible to find out more about the error both by casting and by querying
+//                // the cause.
+//                if (httpError is HttpDataSource.InvalidResponseCodeException) {
+//                    // Cast to InvalidResponseCodeException and retrieve the response code, message
+//                    // and headers.
+//                } else {
+//                    // Try calling httpError.getCause() to retrieve the underlying cause, although
+//                    // note that it may be null.
+//                }
+//            }
 //            mediaController.seekToNext()
 //            mediaController.prepare()
 //            mediaController.play()
@@ -488,7 +487,6 @@ private val playerListener = object: Player.Listener {
 //                            p1: ByteArray?,
 //                            p2: Int
 //                        ) {
-////                            TODO("Not yet implemented")
 //                        }
 //                    },10000,false,true
 //                )
@@ -668,7 +666,7 @@ private val playerListener = object: Player.Listener {
         //Log.d("LCD","on Cleared")
     }
 
-    fun scrollDown() {
+    private fun scrollDown() {
         val currentTrackIndex = getCurrentTrackLazyListIndex()
         with(lazyListState) {
             if (currentTrackIndex != null
@@ -687,7 +685,7 @@ private val playerListener = object: Player.Listener {
         }
     }
 
-    fun scrollUp(){
+    private fun scrollUp(){
         val currentTrackIndex = getCurrentTrackLazyListIndex()
         with(lazyListState) {
             if (currentTrackIndex != null
