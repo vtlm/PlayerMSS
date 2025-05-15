@@ -80,7 +80,7 @@ class MediaViewModel @Inject constructor(
     val progressTitle: StateFlow<String> = _progressTitle.asStateFlow()
 //    fun setProgressTitle(title: String){_progressTitle.value = title}
 
-    private val _mediaStoreGenerations = MutableStateFlow(listOf<Long>())
+//    private val _mediaStoreGenerations = MutableStateFlow(listOf<Long>())
 //    val mediaStoreGenerations: StateFlow<List<Long>> = _mediaStoreGenerations.asStateFlow()
 
     private val _scanResults = MutableStateFlow(mutableListOf<String>())
