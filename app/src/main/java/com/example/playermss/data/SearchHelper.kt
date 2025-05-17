@@ -1,14 +1,13 @@
 package com.example.playermss.data
 
-import android.util.Log
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 
 
 class SearchHelper(private val groupedSortedTracks: List<Pair<String, List<Pair<String, List<MediaTrackData>>>>>?){
 
-    var currentArtist: String? = ""
-    var currentAlbumKey: String? = ""
+//    var currentArtist: String? = ""
+//    var currentAlbumKey: String? = ""
 
     var overrunTop = false
     var overrunBottom = false
