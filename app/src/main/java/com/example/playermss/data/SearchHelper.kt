@@ -1,6 +1,5 @@
 package com.example.playermss.data
 
-import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 
 
@@ -53,12 +52,8 @@ class SearchHelper(private val groupedSortedTracks: List<Pair<String, List<Pair<
         repeatMode = _repeatMode
     }
 
-    fun getMediaItem(mediaTrackData: MediaTrackData?):MediaItem?{
-        return mediaTrackData?.uri?.let { MediaItem.fromUri(it) }
-    }
-
-//    fun prevMediaItem(mediaTrackData: MediaTrackData?):MediaItem? {
-//
+//    fun getMediaItem(mediaTrackData: MediaTrackData?):MediaItem?{
+//        return mediaTrackData?.uri?.let { MediaItem.fromUri(it) }
 //    }
 
     fun getMediaTrackDataForCode(code: Int): MediaTrackData?{
