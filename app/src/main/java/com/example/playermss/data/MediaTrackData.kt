@@ -7,16 +7,14 @@ import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
-import android.util.Log
 import androidx.annotation.RequiresApi
-import androidx.media3.common.MediaItem
 import java.io.File
 
-data class SearchStatistic(
-    val artists: Int = 0,
-    val albums: Int = 0,
-    val titles: Int = 0,
-)
+//data class SearchStatistic(
+//    val artists: Int = 0,
+//    val albums: Int = 0,
+//    val titles: Int = 0,
+//)
 
 val audioColumns = arrayOf(
     MediaStore.Audio.AudioColumns._ID,
@@ -115,14 +113,14 @@ fun uriFromCursor(cursor: Cursor, columnMap: Map<String,Int?>, context: Context)
     val id = columnMap[MediaStore.Audio.AudioColumns._ID]?.let { cursor.getLong(it) }
     val data = columnMap[MediaStore.Audio.AudioColumns.DATA]?.let { cursor.getString(it) }
 
-    val dn = columnMap[MediaStore.Audio.AudioColumns.DISC_NUMBER]?.let { cursor.getString(it) }
-    val rp = columnMap[MediaStore.Audio.AudioColumns.RELATIVE_PATH]?.let { cursor.getString(it) }
+//    val dn = columnMap[MediaStore.Audio.AudioColumns.DISC_NUMBER]?.let { cursor.getString(it) }
+//    val rp = columnMap[MediaStore.Audio.AudioColumns.RELATIVE_PATH]?.let { cursor.getString(it) }
 
     if(data != null){
 
         val file = File(data)
         if(!file.exists()){
-            Log.d("MTCF","not exists $data")
+            //Log.d("MTCF","not exists $data")
             return null
         }
 
@@ -146,8 +144,8 @@ fun uriFromCursor(cursor: Cursor, columnMap: Map<String,Int?>, context: Context)
                 val contentUri = MediaStore.Audio.Media.getContentUri(volumeName)
                 val itemUri = id?.let { ContentUris.withAppendedId(contentUri, it) }
 
-                val mediaItem: MediaItem = MediaItem.fromUri(Uri.parse(data))
-                val mediaItem2: MediaItem?= itemUri?.let { MediaItem.fromUri(it) }
+//                val mediaItem: MediaItem = MediaItem.fromUri(Uri.parse(data))
+//                val mediaItem2: MediaItem?= itemUri?.let { MediaItem.fromUri(it) }
 //    if(id != null && data != null){
 //        return
 //    }
@@ -167,10 +165,6 @@ fun cursorToMediaTrackData(cursor: Cursor, columnMap: Map<String,Int>, context: 
 //        val dt2 = columnMap[MediaStore.Audio.AudioColumns.TRACK]?.let { cursor.getType(it) }
 
     val uri = uriFromCursor(cursor, columnMap, context) ?: return null
-
-    val dn = columnMap[MediaStore.Audio.AudioColumns.DISPLAY_NAME]?.let { cursor.getString(it) }.toString()
-    val rp = columnMap[MediaStore.Audio.AudioColumns.RELATIVE_PATH]?.let { cursor.getString(it) }.toString()
-
 
     val rv = MediaTrackData(
         columnMap[MediaStore.Audio.AudioColumns.ARTIST]?.let { cursor.getString(it) }.toString(),

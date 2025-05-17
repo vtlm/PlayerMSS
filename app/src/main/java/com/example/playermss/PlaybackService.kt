@@ -3,7 +3,6 @@ package com.example.playermss
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.util.Log
 import androidx.annotation.OptIn
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
@@ -21,7 +20,9 @@ class PlaybackService : MediaSessionService() {
     // Create your player and media session in the onCreate lifecycle event
     override fun onCreate() {
         super.onCreate()
-         player = ExoPlayer.Builder(this).build()
+         player = ExoPlayer.Builder(this)
+             .setHandleAudioBecomingNoisy(true)
+             .build()
         val audioAttributes: AudioAttributes = AudioAttributes.Builder()
             .setUsage(C.USAGE_MEDIA)
             .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE)
@@ -32,7 +33,7 @@ class PlaybackService : MediaSessionService() {
          mediaSession = MediaSession.Builder(this, player)
              .setSessionActivity(getSessionActivityIntent())
              .build()
-         Log.d("OC","Playback service created")
+         //Log.d("OC","Playback service created")
 
     }
 
@@ -52,7 +53,7 @@ class PlaybackService : MediaSessionService() {
             stopSelf()
         }
 
-        Log.d("MSS","task removed")
+        //Log.d("MSS","task removed")
     }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession =
@@ -65,7 +66,7 @@ class PlaybackService : MediaSessionService() {
             release()
         }
         super.onDestroy()
-        Log.d("MSS","destroyed")
+        //Log.d("MSS","destroyed")
     }
 }
 

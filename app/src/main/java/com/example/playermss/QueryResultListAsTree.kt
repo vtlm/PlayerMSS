@@ -1,10 +1,8 @@
 package com.example.playermss
 
-import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -19,9 +17,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -32,17 +27,16 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.compose.ConstraintLayout
 import com.example.playermss.data.MediaTrackData
 import com.example.playermss.data.MediaViewModel
 import kotlinx.coroutines.flow.distinctUntilChanged
+import timber.log.Timber
 
 
 @Preview
@@ -106,98 +100,10 @@ fun ShowTrackTitle(track: Int?, title: String, duration: Int?, color: Color){
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ShowTrack(trackItem: MediaTrackData, key: Int, selectedKey: Int) {
-    Log.d("SII","selected: $selectedKey, current: $key name: ${trackItem.title}")
+    //Log.d("SII","selected: $selectedKey, current: $key name: ${trackItem.title}")
     val color = if (key == selectedKey) Color.Yellow else MaterialTheme.colorScheme.onSecondaryContainer
 
     ShowTrackTitle(trackItem.track, trackItem.title, trackItem.duration, color)
-//Column (modifier = Modifier.fillMaxWidth()) {
-//    Row {
-//    ConstraintLayout(modifier = Modifier.fillMaxWidth()) {
-//        val (c1, c2) = createRefs()
-//        Box(modifier = Modifier.constrainAs(c1){
-//            end.linkTo(parent.end)
-//        }
-//            .padding(start = 4.dp, end = 2.dp)
-//            .wrapContentSize()
-//            .background(color = Color.Cyan)
-//        ){
-//            Text(color = color, text = duration(trackItem.duration))
-//        }
-//        Box(modifier = Modifier.constrainAs(c2){
-//            start.linkTo(parent.start)
-//            end.linkTo(c1.start)
-//        }
-//            .fillMaxWidth()
-//            .background(color = Color.Magenta)
-//            .padding(start = 4.dp, end = 4.dp)
-////            .wrapContentSize()
-////, contentAlignment = Alignment.TopStart
-//
-//            )
-//
-//            {
-//                Text( color = color,
-//                        modifier = Modifier.align(Alignment.TopStart),
-////                    overflow = TextOverflow.Ellipsis,
-//                    text = "${trackItem.track} - ${trackItem.title}")
-//        }
-//
-//    }
-
-
-//        ConstraintLayout(Modifier.fillMaxWidth()) {
-////        // Create references for the composables to constrain
-//        val (button, text) = createRefs()
-//
-//
-//            Text(
-//                text = "Text1",
-//                // Assign reference "button" to the Button composable
-//                // and constrain it to the top of the ConstraintLayout
-//                modifier = Modifier.constrainAs(button) {
-//                    start.linkTo(parent.start)
-//                    end.linkTo(text.start, margin = 8.dp)
-//                }.wrapContentSize()
-//                ,
-//                textAlign = TextAlign.Left
-//            )
-//            Text(
-//                text = "Text1",
-//                // Assign reference "button" to the Button composable
-//                // and constrain it to the top of the ConstraintLayout
-//                modifier = Modifier.constrainAs(button) {
-//                    start.linkTo(parent.start)
-//                    end.linkTo(text.start, margin = 8.dp)
-//                }.wrapContentSize()
-//                ,
-//                textAlign = TextAlign.Left
-//            )
-//
-//        // Assign reference "text" to the Text composable
-//        // and constrain it to the bottom of the Button composable
-//        Text(
-//            "Text2",
-//            Modifier.constrainAs(text) {
-//                end.linkTo(parent.end, margin = 4.dp)
-//            }
-//        )
-//        }
-
-//    }
-
-//    Row(
-//        modifier = Modifier.fillMaxWidth().padding(start = 12.dp, end = 2.dp),
-////        horizontalArrangement = Arrangement.SpaceBetween
-//    ) {
-//        Column(Modifier.wrapContentSize()) {
-//            Text(color = color, text = "${trackItem.track} - ${trackItem.title}")
-//        }
-//        Column(Modifier.wrapContentSize()) {
-//            Text(color = color, text = duration(trackItem.duration))
-//        }
-//    }
-    Log.d("RCT", "ReCompose track")
-//}
 }
 
 private fun LazyListScope.showTracks(tracks: List<MediaTrackData>, mediaViewModel: MediaViewModel){
@@ -218,14 +124,14 @@ private fun LazyListScope.showTracks(tracks: List<MediaTrackData>, mediaViewMode
                     .pointerInput(Unit){
                         detectTapGestures (
                             onTap = {
-                                Log.d("DTTREE", trackItem.title)
+                                //Log.d("DTTREE", trackItem.title)
                                 mediaViewModel.play(trackItem)
                             },
                             onPress = {
 //                                mediaViewModel.toggleAlbumExpanded(albumName)
                             },
                             onLongPress = {
-//                                Log.d("LP","Album long press: $albumName")
+//                                //Log.d("LP","Album long press: $albumName")
                             }
                         )
                     },
@@ -259,7 +165,7 @@ private fun LazyListScope.showAlbums(albums: List<Pair<String, List<MediaTrackDa
 //                                mediaViewModel.toggleAlbumExpanded(albumName)
                             },
                             onLongPress = {
-                                Log.d("LP","Album long press: $albumKey")
+                                //Log.d("LP","Album long press: $albumKey")
                             }
                         )
                     },
@@ -371,35 +277,21 @@ fun ShowQueryResults(
     scrollPos: Int?,
     mediaViewModel: MediaViewModel
 ){
-    Log.d("DBGL","Recomp with scrollposL $scrollPos")
+    //Log.d("DBGL","Recomp with scrollposL $scrollPos")
     val listState = rememberLazyListState(scrollPos ?: 0)
 //    listState.firstVisibleItemIndex = scrollPos
 
     LaunchedEffect(scrollPos) {
-//        delay(300)
         val offs = listState.firstVisibleItemScrollOffset
-        Log.d("DBGL","offs $offs")
+        //Log.d("DBGL","offs $offs")
         listState.scrollToItem(scrollPos ?: 0, offs)
     }
-
-//    LaunchedEffect(listState) {
-//        snapshotFlow { listState}
-//            .distinctUntilChanged()
-//            .collect {
-//                Log.d("DBGL", "State updated")
-//                mediaViewModel.laztListState = listState
-//            }
-//    }
-
 
     LaunchedEffect(listState) {
         snapshotFlow { listState.layoutInfo.totalItemsCount }
             .distinctUntilChanged()
             .collect {
-//                mediaViewModel.setLazyListTotalItemsCount(it)// listState.firstVisibleItemIndex)
-//                mediaViewModel.visibleItemsInfo = listState.layoutInfo.visibleItemsInfo
                 mediaViewModel.lazyListState = listState
-
             }
     }
 
@@ -407,16 +299,11 @@ fun ShowQueryResults(
         snapshotFlow { listState.layoutInfo.visibleItemsInfo.size }
             .distinctUntilChanged()
             .collect {
-//                mediaViewModel.setLazyListVisibleItemsCount(it)// listState.firstVisibleItemIndex)
-//                mediaViewModel.visibleItemsInfo = listState.layoutInfo.visibleItemsInfo
                 mediaViewModel.lazyListState = listState
-
             }
     }
 
     LaunchedEffect(listState) {
-
-//        listState.scrollToItem(listState.firstVisibleItemIndex)
 
         snapshotFlow { listState.firstVisibleItemIndex }
 //            .map { index -> index > 0 }
@@ -433,11 +320,9 @@ fun ShowQueryResults(
 
 //            .filter { it == true }
             .collect {
-                Log.d("DBGL","${it} ${listState.layoutInfo.totalItemsCount} " +
+                Timber.d("${it} ${listState.layoutInfo.totalItemsCount} " +
                         "${listState.layoutInfo.visibleItemsInfo.size} ${listState.layoutInfo.viewportStartOffset}")
-//                MyAnalyticsService.sendScrolledPastFirstItemEvent()
                 mediaViewModel.setUserScrollPos(it)// listState.firstVisibleItemIndex)
-//                mediaViewModel.visibleItemsInfo = listState.layoutInfo.visibleItemsInfo
                 mediaViewModel.lazyListState = listState
 
             }

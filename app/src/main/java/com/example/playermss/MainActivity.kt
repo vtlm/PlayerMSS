@@ -1,7 +1,6 @@
 package com.example.playermss
 
 //import androidx.compose.material.icons.
-import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -9,7 +8,6 @@ import android.os.Build
 import android.os.Bundle
 import android.provider.DocumentsContract
 import android.provider.Settings
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -70,12 +68,12 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.compose.AppTheme
 import com.example.playermss.data.MediaScannerResults
-import com.example.playermss.data.MediaTrackData
 import com.example.playermss.data.MediaViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.serialization.Serializable
+import timber.log.Timber
 import kotlin.system.exitProcess
 
 //todo
@@ -117,6 +115,10 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        if (BuildConfig.DEBUG) {
+            Timber.plant(Timber.DebugTree())
+        }
+
 //        mediaViewModel.setUserScrollPos(0)
         checkPermissions()
 
@@ -131,7 +133,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        Log.d("DPR","onResume")
+        //Log.d("DPR","onResume")
         if(isReCheckPermissions){
             isReCheckPermissions = false
             checkPermissions()
@@ -149,7 +151,7 @@ class MainActivity : ComponentActivity() {
             neededPermissions.clear()
             _permissionsGranted.value = true
             permissions.entries.forEach {
-                Log.i("DEBUG", "${it.key} = ${it.value}")
+                Timber.tag("DEBUG").i("${it.key} = ${it.value}")
                 if (it.value) {
                     println("Successful......")
 
@@ -192,15 +194,13 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    fun triggerRestart(context: Activity) {
-        val intent = Intent(context, MainActivity::class.java)
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        context.startActivity(intent)
-        if (context is Activity) {
-            (context as Activity).finish()
-        }
-        Runtime.getRuntime().exit(0)
-    }
+//    fun triggerRestart(context: Activity) {
+//        val intent = Intent(context, MainActivity::class.java)
+//        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+//        context.startActivity(intent)
+//        context.finish()
+//        Runtime.getRuntime().exit(0)
+//    }
 
     @RequiresExtension(extension = Build.VERSION_CODES.R, version = 1)
     @RequiresApi(Build.VERSION_CODES.Q)
@@ -283,7 +283,7 @@ fun RequestPermissionsScreen(){
                     Button(onClick = {
 //                                finishAffinity();
                         finishAndRemoveTask()
-                        exitProcess(0);
+                        exitProcess(0)
                     },
                     modifier = Modifier.padding(vertical = 4.dp))
                     { Text(text = resources.getString(R.string.Exit))}
@@ -304,12 +304,12 @@ fun RequestPermissionsScreen(){
     private val reCheckPermissions =
         registerForActivityResult(
             ActivityResultContracts.StartActivityForResult()) { result ->
-            Log.d("DPR","in afterPermissions $result")
+            //Log.d("DPR","in afterPermissions $result")
 //            checkPermissions()
 //            triggerRestart(this)
             if(result.resultCode == RESULT_OK){
                 result.data?.data?.also {
-                    Log.d("DPR","afterPermissions")
+                    Timber.tag("DPR").d("afterPermissions")
                 }
             }
         }
@@ -322,7 +322,7 @@ fun RequestPermissionsScreen(){
             if(result.resultCode == RESULT_OK){
                 result.data?.data?.also { directoryUri ->
                     // Perform operations on the document using its URI.
-                    Log.d("DBG", directoryUri.toString())
+                    //Log.d("DBG", directoryUri.toString())
                     mediaViewModel.runScanFilesInDir(directoryUri, application)
                     pendingFunCall()
                 }
@@ -371,28 +371,28 @@ fun RequestPermissionsScreen(){
         }
     }
 
-    @Composable
-    fun StatusLine(){
-        val generations = mediaViewModel.mediaStoreGenerations.collectAsState()
-        Row{
-            for(g in generations.value){
-                Row{
-                    Text(" $g")
-                }
-            }
-        }
-    }
+//    @Composable
+//    fun StatusLine(){
+//        val generations = mediaViewModel.mediaStoreGenerations.collectAsState()
+//        Row{
+//            for(g in generations.value){
+//                Row{
+//                    Text(" $g")
+//                }
+//            }
+//        }
+//    }
 
-    @Composable
-    fun ShowUnsortedTracks(tracks: List<MediaTrackData>){
-        LazyColumn {
-            tracks.forEach{
-                item {
-                    Text(it.title)
-                }
-            }
-        }
-    }
+//    @Composable
+//    fun ShowUnsortedTracks(tracks: List<MediaTrackData>){
+//        LazyColumn {
+//            tracks.forEach{
+//                item {
+//                    Text(it.title)
+//                }
+//            }
+//        }
+//    }
 
     @Composable
     fun ShowMagnitude(magnitudes: FloatArray){
@@ -416,7 +416,7 @@ fun RequestPermissionsScreen(){
 
                             drawRect(
                                 Color.Yellow,
-                                topLeft = Offset(x = i * step.toFloat(), y = canvasHeight - barHeight),
+                                topLeft = Offset(x = i * step, y = canvasHeight - barHeight),
                                 size = Size(step - 1f, barHeight)
                             )
 //                            drawLine(
@@ -435,6 +435,7 @@ fun RequestPermissionsScreen(){
     @RequiresApi(Build.VERSION_CODES.Q)
     @Composable
     fun SearchScreen(onNav: () -> Unit){
+        Timber.d("Recomp Search Screen")
         ShowProgressOrContent(mediaViewModel.progressTitle.collectAsState().value) {
 
             val querySortedResults = mediaViewModel.querySortedResults.collectAsState().value
@@ -506,11 +507,26 @@ fun RequestPermissionsScreen(){
                         Row(Modifier.padding(top = 4.dp)) {
                             Box {//for overlap
                                 Row {
-                                    TrackTime(
-                                        mediaViewModel.mediaController,
-                                        mediaViewModel.isRemainTime.collectAsState().value,
-                                        mediaViewModel::setRemainTime
-                                    )
+
+                                    with(mediaViewModel) {
+                                        TrackTime(
+                                            mediaController,
+                                            isRemainTime.collectAsState().value,
+                                            ::setRemainTime
+                                        )
+                                    }
+
+//                                    with(mediaViewModel) {
+//                                        TrackTime(
+//                                            showTime.collectAsState().value,
+//                                            currentTime.collectAsState().value,
+//                                            fullTime.collectAsState().value,
+//                                            ::onSliderChange,
+//                                            ::onSliderChangeFinished,
+//                                            ::toggleRemainTime
+//                                        )
+//                                    }
+
                                 }
                                 Row {
                                     TrackInfo(
@@ -584,8 +600,9 @@ fun RequestPermissionsScreen(){
             composable<NavTrackList> { TracksScreen(onNav={navController.navigate(route = NavSearch)}) }
             composable<NavScannedResults> { ViewFileSystemScanResults(onNavOK = {navController.navigate(route = NavMediaScannerResults){
                 popUpTo(NavSearch)
-            }} , onNavCancel = {navController.navigate(route = NavSearch) })}
-            composable<NavMediaScannerResults> { ViewMediaScannerResults(onNav = {}) }
+            }} //, onNavCancel = {navController.navigate(route = NavSearch)}
+            )}
+            composable<NavMediaScannerResults> { ViewMediaScannerResults() }
         }
     }
 
@@ -605,7 +622,7 @@ fun RequestPermissionsScreen(){
 
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
-    fun ViewFileSystemScanResults(onNavOK: () -> Unit, onNavCancel: () -> Unit){
+    fun ViewFileSystemScanResults(onNavOK: () -> Unit){
         ShowProgressOrContent(mediaViewModel.progressTitle.collectAsState().value) {
             val fileSystemScanResults = mediaViewModel.scanResults.collectAsState().value
 //            if(fileSystemScanResults.size == 0){
@@ -685,7 +702,7 @@ fun RequestPermissionsScreen(){
     }
 
     @Composable
-    fun ViewMediaScannerResults(onNav: () -> Unit){
+    fun ViewMediaScannerResults(){
         ShowProgressOrContent(mediaViewModel.progressTitle.collectAsState().value) {
             ShowMediaScannerResults(mediaViewModel.mediaScanResults.collectAsState().value)
         }
@@ -721,7 +738,7 @@ fun RequestPermissionsScreen(){
             )
         },
         ) { innerPadding ->
-
+            Box(modifier = Modifier.padding(innerPadding))
 //            ShowPlayList(mediaViewModel.cursor)
         }
     }

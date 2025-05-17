@@ -21,7 +21,6 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.MediaMetadata
-import androidx.media3.common.util.Log
 import androidx.media3.common.util.UnstableApi
 import kotlinx.coroutines.delay
 
@@ -50,7 +49,7 @@ fun ButtonAction(caption: String, onClick: () -> Unit) {
 
     LaunchedEffect(progressTitle) {
         while(progressTitle != ""){
-            Log.d("CRT", "from ShowProgress")
+            //Log.d("CRT", "from ShowProgress")
             delay(1000)
         }
     }
@@ -105,21 +104,21 @@ fun TrackInfo(mediaMetadata: MediaMetadata?, modifier: Modifier = Modifier) {
 //    } else {
         var songInfo = "";
         mediaMetadata.title?.let {
-            Log.d("DBG", it.toString())
+            //Log.d("DBG", it.toString())
             songInfo += it.toString()
         }
 //        mediaMetadata.artist?.let {
-//            Log.d("DBGC", it.toString())
+//            //Log.d("DBGC", it.toString())
 //            songInfo += "-"
 //            songInfo += it.toString()
 //        }
 //        mediaMetadata.recordingYear?.let {
-//            Log.d("DBG", it.toString())
+//            //Log.d("DBG", it.toString())
 //            songInfo += "-"
 //            songInfo += it.toString()
 //        }
 //        mediaMetadata.albumTitle?.let {
-//            Log.d("DBG", it.toString())
+//            //Log.d("DBG", it.toString())
 //            songInfo += "-"
 //            songInfo += it.toString()
 //        }

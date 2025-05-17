@@ -1,6 +1,6 @@
 package com.example.playermss.data
 
-import android.net.Uri
+import androidx.core.net.toUri
 import androidx.datastore.core.DataStore
 import com.example.playermss.Messages
 import com.example.playermss.Messages.MediaTrackDataList
@@ -12,15 +12,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.runBlocking
 import javax.inject.Inject
-import androidx.core.net.toUri
-import com.example.playermss.StringSet
-import kotlinx.coroutines.flow.MutableStateFlow
 
-class UserDataRepository @Inject constructor(private val dataStore: DataStore<MediaTrackDataList>,
-//                                             private val expArtistDataStore: DataStore<StringSet.NameList>,
-//                                             private val expAlbumDataStore: DataStore<StringSet.NameList>,
-    ) {
-
+class UserDataRepository @Inject constructor(private val dataStore: DataStore<MediaTrackDataList>) {
 
     fun asStateFlow(launchScope:CoroutineScope): StateFlow<List<MediaTrackData>> {
         return dataStore.data.map {
@@ -35,7 +28,7 @@ class UserDataRepository @Inject constructor(private val dataStore: DataStore<Me
 
     //todo asSortedTreeStateFlow ? may be not
 
-    private fun toMediaTrackDataList(items: Messages.MediaTrackDataList):List<MediaTrackData>{
+    private fun toMediaTrackDataList(items: MediaTrackDataList):List<MediaTrackData>{
         val trackList = mutableListOf<MediaTrackData>()
         for(i in 0..<items.tracksCount){
             val item = items.getTracks(i)
@@ -77,42 +70,5 @@ class UserDataRepository @Inject constructor(private val dataStore: DataStore<Me
                 .build()
         }
     }
-
-//    fun toSet(list: StringSet.NameList):Set<String>{
-//        val outSet = mutableSetOf<String>()
-//        for(i in 0..<list.nameCount){
-//            outSet += list.getName(i)
-//        }
-//        return outSet
-//    }
-//
-//    fun artistAsStateFlow(launchScope:CoroutineScope): StateFlow<Set<String>> {
-//        return expArtistDataStore.data.map {
-//            toSet(it)
-//        }.stateIn(scope = launchScope,
-//            started = SharingStarted.WhileSubscribed(5_000),
-//            initialValue = runBlocking {
-//                toSet(expArtistDataStore.data.first())
-//            }
-//        )
-//    }
-//
-//    suspend fun saveExpArtist(set: Set<String>){
-//        expArtistDataStore.updateData { names ->
-//
-////            val items = mutableListOf<String>()
-////
-////            set.forEach {
-////                items += it
-////            }
-//
-//            names.toBuilder()
-//                .clear()
-//                .setDirectLogic(true)
-//                .addAllName(set.toList())
-//                .build()
-//        }
-//    }
-
 
 }
