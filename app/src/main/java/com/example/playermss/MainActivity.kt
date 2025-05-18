@@ -58,6 +58,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -69,6 +70,8 @@ import androidx.navigation.compose.rememberNavController
 import com.example.compose.AppTheme
 import com.example.playermss.data.MediaScannerResults
 import com.example.playermss.data.MediaViewModel
+import com.example.playermss.data.TrackSortMode
+import com.example.playermss.data.toSortMode
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -333,6 +336,40 @@ fun RequestPermissionsScreen(){
 
     @RequiresApi(Build.VERSION_CODES.Q)
     @Composable
+    fun SortModeDropdownMenu() {
+        var expanded by remember { mutableStateOf(false) }
+        Box(
+            modifier = Modifier
+                .padding(2.dp)
+        ) {
+            IconButton(onClick = { expanded = !expanded }) {
+                Icon(painter = painterResource(id = R.drawable.sharp_arrow_drop_up_24), contentDescription = "More options")
+            }
+            DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false },
+
+                ) {
+                DropdownMenuItem(
+                    text = { Text("Artist, Album, Track")},//(resources.getString(R.string.Add_Dir)) },
+                    onClick = {
+                        mediaViewModel.setTrackListSortMode(TrackSortMode.ArtistAlbumTrack)
+                        expanded = false
+                    }
+                )
+                DropdownMenuItem(
+                    text = { Text("Album, Track")},//(resources.getString(R.string.Add_Dir)) },
+                    onClick = {
+                        mediaViewModel.setTrackListSortMode(TrackSortMode.AlbumTrack)
+                        expanded = false
+                    }
+                )
+            }
+        }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.Q)
+    @Composable
     fun MinimalDropdownMenu(onNav: () -> Unit) {
         var expanded by remember { mutableStateOf(false) }
         Box(
@@ -439,11 +476,13 @@ fun RequestPermissionsScreen(){
         ShowProgressOrContent(mediaViewModel.progressTitle.collectAsState().value) {
 
             val querySortedResults = mediaViewModel.querySortedResults.collectAsState().value
+            val queryGroupedByAlbumCD = mediaViewModel.queryGroupedByAlbumCD.collectAsState().value
             val currentTrackMediaMetadata = mediaViewModel.currentTrackMediaMetadata.collectAsState().value
-            val isSearchOpen = if (querySortedResults.isEmpty()) true
+            val isSearchOpen = if (querySortedResults?.isEmpty() == true) true
                                 else
                                     mediaViewModel.isSearchVisible.collectAsState().value
             val isVisualizerVisible = mediaViewModel.isVisualizerVisible.collectAsState().value
+            val trackSortMode = toSortMode(mediaViewModel.trackListSortModeOrd.collectAsState().value)
 
             Scaffold()
              { innerPadding ->
@@ -460,21 +499,33 @@ fun RequestPermissionsScreen(){
                             }
                         }
                         Row(Modifier.weight(7f)) {
-                                if(querySortedResults.isNotEmpty()) {
+                                if(querySortedResults?.isNotEmpty() == true || queryGroupedByAlbumCD?.isNotEmpty() == true) {
                                     Column(Modifier.fillMaxSize()) {
                                         Row(Modifier.weight(1f)) {
                                             SleevePicture(mediaViewModel.currentTrackMediaMetadata.collectAsState().value)
                                         }
                                         Row(Modifier.weight(1f)) {
 
-                                            ShowQueryResults(
-                                                querySortedResults,
-                                                mediaViewModel.expandedArtists.externalStringSet.collectAsState().value,
-                                                mediaViewModel.expandedAlbums.externalStringSet.collectAsState().value,
+                                            when(trackSortMode){
+                                                TrackSortMode.ArtistAlbumTrack ->
+                                                    ShowQueryResults(
+                                                        querySortedResults,
+                                                        mediaViewModel.expandedArtists.externalStringSet.collectAsState().value,
+                                                        mediaViewModel.expandedAlbums.externalStringSet.collectAsState().value,
 //                                    mediaViewModel.trackListScrollPos.collectAsState().value,
-                                                mediaViewModel.scrollPos.collectAsState().value,
-                                                mediaViewModel
-                                            )
+                                                        mediaViewModel.scrollPos.collectAsState().value,
+                                                        mediaViewModel
+                                                    )
+                                                TrackSortMode.AlbumTrack -> {
+                                                    ShowQueryResultsAlbumTrack(
+                                                        queryGroupedByAlbumCD,
+                                                        mediaViewModel.expandedAlbums.externalStringSet.collectAsState().value,
+                                                        mediaViewModel.scrollPos.collectAsState().value,
+                                                        mediaViewModel
+                                                    )
+                                                }
+                                                TrackSortMode.Path -> {}
+                                            }
                                         }
                                     }
                                 }else{
@@ -553,7 +604,7 @@ fun RequestPermissionsScreen(){
                             }
                             Column(
                                 Modifier
-                                    .weight(1f)
+                                    .weight(2f)
 //                        .width(intrinsicSize = IntrinsicSize.Max)
                                     .fillMaxWidth()
 //                                .background(color = Color.Magenta)
@@ -562,6 +613,9 @@ fun RequestPermissionsScreen(){
                                     Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.End
                                 ) {
+
+                                    SortModeDropdownMenu()
+
                                     IconButton(onClick = {
                                         isSearchOpen.let {
                                             mediaViewModel.setSearchVisible(

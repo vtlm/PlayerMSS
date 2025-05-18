@@ -1,11 +1,8 @@
 package com.example.playermss
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -16,7 +13,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -27,18 +23,14 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.constraintlayout.compose.ConstraintLayout
 import com.example.playermss.data.MediaTrackData
 import com.example.playermss.data.MediaViewModel
 import kotlinx.coroutines.flow.distinctUntilChanged
 import timber.log.Timber
 
-
+/*
 @Preview
 @Composable
 fun TestConstraint(){
@@ -105,7 +97,7 @@ fun ShowTrack(trackItem: MediaTrackData, key: Int, selectedKey: Int) {
 
     ShowTrackTitle(trackItem.track, trackItem.title, trackItem.duration, color)
 }
-
+*/
 private fun LazyListScope.showTracks(tracks: List<MediaTrackData>, mediaViewModel: MediaViewModel){
 
     tracks.forEach { trackItem ->
@@ -145,10 +137,12 @@ private fun LazyListScope.showTracks(tracks: List<MediaTrackData>, mediaViewMode
     }
 }
 
-private fun LazyListScope.showAlbums(albums: List<Pair<String, List<MediaTrackData>>>, mediaViewModel: MediaViewModel, albumExpanded: Set<String>){
-    albums.forEach {
+private fun LazyListScope.showAlbums(albums: List<Pair<Pair<String, String>, List<MediaTrackData>>>?, mediaViewModel: MediaViewModel, albumExpanded: Set<String>){
+    albums?.forEach {
 
-        val (albumKey, albumTracks) = it
+        val (albumPair, albumTracks) = it
+        val (albumPath, albumName) = albumPair
+
         item (key = System.identityHashCode(it)){//todo: recheck case if albums names same
             Surface (
                 modifier = Modifier
@@ -159,7 +153,7 @@ private fun LazyListScope.showAlbums(albums: List<Pair<String, List<MediaTrackDa
                     .pointerInput(Unit){
                         detectTapGestures (
                             onTap = {
-                                mediaViewModel.expandedAlbums.toggle(albumKey)
+                                mediaViewModel.expandedAlbums.toggle(albumPath)
                             },
                             onPress = {
 //                                mediaViewModel.toggleAlbumExpanded(albumName)
@@ -186,8 +180,8 @@ private fun LazyListScope.showAlbums(albums: List<Pair<String, List<MediaTrackDa
                     }
 
                 var descr = ""
-                if (albumKey != ""){
-                    val s =albumKey.split('/')
+                if (albumPath != ""){
+                    val s =albumPath.split('/')
                     if(s.size > 1) {
                         descr = s[s.size - 2]
                     }
@@ -236,43 +230,15 @@ private fun LazyListScope.showAlbums(albums: List<Pair<String, List<MediaTrackDa
             }
         }
 
-        if(albumExpanded.contains(albumKey)) {
+        if(albumExpanded.contains(albumPath)) {
             showTracks(albumTracks, mediaViewModel)
         }
     }
 }
 
-private fun LazyListScope.showArtist(artistAsPair: Pair<String, List<Pair<String, List<MediaTrackData>>>>, mediaViewModel: MediaViewModel, artistExpanded: Set<String>, albumExpanded: Set<String>){
-
-    val (artistName, artistAlbums) = artistAsPair
-
-    item (key = System.identityHashCode(artistAlbums)) {
-        Surface(
-            modifier = Modifier
-                .height(IntrinsicSize.Min)
-                .fillMaxSize()
-//        .border(width = Dp.Hairline, color = Color.Gray, shape = RectangleShape)//border(width = Dp.Hairline , brush = Brush.,shape=null )
-                .padding(2.dp)
-                .clickable(
-                    onClick = {
-                        mediaViewModel.expandedArtists.toggle(artistName)
-                    }),
-            shape = RoundedCornerShape(10),
-//                colors = if(mediaData.listIndex == playingIndex) CardDefaults.elevatedCardColors() else CardDefaults.cardColors()
-        ) {
-            Text("${stringResource(R.string.Artist)}: ${artistName}. ${stringResource(R.string.Albums)}: ${artistAlbums.count()}")
-        }
-    }
-
-    if(artistExpanded.contains(artistName)) {
-        showAlbums(artistAlbums, mediaViewModel, albumExpanded)
-    }
-}
-
 @Composable
-fun ShowQueryResults(
-    results: List<Pair<String, List<Pair<String, List<MediaTrackData>>>>>?,
-    artistExpanded: Set<String>,
+fun ShowQueryResultsAlbumTrack(
+    results:List<Pair<Pair<String, String>, List<MediaTrackData>>>?,
     albumExpanded: Set<String>,
     scrollPos: Int?,
     mediaViewModel: MediaViewModel
@@ -338,9 +304,7 @@ fun ShowQueryResults(
     }
 
     LazyColumn(state = listState) {
-        results?.forEach {
-            showArtist(it, mediaViewModel, artistExpanded, albumExpanded)
-        }
+            showAlbums(results, mediaViewModel, albumExpanded)
     }
 }
 
