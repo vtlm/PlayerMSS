@@ -549,7 +549,6 @@ fun RequestPermissionsScreen(){
                                     mediaViewModel.playerRepeatMode.collectAsState().value,
 //                                mediaController = mediaViewModel.mediaController,
                                     mediaViewModel,
-                                    modifier = Modifier.weight(4f)
                                 )
                             }
                             Column(
