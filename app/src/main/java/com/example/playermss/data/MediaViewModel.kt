@@ -45,6 +45,7 @@ val USER_TRACK_LIST_SCROLL_POS = intPreferencesKey("user_track_list_scroll_pos")
 val PLAYING_ITEM_ID = intPreferencesKey("playing_item_id")
 //val IS_UI_SEARCH_VISIBLE = booleanPreferencesKey("is_ui_search_visible")
 val IS_VISUALIZER_VISIBLE = booleanPreferencesKey("is_visualizer_visible")
+val TRACK_LIST_SORT_MODE = intPreferencesKey("track_list_sort_mode")
 
 data class MediaScannerErrorEntry(
     var filePath: String?
@@ -94,8 +95,11 @@ class MediaViewModel @Inject constructor(
 
     private val tracksList: StateFlow<List<MediaTrackData>> = userDataRepository.asStateFlow(viewModelScope)
 
-    private val _querySortedResults = MutableStateFlow(sortByArtistAlbumAsPairs(tracksList.value))
-    val querySortedResults: StateFlow<List<Pair<String, List<Pair<String, List<MediaTrackData>>>>>> = _querySortedResults.asStateFlow()
+    private val _querySortedResults = MutableStateFlow<List<Pair<String, List<Pair<String, List<MediaTrackData>>>>>?>(null)//(sortByArtistAlbumAsPairs(tracksList.value))
+    val querySortedResults: StateFlow<List<Pair<String, List<Pair<String, List<MediaTrackData>>>>>?> = _querySortedResults.asStateFlow()
+
+    private val _queryGroupedByAlbumCD = MutableStateFlow<List<Pair<Pair<String, String>, List<MediaTrackData>>>?>(null)
+    val queryGroupedByAlbumCD: StateFlow<List<Pair<Pair<String, String>, List<MediaTrackData>>>?> = _queryGroupedByAlbumCD.asStateFlow()
 
     private var _magnitudes = MutableStateFlow(floatArrayOf())
     val magnitudes: StateFlow<FloatArray> = _magnitudes.asStateFlow()
@@ -105,11 +109,18 @@ class MediaViewModel @Inject constructor(
 
     lateinit var lazyListState: LazyListState
 
-    val userScrollPos = userPreferencesRepository.getOrDefault(USER_TRACK_LIST_SCROLL_POS, 0)
+    private val userScrollPos = userPreferencesRepository.getOrDefault(USER_TRACK_LIST_SCROLL_POS, 0)
     fun setUserScrollPos(pos: Int) = userPreferencesRepository.set(USER_TRACK_LIST_SCROLL_POS, viewModelScope, pos)
+
+    val trackListSortModeOrd = userPreferencesRepository.getOrDefaultAsStateFlow(TRACK_LIST_SORT_MODE, viewModelScope, TrackSortMode.AlbumTrack.ordinal)
+    fun setTrackListSortMode(trackSortMode: TrackSortMode) = userPreferencesRepository.set(
+        TRACK_LIST_SORT_MODE, viewModelScope, trackSortMode.ordinal)
 
     private val _scrollPos = MutableStateFlow(0)
     val scrollPos: StateFlow<Int?> = _scrollPos.asStateFlow()
+
+
+
 
 //    private val _currentTime = MutableStateFlow(0L)
 //    val currentTime: StateFlow<Long> = _currentTime.asStateFlow()
@@ -172,7 +183,7 @@ class MediaViewModel @Inject constructor(
     private var nextMediaTrackData: MediaTrackData? = null
 
 
-    fun setTrackListScrollPos(trackListScrollPos: Int) {
+    private fun setTrackListScrollPos(trackListScrollPos: Int) {
         //Log.d("DBGL","VM: traCkListScrollPos: $trackListScrollPos")
         _scrollPos.value = trackListScrollPos
     }
@@ -188,7 +199,7 @@ class MediaViewModel @Inject constructor(
     fun setPlayingItemId(itemId: Int?) = userPreferencesRepository.set(PLAYING_ITEM_ID,viewModelScope, itemId)
 
     val playerRepeatMode: StateFlow<Int> = userPreferencesRepository.getOrDefaultAsStateFlow(PLAYER_REPEAT_MODE, viewModelScope, 0)
-    fun setPlayerRepeatMode(playerRepeatMode: Int) = userPreferencesRepository.set(PLAYER_REPEAT_MODE,viewModelScope, playerRepeatMode)
+    private fun setPlayerRepeatMode(playerRepeatMode: Int) = userPreferencesRepository.set(PLAYER_REPEAT_MODE,viewModelScope, playerRepeatMode)
 
     fun incPlayerRepeatMode() {
         var nextPlayerRepeatMode = playerRepeatMode.value + 1
@@ -595,9 +606,15 @@ private val playerListener = object: Player.Listener {
                 prevMediaTrackData = searchHelper.getPrev(currentMediaTrackData)
                 nextMediaTrackData = searchHelper.getNext(currentMediaTrackData)
 
-                if (it.size == 1) {
+                if (it?.size == 1) {
                     expandedArtists.add(it[0].first)
                 }
+            }
+        }
+
+        viewModelScope.launch(Dispatchers.Default) {
+            trackListSortModeOrd.collect{
+                groupAndSortTracks(tracksList.value, toSortMode(it))
             }
         }
 
@@ -758,13 +775,13 @@ private val playerListener = object: Player.Listener {
         return list.filterNotNull()
     }
 
-//    fun keyFor(mtd: MediaTrackData): String{
-//        val p = mtd.
-//    }
+    private fun groupByPathAsAlbumCD(listIn: List<MediaTrackData>):  List<Pair<Pair<String, String>, List<MediaTrackData>>>{
+        val mapByPathAlbumCD = listIn.groupBy { Pair(it.relativePath, it.album) }
+        val sortedList = mapByPathAlbumCD.toList().sortedWith(compareBy({it.second[0].artist}, {it.second[0].year}, {it.first.second}))
+        return sortedList
+    }
 
     private fun sortByArtistAlbumAsPairs(list: List<MediaTrackData>):  List<Pair<String, List<Pair<String, List<MediaTrackData>>>>>{
-
-
         val setByArtist = list.groupBy { it.artist }.toList().toSortedSet(compareBy { it.first })
         val listByArtistAlbum = setByArtist.map { Pair(it.first, it.second.groupBy { it1 -> it1.relativePath }.toList().toSortedSet(
             compareBy { it2 -> it2.second[0].year.toString() + it2.first }
@@ -773,6 +790,22 @@ private val playerListener = object: Player.Listener {
         return listByArtistAlbumTrack
     }
 
+    private fun groupAndSortTracks(list: List<MediaTrackData>, sortMode: TrackSortMode){
+        when(sortMode){
+            TrackSortMode.ArtistAlbumTrack -> {
+                val sortedList = sortByArtistAlbumAsPairs(list)
+                _querySortedResults.value = sortedList
+            }
+            TrackSortMode.AlbumTrack -> {
+                _queryGroupedByAlbumCD.value = groupByPathAsAlbumCD(list)
+            }
+            TrackSortMode.Path -> {}
+        }
+        setUserScrollPos(0)
+
+    }
+
+
     @RequiresApi(Build.VERSION_CODES.Q)
     private fun updateQueryStatistic(list: List<MediaTrackData>){
 
@@ -780,9 +813,7 @@ private val playerListener = object: Player.Listener {
             userDataRepository.saveTrackList(list)
         }
 
-        val sortedList = sortByArtistAlbumAsPairs(list)
-        _querySortedResults.value = sortedList
-        setUserScrollPos(0)
+        groupAndSortTracks(list, toSortMode(trackListSortModeOrd.value))
     }
 
     @RequiresApi(Build.VERSION_CODES.Q)
