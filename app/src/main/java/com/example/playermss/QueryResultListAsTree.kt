@@ -3,6 +3,7 @@ package com.example.playermss
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -79,19 +80,40 @@ fun TestConstraint(){
 @Preview
 @Composable
 fun TestShowTrackTitle(){
-    ShowTrackTitle(1,"Title Title Title Title Title Title Title Title Title Title Title Title Title Title Title Title Title ",400000,Color.White)
+    ShowTrackTitle(1,"Title Title Title Title Title Title Title Title Title Title Title Title Title Title Title Title Title ","Artist",400000,Color.White)
 }
 
 @Composable
-fun ShowTrackTitle(track: Int?, title: String, duration: Int?, color: Color){
+fun ShowTrackTitle(track: Int?, title: String, artist: String, duration: Int?, color: Color){
     Row(
         modifier = Modifier.fillMaxWidth().padding(start = 4.dp, end = 2.dp),
 //        horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Column(modifier = Modifier.fillMaxWidth().weight(5f)) {
-            Text(modifier = Modifier.align(Alignment.Start), color = color, text = "$track - $title")
+            Row {
+                Column (Modifier.fillMaxHeight(),
+                        verticalArrangement = Arrangement.Center) {
+                    Text(
+                        modifier = Modifier.align(Alignment.Start),
+                        color = color,
+                        text = "$track - "
+                    )
+                }
+                Column {
+                    Row {
+                        Text(color = color, text = title)
+                    }
+                    if (artist.isNotEmpty()) {
+                        Row {
+                            Text(color = color, text = artist)
+                        }
+
+                    }
+                }
+            }
         }
-        Column(Modifier.fillMaxWidth().weight(1f)) {
+        Column(Modifier.fillMaxSize().weight(1f),
+            verticalArrangement = Arrangement.Center) {
             Text(modifier = Modifier.align(Alignment.End), color = color, text = duration(duration))
         }
     }
@@ -99,11 +121,17 @@ fun ShowTrackTitle(track: Int?, title: String, duration: Int?, color: Color){
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun ShowTrack(trackItem: MediaTrackData, key: Int, selectedKey: Int) {
+fun ShowTrack(trackItem: MediaTrackData, key: Int, selectedKey: Int, isVariousArtists: Boolean) {
     //Log.d("SII","selected: $selectedKey, current: $key name: ${trackItem.title}")
     val color = if (key == selectedKey) Color.Yellow else MaterialTheme.colorScheme.onSecondaryContainer
 
-    ShowTrackTitle(trackItem.track, trackItem.title, trackItem.duration, color)
+    val artistName = if(isVariousArtists){
+        trackItem.artist
+    }else{
+        ""
+    }
+
+    ShowTrackTitle(trackItem.track, trackItem.title, artistName, trackItem.duration, color)
 }
 
 private fun LazyListScope.showTracks(tracks: List<MediaTrackData>, mediaViewModel: MediaViewModel){
@@ -124,14 +152,11 @@ private fun LazyListScope.showTracks(tracks: List<MediaTrackData>, mediaViewMode
                     .pointerInput(Unit){
                         detectTapGestures (
                             onTap = {
-                                //Log.d("DTTREE", trackItem.title)
                                 mediaViewModel.play(trackItem)
                             },
                             onPress = {
-//                                mediaViewModel.toggleAlbumExpanded(albumName)
                             },
                             onLongPress = {
-//                                //Log.d("LP","Album long press: $albumName")
                             }
                         )
                     },
@@ -139,7 +164,7 @@ private fun LazyListScope.showTracks(tracks: List<MediaTrackData>, mediaViewMode
 //                shape = RoundedCornerShape(10),
             ) {
                 val selected = mediaViewModel.playingItemId.collectAsState().value
-                ShowTrack(trackItem, itemKey, selected)
+                ShowTrack(trackItem, itemKey, selected, false)
             }
         }
     }
@@ -154,7 +179,6 @@ private fun LazyListScope.showAlbums(albums: List<Pair<String, List<MediaTrackDa
                 modifier = Modifier
                     .height(IntrinsicSize.Min)
                     .fillMaxSize()
-//        .border(width = Dp.Hairline, color = Color.Gray, shape = RectangleShape)//border(width = Dp.Hairline , brush = Brush.,shape=null )
                     .padding(start = 2.dp, end = 2.dp, top = 2.dp, bottom = 2.dp)
                     .pointerInput(Unit){
                         detectTapGestures (
@@ -162,15 +186,12 @@ private fun LazyListScope.showAlbums(albums: List<Pair<String, List<MediaTrackDa
                                 mediaViewModel.expandedAlbums.toggle(albumKey)
                             },
                             onPress = {
-//                                mediaViewModel.toggleAlbumExpanded(albumName)
                             },
                             onLongPress = {
-                                //Log.d("LP","Album long press: $albumKey")
                             }
                         )
                     },
                 color = MaterialTheme.colorScheme.primaryContainer,
-//                shape = RoundedCornerShape(10),
             ) {
                 val year =
                     if(albumTracks.isNotEmpty()){

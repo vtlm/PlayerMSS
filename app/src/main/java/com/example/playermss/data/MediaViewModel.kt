@@ -621,6 +621,12 @@ private val playerListener = object: Player.Listener {
             }
         }
 
+        viewModelScope.launch(Dispatchers.Default) {
+            tracksList.collect{
+                groupAndSortTracks(it, toSortMode(trackListSortModeOrd.value))
+            }
+        }
+
 // experimental for trackTime
 //
 
@@ -754,18 +760,6 @@ private val playerListener = object: Player.Listener {
         }
     }
 
-//    @RequiresExtension(extension = Build.VERSION_CODES.R, version = 1)
-//    @RequiresApi(Build.VERSION_CODES.Q)
-//    private fun reCheckMediaStoreGeneration(){
-//        val externalVolumeNames = MediaStore.getExternalVolumeNames(context)
-//        val generations = externalVolumeNames.map{MediaStore.getGeneration(context,it)}
-//
-//        if(_mediaStoreGenerations.value != generations){
-//            _mediaStoreGenerations.value = generations
-//        }
-//
-//    }
-
     @RequiresApi(Build.VERSION_CODES.Q)
     private fun cursorToTrackList(cursor: Cursor): List<MediaTrackData>{
         val audioColumnIds = audioColumns.associateWith { cursor.getColumnIndex(it) }
@@ -779,9 +773,10 @@ private val playerListener = object: Player.Listener {
     }
 
     private fun groupByPathAsAlbumCD(listIn: List<MediaTrackData>):  List<Pair<Pair<String, String>, List<MediaTrackData>>>{
-        val mapByPathAlbumCD = listIn.groupBy { Pair(it.relativePath, it.album) }
-        val sortedList = mapByPathAlbumCD.toList().sortedWith(compareBy({it.second[0].artist}, {it.second[0].year}, {it.first.second}))
-        return sortedList
+        val mapByPathAlbumCD = listIn.groupBy { Pair(it.relativePath, it.album) }.toList().toSortedSet(compareBy{it.first.first})
+//        val sortedListByAlbums = mapByPathAlbumCD.toList().sortedWith(compareBy({it.second[0].artist}, {it.second[0].year}, {it.first.second}))
+        val sortedListByAlbumsTracks = mapByPathAlbumCD.map {Pair(it.first, it.second.sortedBy { mtd -> mtd.track })}
+        return sortedListByAlbumsTracks
     }
 
     private fun sortByArtistAlbumAsPairs(list: List<MediaTrackData>):  List<Pair<String, List<Pair<String, List<MediaTrackData>>>>>{
@@ -817,7 +812,6 @@ private val playerListener = object: Player.Listener {
         currentMediaTrackData = searchHelper.getMediaTrackDataForCode(playingItemId.value)
         prevMediaTrackData = searchHelper.getPrev(currentMediaTrackData)
         nextMediaTrackData = searchHelper.getNext(currentMediaTrackData)
-
     }
 
 
