@@ -1,62 +1,25 @@
-package com.example.playermss.data
+package com.example.playermss.data.searchhelper
 
 import androidx.media3.common.Player
+import com.example.playermss.data.MediaTrackData
 
 
-class SearchHelper(private val groupedSortedTracks: List<Pair<String, List<Pair<String, List<MediaTrackData>>>>>?){
+class SearchHelperArtistAlbumTrack(
+    private val groupedSortedTracks: List<Pair<String, List<Pair<String, List<MediaTrackData>>>>>?) : SearchHelper {
 
 //    var currentArtist: String? = ""
 //    var currentAlbumKey: String? = ""
 
-    var overrunTop = false
-    var overrunBottom = false
+    override var overrunTop = false
+    override var overrunBottom = false
 
-
-    private var repeatMode = Player.REPEAT_MODE_OFF
-
-    fun clearOverruns(){
-        overrunTop = false
-        overrunBottom = false
-    }
-
-    fun checkOverrunsFromTopToBottom():Boolean {
-        var overrun = false
-        if(overrunTop){
-            overrunTop = false
-            overrunBottom = true
-            overrun = true
-        }else{
-            if(overrunBottom)
-            {
-                overrunBottom = false
-            }
-        }
-        return overrun
-    }
-
-    fun checkOverrunsFromBottomToTop():Boolean {
-        var overrun = false
-        if(overrunBottom){
-            overrunTop = true
-            overrunBottom = false
-            overrun = true
-        }else{
-            if(overrunTop){
-                overrunTop = false
-            }
-        }
-        return overrun
-    }
-
-    fun setRepeatMode(_repeatMode: Int){
-        repeatMode = _repeatMode
-    }
+    override var repeatMode = Player.REPEAT_MODE_OFF
 
 //    fun getMediaItem(mediaTrackData: MediaTrackData?):MediaItem?{
 //        return mediaTrackData?.uri?.let { MediaItem.fromUri(it) }
 //    }
 
-    fun getMediaTrackDataForCode(code: Int): MediaTrackData?{
+    override fun getMediaTrackDataForCode(code: Int): MediaTrackData?{
         groupedSortedTracks?.forEach { artistAlbums ->
             artistAlbums.second.forEach { album ->
                 album.second.forEach { trackData ->
@@ -154,7 +117,7 @@ class SearchHelper(private val groupedSortedTracks: List<Pair<String, List<Pair<
         return null
     }
 
-    fun getPrev(mediaTrackData: MediaTrackData?): MediaTrackData?{
+    override fun getPrev(mediaTrackData: MediaTrackData?): MediaTrackData?{
 //        overrunTop = false
 //        overrunBottom =false
         //Log.d("TRD","prev for ${mediaTrackData?.title}")
@@ -184,7 +147,7 @@ class SearchHelper(private val groupedSortedTracks: List<Pair<String, List<Pair<
         return null
     }
 
-    fun getNext(mediaTrackData: MediaTrackData?): MediaTrackData?{
+    override fun getNext(mediaTrackData: MediaTrackData?): MediaTrackData?{
 //        overrunTop = false
 //        overrunBottom =false
         //Log.d("TRD","next for ${mediaTrackData?.title}")
