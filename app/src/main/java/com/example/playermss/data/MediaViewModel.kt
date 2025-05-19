@@ -26,6 +26,9 @@ import com.anggrayudi.storage.file.DocumentFileCompat
 import com.anggrayudi.storage.file.getAbsolutePath
 import com.example.playermss.PlayerMSSReleaseApplication
 import com.example.playermss.R
+import com.example.playermss.data.searchhelper.SearchHelper
+import com.example.playermss.data.searchhelper.SearchHelperAlbumTrack
+import com.example.playermss.data.searchhelper.SearchHelperArtistAlbumTrack
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -112,7 +115,7 @@ class MediaViewModel @Inject constructor(
     private val userScrollPos = userPreferencesRepository.getOrDefault(USER_TRACK_LIST_SCROLL_POS, 0)
     fun setUserScrollPos(pos: Int) = userPreferencesRepository.set(USER_TRACK_LIST_SCROLL_POS, viewModelScope, pos)
 
-    val trackListSortModeOrd = userPreferencesRepository.getOrDefaultAsStateFlow(TRACK_LIST_SORT_MODE, viewModelScope, TrackSortMode.AlbumTrack.ordinal)
+    val trackListSortModeOrd = userPreferencesRepository.getOrDefaultAsStateFlow(TRACK_LIST_SORT_MODE, viewModelScope, TrackSortMode.ArtistAlbumTrack.ordinal)
     fun setTrackListSortMode(trackSortMode: TrackSortMode) = userPreferencesRepository.set(
         TRACK_LIST_SORT_MODE, viewModelScope, trackSortMode.ordinal)
 
@@ -177,7 +180,7 @@ class MediaViewModel @Inject constructor(
 //    private lateinit var equalizer: Equalizer
     private lateinit var visualizer: Visualizer
 
-    lateinit var searchHelper: SearchHelper
+    lateinit var searchHelper: SearchHelper//ArtistAlbumTrack
     private var currentMediaTrackData: MediaTrackData? = null
     private var prevMediaTrackData: MediaTrackData? = null
     private var nextMediaTrackData: MediaTrackData? = null
@@ -545,7 +548,7 @@ private val playerListener = object: Player.Listener {
                 }
 
                 if (this@MediaViewModel::searchHelper.isInitialized) {
-                    searchHelper.setRepeatMode(newRepeatMode)
+                    searchHelper.repeatMode = newRepeatMode
 
                     if (currentMediaTrackData != null) {
 
@@ -597,20 +600,20 @@ private val playerListener = object: Player.Listener {
             }
         }
 
-        viewModelScope.launch(Dispatchers.Default) {
-            querySortedResults.collect {
-                searchHelper = SearchHelper(it)
-                searchHelper.setRepeatMode(playerRepeatMode.value)
-
-                currentMediaTrackData = searchHelper.getMediaTrackDataForCode(playingItemId.value)
-                prevMediaTrackData = searchHelper.getPrev(currentMediaTrackData)
-                nextMediaTrackData = searchHelper.getNext(currentMediaTrackData)
-
-                if (it?.size == 1) {
-                    expandedArtists.add(it[0].first)
-                }
-            }
-        }
+//        viewModelScope.launch(Dispatchers.Default) {
+//            querySortedResults.collect {
+//                searchHelper = SearchHelperArtistAlbumTrack(it)
+//                searchHelper.repeatMode = playerRepeatMode.value
+//
+//                currentMediaTrackData = searchHelper.getMediaTrackDataForCode(playingItemId.value)
+//                prevMediaTrackData = searchHelper.getPrev(currentMediaTrackData)
+//                nextMediaTrackData = searchHelper.getNext(currentMediaTrackData)
+//
+//                if (it?.size == 1) {
+//                    expandedArtists.add(it[0].first)
+//                }
+//            }
+//        }
 
         viewModelScope.launch(Dispatchers.Default) {
             trackListSortModeOrd.collect{
@@ -795,13 +798,25 @@ private val playerListener = object: Player.Listener {
             TrackSortMode.ArtistAlbumTrack -> {
                 val sortedList = sortByArtistAlbumAsPairs(list)
                 _querySortedResults.value = sortedList
+                searchHelper = SearchHelperArtistAlbumTrack(sortedList)
+
+                if (sortedList.size == 1) {
+                    expandedArtists.add(sortedList[0].first)
+                }
+
             }
             TrackSortMode.AlbumTrack -> {
-                _queryGroupedByAlbumCD.value = groupByPathAsAlbumCD(list)
+                val sortedList = groupByPathAsAlbumCD(list)
+                _queryGroupedByAlbumCD.value = sortedList
+                searchHelper = SearchHelperAlbumTrack(sortedList)
             }
             TrackSortMode.Path -> {}
         }
         setUserScrollPos(0)
+        searchHelper.repeatMode = playerRepeatMode.value
+        currentMediaTrackData = searchHelper.getMediaTrackDataForCode(playingItemId.value)
+        prevMediaTrackData = searchHelper.getPrev(currentMediaTrackData)
+        nextMediaTrackData = searchHelper.getNext(currentMediaTrackData)
 
     }
 
