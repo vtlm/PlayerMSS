@@ -32,45 +32,6 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
 import com.example.playermss.data.QueryTextField
 
-@RequiresApi(Build.VERSION_CODES.Q)
-@Composable
-fun SearchField1(textValue: QueryTextField, onDone:  () -> Unit? = {}){
-    val text = textValue.text.collectAsState()
-    val keyboardController = LocalSoftwareKeyboardController.current
-    val textField = FocusRequester()
-
-    OutlinedTextField(
-        value = text.value,
-        singleLine = true,
-        modifier = Modifier
-            .fillMaxWidth()
-            .focusRequester(textField),
-        onValueChange = {str -> textValue.setText(str)},
-        label = { Text(textValue.description) },
-        trailingIcon = {
-            if (text.value != "") {
-                IconButton(onClick = {
-                    textValue.setText("")
-                    textField.requestFocus()
-                }) {
-                    Icon(
-                        Icons.Default.Clear,
-                        contentDescription = "Clear"
-                    )
-                }
-            }
-        },
-        isError = false,
-        keyboardOptions = KeyboardOptions.Default.copy(
-            imeAction = ImeAction.Done
-        ),
-        keyboardActions = KeyboardActions(
-            onDone = {
-                keyboardController?.hide()
-                onDone()
-            }
-        ))
-}
 @OptIn(ExperimentalMaterial3Api::class)
 @RequiresApi(Build.VERSION_CODES.Q)
 @Composable
@@ -145,8 +106,6 @@ fun SearchField(queryTextField: QueryTextField, onDone:  () -> Unit? = {}){
                 }
             }
         }
-
-
     }
 }
 
