@@ -91,10 +91,11 @@ fun SearchField(queryTextField: QueryTextField, onDone:  () -> Unit? = {}){
                 }
             ))
 
-        if(queryTextField.userInputDictFilteredByCurrentText().isNotEmpty()) {
+        val currentSuggestionsList = queryTextField.userInputDictFilteredByCurrentText()
 
+        if(currentSuggestionsList.isNotEmpty()) {
             ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                queryTextField.userInputDictFilteredByCurrentText().forEach { option ->
+                currentSuggestionsList.forEach { option ->
                     DropdownMenuItem(
                         text = { Text(option, style = MaterialTheme.typography.bodyLarge) },
                         onClick = {
